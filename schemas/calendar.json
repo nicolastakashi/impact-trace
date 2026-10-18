@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "required": ["week", "pages_read", "exhausted", "events"],
+  "properties": {
+    "week": { "type": "string", "pattern": "^\\d{4}-W\\d{2}$" },
+    "pages_read": { "type": "integer", "minimum": 1 },
+    "exhausted": { "type": "boolean" },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "summary", "start", "end", "event_type", "status", "organizer", "my_response", "attendees", "recurring", "html_link", "urls"],
+        "properties": {
+          "id": { "type": "string" },
+          "summary": { "type": "string" },
+          "start": { "type": "string" },
+          "end": { "type": "string" },
+          "event_type": { "type": "string" },
+          "status": { "type": "string" },
+          "organizer": { "type": "string" },
+          "my_response": { "type": "string" },
+          "attendees": { "type": "array", "items": { "type": "string" } },
+          "recurring": { "type": "boolean" },
+          "html_link": { "type": "string" },
+          "urls": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

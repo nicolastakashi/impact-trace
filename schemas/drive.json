@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "required": ["week", "pages_read", "exhausted", "files"],
+  "properties": {
+    "week": { "type": "string", "pattern": "^\\d{4}-W\\d{2}$" },
+    "pages_read": { "type": "integer", "minimum": 1 },
+    "exhausted": { "type": "boolean" },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "mime_type", "created_time", "modified_time", "url"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "mime_type": { "type": "string" },
+          "created_time": { "type": "string" },
+          "modified_time": { "type": "string" },
+          "url": { "type": "string" }
+        }
+      }
+    }
+  }
+}

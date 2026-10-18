@@ -43,10 +43,22 @@ export function isCurrentWeek(week: string, today = new Date()) {
   return isoWeek(today.toISOString()) <= week;
 }
 
-const prRef = (url: string) => {
-  const m = url.match(/^https:\/\/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/);
-  return m ? `github:${m[1]}#${m[2]}` : url;
-};
+// One id per PR, issue or doc, whichever source mentions it. Anything else stays a URL.
+export function refOf(url: string) {
+  let m;
+  if ((m = url.match(/^https:\/\/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/))) return `github:${m[1]}#${m[2]}`;
+  if ((m = url.match(/^https:\/\/linear\.app\/[^/]+\/issue\/([A-Z]+-\d+)/))) return `linear:${m[1]}`;
+  if ((m = url.match(/^https:\/\/docs\.google\.com\/(?:document|spreadsheets|presentation)\/d\/([\w-]+)/))) return `gdoc:${m[1]}`;
+  return url;
+}
+
+// References in free text: URLs, plus bare issue ids like ABC-12 for team keys seen in Linear.
+// Only known keys count, so "UTF-8" is not an issue.
+export function refsIn(text: string, issueKeys: Set<string>) {
+  const refs = new Set((text.match(/https?:\/\/[^\s<>|)"']+/g) ?? []).map(refOf));
+  for (const m of text.matchAll(/\b([A-Z]{2,6})-(\d+)\b/g)) if (issueKeys.has(m[1])) refs.add(`linear:${m[1]}-${m[2]}`);
+  return [...refs];
+}
 
 function check(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -62,7 +74,7 @@ export function ingestWeek(db: Database, dir: string, week: string) {
       payload=excluded.payload, run_id=excluded.run_id`);
   const link = db.query("INSERT OR IGNORE INTO links (from_id, to_ref, rel) VALUES (?, ?, ?)");
 
-  for (const source of ["linear", "github"]) {
+  for (const source of ["linear", "github", "slack_own", "slack_mention", "calendar", "drive"]) {
     const file = join(dir, `${source}.run.json`);
     if (!existsSync(file)) continue;
     const run = JSON.parse(readFileSync(file, "utf8"));
@@ -83,8 +95,15 @@ export function ingestWeek(db: Database, dir: string, week: string) {
         const missed = [...inWindow].filter((id) => !picked.has(id));
         if (missed.length) console.warn(`linear ${week}: no attachments collected for ${missed.join(", ")}`);
         [expected, got] = [inWindow.size, [...inWindow].filter((id) => picked.has(id)).length];
-      } else got = out.prs_merged.length;
-      status = expected == null || expected === got ? "ok" : "count_mismatch";
+      } else if (source === "github") got = out.prs_merged.length;
+      else if (source === "calendar") got = out.events.length;
+      else if (source === "drive") got = out.files.length;
+      else {
+        // No source gives Slack a total, so the only check left is that paging finished.
+        got = out.messages.length;
+        if (!out.exhausted) console.warn(`slack ${week}: paging did not finish after ${out.pages_read} pages`);
+      }
+      status = (expected == null || expected === got) && out.exhausted !== false ? "ok" : "count_mismatch";
     }
     result[source] = status;
 
@@ -94,7 +113,10 @@ export function ingestWeek(db: Database, dir: string, week: string) {
         .run(runId, week, source, run.total_cost_usd ?? null, run.num_turns ?? null, expected, got, status, now);
       if (status === "error") return;
       if (source === "linear") ingestLinear(db, out, week, runId, now, event, link);
-      else ingestGithub(out, week, runId, event, link);
+      else if (source === "github") ingestGithub(out, week, runId, event, link);
+      else if (source === "calendar") ingestCalendar(out, week, runId, event, link);
+      else if (source === "drive") ingestDrive(out, week, runId, event, link);
+      else ingestSlack(db, out, week, runId, event, link);
     })();
   }
   return result;
@@ -128,7 +150,58 @@ function ingestLinear(db: Database, out: any, week: string, runId: string, now: 
     const id = `linear:${i.id}`;
     event.run(id, "linear", done ? "issue_completed" : "issue_open", done ? isoWeek(i.completed_at) : week,
       i.completed_at, i.title, i.url, null, pid, mid, JSON.stringify(i), runId);
-    for (const u of urls.get(i.id) ?? []) link.run(id, prRef(u), "attachment");
+    for (const u of urls.get(i.id) ?? []) link.run(id, refOf(u), "attachment");
+  }
+}
+
+// Team keys of the Linear issues already ingested, so bare ids in text can be told from noise.
+function issueKeys(db: Database) {
+  const rows = db.query("SELECT DISTINCT substr(id, 8, instr(substr(id, 8), '-') - 1) k FROM events WHERE source = 'linear'").all() as { k: string }[];
+  return new Set(rows.map((r) => r.k));
+}
+
+function ingestCalendar(out: any, week: string, runId: string, event: any, link: any) {
+  for (const e of out.events) {
+    // A meeting is a regular event with someone else in it that you did not decline.
+    const meeting = e.event_type === "DEFAULT" && e.status !== "cancelled" && e.my_response !== "declined" && e.attendees.length > 1;
+    const at = new Date(e.start).toISOString();
+    if (!meeting || isoWeek(at) !== week) continue;
+    const id = `calendar:${e.id}`;
+    event.run(id, "calendar", "meeting", week, at, e.summary, e.html_link, e.organizer, null, null, JSON.stringify(e), runId);
+    // Only typed refs: agendas also carry board and huddle links that would join unrelated threads.
+    for (const u of e.urls) if (refOf(u) !== u) link.run(id, refOf(u), "agenda");
+  }
+}
+
+const DOC = /^application\/vnd\.google-apps\.(document|spreadsheet|presentation)$/;
+
+function ingestDrive(out: any, week: string, runId: string, event: any, link: any) {
+  for (const f of out.files) {
+    // Folders and shortcuts are made by Gemini notes, not by you.
+    if (!DOC.test(f.mime_type)) continue;
+    const created = isoWeek(f.created_time) === week;
+    // A doc can change in many weeks, so the week is part of the id.
+    const id = `drive:${f.id}:${week}`;
+    event.run(id, "drive", created ? "doc_created" : "doc_edited", week, created ? f.created_time : f.modified_time,
+      f.title, f.url, null, null, null, JSON.stringify(f), runId);
+    link.run(id, refOf(f.url), "is");
+  }
+}
+
+function ingestSlack(db: Database, out: any, week: string, runId: string, event: any, link: any) {
+  const keys = issueKeys(db);
+  for (const m of out.messages) {
+    const at = new Date(Number(m.ts) * 1000).toISOString();
+    const mine = m.author_id === out.self_user_id;
+    // Search matches the name anywhere, threads included; a mention must name you in the text.
+    const names = m.text.includes(`<@${out.self_user_id}`) || m.text.includes("Nicolas Takashi");
+    // ponytail: GitHub app posts echo PRs the github source already has; match by name until Slack gives a bot flag.
+    const echo = m.author_name === "GitHub";
+    if (isoWeek(at) !== week || (m.pass === "mention" && (mine || !names || echo))) continue;
+    const id = `slack:${m.channel_id}/${m.ts}`;
+    event.run(id, "slack", mine ? "slack_message" : "slack_mention", week, at, m.channel_name, m.permalink, m.author_name,
+      null, null, JSON.stringify(m), runId);
+    for (const r of refsIn(m.text, keys)) link.run(id, r, "mentions");
   }
 }
 
@@ -147,6 +220,27 @@ function ingestGithub(out: any, week: string, runId: string, event: any, link: a
     event.run(id, "github", "review_comment", week, null, null, c.url, c.author, null, null, JSON.stringify(c), runId);
     link.run(id, `github:${c.repo}#${c.number}`, "on");
   }
+}
+
+// Work threads: events joined through the PRs, issues and docs they share. Raw URLs do not join.
+// ponytail: one hub ref (an epic named everywhere) merges its threads; cap by degree if that shows up.
+export function threads(db: Database, weeks: string[]) {
+  const parent = new Map<string, string>();
+  const find = (x: string): string => {
+    const p = parent.get(x) ?? x;
+    if (p === x) return x;
+    const r = find(p);
+    parent.set(x, r);
+    return r;
+  };
+  const marks = weeks.map(() => "?").join(",");
+  const events = db.query(`SELECT id FROM events WHERE week IN (${marks})`).all(...weeks) as { id: string }[];
+  const links = db.query(`SELECT from_id, to_ref FROM links JOIN events ON events.id = from_id
+    WHERE week IN (${marks}) AND (to_ref LIKE 'github:%' OR to_ref LIKE 'linear:%' OR to_ref LIKE 'gdoc:%')`).all(...weeks) as any[];
+  for (const l of links) parent.set(find(l.from_id), find(l.to_ref));
+  const groups = new Map<string, string[]>();
+  for (const { id } of events) groups.set(find(id), [...(groups.get(find(id)) ?? []), id]);
+  return [...groups.values()].sort((a, b) => b.length - a.length);
 }
 
 if (import.meta.main) {
