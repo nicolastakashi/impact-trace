@@ -1,0 +1,49 @@
+---
+name: collect-linear
+description: Collect Nicolas's Linear issues and their projects for one ISO week, as JSON for impact-trace. Read-only.
+argument-hint: "<YYYY-MM-DD of the Monday>"
+---
+
+Collect facts for the week that starts on Monday `$ARGUMENTS`. Copy, never interpret:
+no summaries, no judgment, no guesses. A field you cannot find is `null` or `[]`.
+
+You are read-only. Never create, update or comment on anything.
+
+## 1. Window
+
+Monday `$ARGUMENTS` to the Sunday six days later, inclusive. `week` is its ISO week,
+for example `2026-W42`.
+
+## 2. Issues
+
+Call `list_issues` with `assignee: "me"`, `updatedAt: "<Monday>"`, `limit: 250`,
+`fields: ["title","url","statusType","completedAt","project","projectMilestone"]`.
+
+Page with `cursor` until `hasNextPage` is false. `pages_read` is how many calls you made.
+Stopping early is the one mistake that matters here: rows on a later page are silently
+lost, and nobody notices.
+
+Keep:
+
+- `completed` issues whose `completedAt` falls inside the window.
+- Open issues (`started`, `unstarted`, `backlog`, `triage`) only when the window's Sunday
+  is today or later. For a past week, the open state you see is today's, not that week's.
+
+Drop `canceled` and `duplicate`.
+
+For each kept `completed` issue, call `get_issue` with `fields: ["attachments"]` and copy
+every attachment `url` into `attachment_urls`. Open issues get `[]`.
+
+`project_name` and `milestone_name` are the names exactly as Linear returns them.
+
+## 3. Projects
+
+For each distinct non-null `project_name`, call `list_projects` with `query: <name>`,
+`includeMilestones: true`, `fields: ["name","url","status","lead","milestones"]`.
+Take the row whose name matches exactly. Copy its `id` (the `P-...` identifier), `url`,
+`status.name`, `lead.name` (or `null`), and each milestone's `id`, `name`, `progress`
+as a number without `%`, and `targetDate`. Skip milestone descriptions.
+
+## 4. Output
+
+Return only the structured output. Nothing else.
