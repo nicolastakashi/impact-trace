@@ -27,7 +27,7 @@ collect() { # source tools [skill args]: the raw file is named after the source
     --allowedTools "$2" \
     --output-format json \
     --json-schema "$(cat "schemas/${1%%_*}.json")" \
-    > "$out/$1.run.json"
+    < /dev/null > "$out/$1.run.json"
 }
 
 collect linear "$linear_tools"
