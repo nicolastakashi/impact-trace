@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "required": ["week", "labels"],
+  "properties": {
+    "week": { "type": "string", "pattern": "^\\d{4}-W\\d{2}$" },
+    "labels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "title", "mode", "pillar", "evidence"],
+        "properties": {
+          "key": { "type": "string" },
+          "title": { "type": "string" },
+          "mode": { "enum": ["clarify", "prevent", "solve", "build", "elevate", "external"] },
+          "pillar": { "enum": ["big", "exec", "level"] },
+          "evidence": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

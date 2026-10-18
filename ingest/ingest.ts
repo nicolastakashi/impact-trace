@@ -4,7 +4,7 @@ import { Database } from "bun:sqlite";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const ROOT = join(import.meta.dir, "..");
+export const ROOT = join(import.meta.dir, "..");
 type Status = "ok" | "count_mismatch" | "error";
 
 export function open(path = join(ROOT, "data/impact.db")) {

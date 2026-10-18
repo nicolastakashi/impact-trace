@@ -45,3 +45,10 @@ gh search prs --author nicolastakashi --merged --merged-at "$monday..$sunday" --
   > "$out/github.expected"
 
 bun ingest/ingest.ts "$week"
+
+# Labels are judgment, not lifting: a stronger model, no tools, only the threads as input.
+echo "▶ labels $week"
+bun ingest/review.ts emit "$week" > "$out/threads.json"
+claude -p "/suggest-labels $week" --model sonnet --output-format json \
+  --json-schema "$(cat schemas/labels.json)" < "$out/threads.json" > "$out/labels.run.json"
+bun ingest/review.ts save "$week" "$out/labels.run.json"
