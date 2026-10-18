@@ -222,6 +222,27 @@ function ingestGithub(out: any, week: string, runId: string, event: any, link: a
   }
 }
 
+// Work threads: events joined through the PRs, issues and docs they share. Raw URLs do not join.
+// ponytail: one hub ref (an epic named everywhere) merges its threads; cap by degree if that shows up.
+export function threads(db: Database, weeks: string[]) {
+  const parent = new Map<string, string>();
+  const find = (x: string): string => {
+    const p = parent.get(x) ?? x;
+    if (p === x) return x;
+    const r = find(p);
+    parent.set(x, r);
+    return r;
+  };
+  const marks = weeks.map(() => "?").join(",");
+  const events = db.query(`SELECT id FROM events WHERE week IN (${marks})`).all(...weeks) as { id: string }[];
+  const links = db.query(`SELECT from_id, to_ref FROM links JOIN events ON events.id = from_id
+    WHERE week IN (${marks}) AND (to_ref LIKE 'github:%' OR to_ref LIKE 'linear:%' OR to_ref LIKE 'gdoc:%')`).all(...weeks) as any[];
+  for (const l of links) parent.set(find(l.from_id), find(l.to_ref));
+  const groups = new Map<string, string[]>();
+  for (const { id } of events) groups.set(find(id), [...(groups.get(find(id)) ?? []), id]);
+  return [...groups.values()].sort((a, b) => b.length - a.length);
+}
+
 if (import.meta.main) {
   const week = process.argv[2];
   check(/^\d{4}-W\d{2}$/.test(week ?? ""), "usage: bun ingest/ingest.ts 2026-W42");
