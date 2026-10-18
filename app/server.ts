@@ -2,9 +2,11 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { open } from "../ingest/ingest";
+import { reviewThreads } from "../ingest/review";
 
 const db = open();
 const page = join(import.meta.dir, "index.html");
+const reviewPage = join(import.meta.dir, "review.html");
 // Real data stays in the git-ignored data/ folder; the repo ships only fictional samples.
 const local = join(import.meta.dir, "../data/prototype-data.js");
 const sample = join(import.meta.dir, "sample-data.js");
@@ -30,11 +32,50 @@ function projects(weeks: string[]) {
   };
 }
 
+const WEEK = /^\d{4}-W\d{2}$/;
+const FIELDS = { title: null, mode: ["clarify", "prevent", "solve", "build", "elevate", "external"], pillar: ["big", "exec", "level"], without_me: ["wouldnt", "slower", "same"] } as Record<string, string[] | null>;
+
+function review(week: string) {
+  const rows = db.query("SELECT thread_key, field, value, source FROM labels WHERE week = ?").all(week) as any[];
+  const by = (key: string, source: string) => Object.fromEntries(rows.filter((r) => r.thread_key === key && r.source === source).map((r) => [r.field, r.value]));
+  return {
+    week,
+    weeks: (db.query("SELECT DISTINCT week FROM labels ORDER BY 1 DESC").all() as any[]).map((r) => r.week),
+    threads: reviewThreads(db, week).map((t) => ({ ...t, claude: by(t.key, "claude"), human: by(t.key, "human") })),
+  };
+}
+
+// Your decision on one thread. Only known fields and values: this is the gold set.
+function decide(body: any) {
+  const t = WEEK.test(body?.week) && reviewThreads(db, body.week).find((x) => x.key === body.key);
+  if (!t) return new Response("Unknown thread for that week", { status: 400 });
+  const entries = Object.entries(body.labels ?? {}) as [string, string][];
+  for (const [f, v] of entries) {
+    const allowed = FIELDS[f];
+    if (f in FIELDS === false || typeof v !== "string" || !v.trim() || (allowed && !allowed.includes(v)))
+      return new Response(`Bad value for ${f}`, { status: 400 });
+  }
+  const put = db.query(`INSERT INTO labels (thread_key, week, field, value, source, events, at) VALUES (?, ?, ?, ?, 'human', ?, ?)
+    ON CONFLICT DO UPDATE SET value=excluded.value, events=excluded.events, at=excluded.at`);
+  const at = new Date().toISOString(), ids = JSON.stringify(t.events.map((e) => e.id));
+  db.transaction(() => { for (const [f, v] of entries) put.run(t.key, body.week, f, v.trim(), ids, at); })();
+  return Response.json({ ok: true });
+}
+
 const server = Bun.serve({
   port: 4317,
-  fetch(req) {
+  // Your Dash0 data and a write endpoint: never reachable from the network.
+  hostname: "127.0.0.1",
+  async fetch(req) {
     const url = new URL(req.url);
     if (url.pathname === "/") return new Response(Bun.file(page));
+    if (url.pathname === "/review") return new Response(Bun.file(reviewPage));
+    if (url.pathname === "/api/review") {
+      const week = url.searchParams.get("week") ?? (db.query("SELECT max(week) w FROM labels").get() as any).w;
+      return WEEK.test(week ?? "") ? Response.json(review(week)) : Response.json({ week: null, weeks: [], threads: [] });
+    }
+    // A JSON content type forces a CORS preflight, so other sites cannot post here.
+    if (url.pathname === "/api/labels" && req.method === "POST" && req.headers.get("content-type") === "application/json") return decide(await req.json().catch(() => null));
     if (url.pathname === "/data.js") return new Response(Bun.file(existsSync(local) ? local : sample), { headers: { "content-type": "text/javascript" } });
     if (url.pathname === "/api/projects") {
       const weeks = (url.searchParams.get("weeks") ?? "").split(",").filter((w) => /^\d{4}-W\d{2}$/.test(w));
