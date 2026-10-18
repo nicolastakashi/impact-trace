@@ -3,7 +3,7 @@ import { expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ingestWeek, isoWeek, migrate } from "./ingest";
+import { ingestWeek, isoWeek, migrate, refOf, refsIn } from "./ingest";
 
 test("isoWeek handles year edges", () => {
   expect(isoWeek("2026-10-12T09:00:00Z")).toBe("2026-W42");
@@ -49,4 +49,12 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   expect(db.query("SELECT project_id, milestone_id, week FROM events WHERE id = 'linear:ACME-41'").get())
     .toEqual({ project_id: "P-ACME-1", milestone_id: "m1", week: "2026-W42" });
   expect(db.query("SELECT to_ref FROM links WHERE from_id = 'linear:ACME-41'").all()).toEqual([{ to_ref: "github:acme/api#101" }]);
+});
+
+test("references normalize across sources", () => {
+  expect(refOf("https://github.com/acme/api/pull/101/files")).toBe("github:acme/api#101");
+  expect(refOf("https://linear.app/acme/issue/ACME-41/some-title")).toBe("linear:ACME-41");
+  expect(refOf("https://docs.google.com/document/d/abc_D-1/edit")).toBe("gdoc:abc_D-1");
+  expect(refsIn("PTAL <https://github.com/acme/api/pull/7|#7> fixes ACME-3, not UTF-8", new Set(["ACME"])).sort())
+    .toEqual(["github:acme/api#7", "linear:ACME-3"]);
 });

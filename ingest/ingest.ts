@@ -43,10 +43,22 @@ export function isCurrentWeek(week: string, today = new Date()) {
   return isoWeek(today.toISOString()) <= week;
 }
 
-const prRef = (url: string) => {
-  const m = url.match(/^https:\/\/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/);
-  return m ? `github:${m[1]}#${m[2]}` : url;
-};
+// One id per PR, issue or doc, whichever source mentions it. Anything else stays a URL.
+export function refOf(url: string) {
+  let m;
+  if ((m = url.match(/^https:\/\/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/))) return `github:${m[1]}#${m[2]}`;
+  if ((m = url.match(/^https:\/\/linear\.app\/[^/]+\/issue\/([A-Z]+-\d+)/))) return `linear:${m[1]}`;
+  if ((m = url.match(/^https:\/\/docs\.google\.com\/(?:document|spreadsheets|presentation)\/d\/([\w-]+)/))) return `gdoc:${m[1]}`;
+  return url;
+}
+
+// References in free text: URLs, plus bare issue ids like ABC-12 for team keys seen in Linear.
+// Only known keys count, so "UTF-8" is not an issue.
+export function refsIn(text: string, issueKeys: Set<string>) {
+  const refs = new Set((text.match(/https?:\/\/[^\s<>|)"']+/g) ?? []).map(refOf));
+  for (const m of text.matchAll(/\b([A-Z]{2,6})-(\d+)\b/g)) if (issueKeys.has(m[1])) refs.add(`linear:${m[1]}-${m[2]}`);
+  return [...refs];
+}
 
 function check(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -128,7 +140,7 @@ function ingestLinear(db: Database, out: any, week: string, runId: string, now: 
     const id = `linear:${i.id}`;
     event.run(id, "linear", done ? "issue_completed" : "issue_open", done ? isoWeek(i.completed_at) : week,
       i.completed_at, i.title, i.url, null, pid, mid, JSON.stringify(i), runId);
-    for (const u of urls.get(i.id) ?? []) link.run(id, prRef(u), "attachment");
+    for (const u of urls.get(i.id) ?? []) link.run(id, refOf(u), "attachment");
   }
 }
 
