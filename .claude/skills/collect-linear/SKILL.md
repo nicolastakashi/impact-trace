@@ -23,11 +23,14 @@ Page with `cursor` until `hasNextPage` is false. `pages_read` is how many calls 
 Stopping early is the one mistake that matters here: rows on a later page are silently
 lost, and nobody notices.
 
-Keep:
+Keep `completed` issues whose `completedAt` falls inside the window.
 
-- `completed` issues whose `completedAt` falls inside the window.
-- Open issues (`started`, `unstarted`, `backlog`, `triage`) only when the window's Sunday
-  is today or later. For a past week, the open state you see is today's, not that week's.
+Open issues (`started`, `unstarted`, `backlog`, `triage`) only when the window's Sunday
+is today or later. For a past week, the open state you see is today's, not that week's.
+The `updatedAt` call above misses open issues nobody touched this week, so collect them
+with a second `list_issues` call: `assignee: "me"`, no `updatedAt`, same `fields`, paged
+to the end the same way, keeping only the open status types. Count these pages in
+`pages_read` too.
 
 Drop `canceled` and `duplicate`.
 
