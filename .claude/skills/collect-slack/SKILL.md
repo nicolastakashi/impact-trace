@@ -1,10 +1,11 @@
 ---
 name: collect-slack
 description: Collect Nicolas's Slack messages (pass own) or the messages that mention him (pass mention) for one ISO week, as JSON for impact-trace. Read-only.
-argument-hint: "<YYYY-MM-DD of the Monday> <own|mention>"
+argument-hint: "<YYYY-MM-DD of the Monday> <own DAY|mention>"
 ---
 
-`$ARGUMENTS` is the Monday that starts the week, then the pass: `own` or `mention`.
+`$ARGUMENTS` is the Monday that starts the week, then the pass: `own` with one day
+(`YYYY-MM-DD`), or `mention`.
 Run only that pass. Collect facts, copy, never interpret. Copy, never interpret.
 Do not judge which messages matter: the ingest step does that in code. Copy `text`
 exactly as the tool returns it, links and mentions included.
@@ -13,8 +14,10 @@ You are read-only. Never send, react, schedule or draft anything.
 
 ## 1. Window
 
-`AFTER` is the Sunday before the Monday, `BEFORE` the Monday after the week's Sunday.
-Slack's `after:` and `before:` exclude the day itself, so this covers Monday to Sunday.
+Slack's `after:` and `before:` exclude the day itself.
+- Pass `own`: `AFTER` is the day before DAY, `BEFORE` the day after it. This covers DAY only.
+- Pass `mention`: `AFTER` is the Sunday before the Monday, `BEFORE` the Monday after the
+  week's Sunday. This covers Monday to Sunday.
 `week` is the ISO week. `self_user_id` is the user id the search tool reports as yours.
 
 ## 2. Pass `own`: everything you wrote

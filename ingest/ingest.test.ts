@@ -35,7 +35,7 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
       at: "2026-10-14T07:50:00Z", linear_refs: ["ACME-41"] }],
   }));
   writeFileSync(join(dir, "github.expected"), "2\n");
-  writeFileSync(join(dir, "slack_own.run.json"), wrap({
+  writeFileSync(join(dir, "slack_own_3.run.json"), wrap({
     week: "2026-W42", self_user_id: "U1", pages_read: 2, exhausted: true,
     messages: [
       { pass: "own", channel_id: "C1", channel_name: "#dev", ts: "1791833652.842769", permalink: "https://s/1", author_id: "U1", author_name: "Me",
@@ -76,7 +76,7 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   ingestWeek(db, dir, "2026-W42");
 
   // ACME-40 is in the window but Claude did not pick it: flagged, and still ingested from the raw rows.
-  expect(first).toEqual({ linear: "count_mismatch", github: "count_mismatch", slack_own: "ok", calendar: "ok", drive: "ok" });
+  expect(first).toEqual({ linear: "count_mismatch", github: "count_mismatch", slack_own_3: "ok", calendar: "ok", drive: "ok" });
   expect(db.query("SELECT group_concat(id) ids FROM events WHERE kind = 'issue_completed'").get()).toEqual({ ids: "linear:ACME-41,linear:ACME-40" });
   expect(db.query("SELECT count(*) n FROM events").get()).toEqual({ n: 9 });
   expect(db.query("SELECT kind, count(*) n FROM events WHERE source = 'slack' GROUP BY 1 ORDER BY 1").all())
