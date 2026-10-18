@@ -74,7 +74,7 @@ export function ingestWeek(db: Database, dir: string, week: string) {
       payload=excluded.payload, run_id=excluded.run_id`);
   const link = db.query("INSERT OR IGNORE INTO links (from_id, to_ref, rel) VALUES (?, ?, ?)");
 
-  for (const source of ["linear", "github", "slack_own", "slack_mention", "calendar"]) {
+  for (const source of ["linear", "github", "slack_own", "slack_mention", "calendar", "drive"]) {
     const file = join(dir, `${source}.run.json`);
     if (!existsSync(file)) continue;
     const run = JSON.parse(readFileSync(file, "utf8"));
@@ -97,6 +97,7 @@ export function ingestWeek(db: Database, dir: string, week: string) {
         [expected, got] = [inWindow.size, [...inWindow].filter((id) => picked.has(id)).length];
       } else if (source === "github") got = out.prs_merged.length;
       else if (source === "calendar") got = out.events.length;
+      else if (source === "drive") got = out.files.length;
       else {
         // No source gives Slack a total, so the only check left is that paging finished.
         got = out.messages.length;
@@ -114,6 +115,7 @@ export function ingestWeek(db: Database, dir: string, week: string) {
       if (source === "linear") ingestLinear(db, out, week, runId, now, event, link);
       else if (source === "github") ingestGithub(out, week, runId, event, link);
       else if (source === "calendar") ingestCalendar(out, week, runId, event, link);
+      else if (source === "drive") ingestDrive(out, week, runId, event, link);
       else ingestSlack(db, out, week, runId, event, link);
     })();
   }
@@ -168,6 +170,21 @@ function ingestCalendar(out: any, week: string, runId: string, event: any, link:
     event.run(id, "calendar", "meeting", week, at, e.summary, e.html_link, e.organizer, null, null, JSON.stringify(e), runId);
     // Only typed refs: agendas also carry board and huddle links that would join unrelated threads.
     for (const u of e.urls) if (refOf(u) !== u) link.run(id, refOf(u), "agenda");
+  }
+}
+
+const DOC = /^application\/vnd\.google-apps\.(document|spreadsheet|presentation)$/;
+
+function ingestDrive(out: any, week: string, runId: string, event: any, link: any) {
+  for (const f of out.files) {
+    // Folders and shortcuts are made by Gemini notes, not by you.
+    if (!DOC.test(f.mime_type)) continue;
+    const created = isoWeek(f.created_time) === week;
+    // A doc can change in many weeks, so the week is part of the id.
+    const id = `drive:${f.id}:${week}`;
+    event.run(id, "drive", created ? "doc_created" : "doc_edited", week, created ? f.created_time : f.modified_time,
+      f.title, f.url, null, null, null, JSON.stringify(f), runId);
+    link.run(id, refOf(f.url), "is");
   }
 }
 

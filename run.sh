@@ -19,6 +19,7 @@ linear_tools="mcp__claude_ai_Linear__list_issues,mcp__claude_ai_Linear__get_issu
 github_tools="Bash(gh search prs:*),Bash(gh api --paginate repos/:*)"
 slack_tools="mcp__claude_ai_Slack__slack_search_public_and_private"
 calendar_tools="mcp__claude_ai_Google_Calendar__list_events"
+drive_tools="mcp__claude_ai_Google_Drive__search_files"
 
 collect() { # source tools [skill args]: the raw file is named after the source
   echo "▶ $1 $week"
@@ -36,6 +37,7 @@ collect github "$github_tools"
 collect slack_own "$slack_tools" own
 collect slack_mention "$slack_tools" mention
 collect calendar "$calendar_tools"
+collect drive "$drive_tools"
 
 # Independent count for GitHub, to catch rows Claude dropped.
 gh search prs --author nicolastakashi --merged --merged-at "$monday..$sunday" --limit 200 \

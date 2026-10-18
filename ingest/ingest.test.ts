@@ -62,6 +62,13 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
     ],
   }));
 
+  const file = (id: string, mime: string, created: string) => ({ id, title: id, mime_type: `application/vnd.google-apps.${mime}`,
+    created_time: created, modified_time: "2026-10-15T10:00:00Z", url: `https://docs.google.com/${mime}/d/${id}/edit` });
+  writeFileSync(join(dir, "drive.run.json"), wrap({
+    week: "2026-W42", pages_read: 1, exhausted: true,
+    files: [file("D1", "document", "2026-09-01T10:00:00Z"), file("D2", "document", "2026-10-13T10:00:00Z"), file("F1", "folder", "2026-10-13T10:00:00Z")],
+  }));
+
   const db = new Database(":memory:", { strict: true });
   db.exec("PRAGMA foreign_keys = ON");
   migrate(db);
@@ -69,15 +76,17 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   ingestWeek(db, dir, "2026-W42");
 
   // ACME-40 is in the window but Claude did not pick it: flagged, and still ingested from the raw rows.
-  expect(first).toEqual({ linear: "count_mismatch", github: "count_mismatch", slack_own: "ok", calendar: "ok" });
+  expect(first).toEqual({ linear: "count_mismatch", github: "count_mismatch", slack_own: "ok", calendar: "ok", drive: "ok" });
   expect(db.query("SELECT group_concat(id) ids FROM events WHERE kind = 'issue_completed'").get()).toEqual({ ids: "linear:ACME-41,linear:ACME-40" });
-  expect(db.query("SELECT count(*) n FROM events").get()).toEqual({ n: 7 });
+  expect(db.query("SELECT count(*) n FROM events").get()).toEqual({ n: 9 });
   expect(db.query("SELECT kind, count(*) n FROM events WHERE source = 'slack' GROUP BY 1 ORDER BY 1").all())
     .toEqual([{ kind: "slack_mention", n: 1 }, { kind: "slack_message", n: 1 }]);
   expect(db.query("SELECT to_ref FROM links WHERE from_id = 'slack:C1/1791833652.842769' ORDER BY 1").all())
     .toEqual([{ to_ref: "github:acme/api#101" }, { to_ref: "linear:ACME-41" }]);
   expect(db.query("SELECT e.id, l.to_ref FROM events e JOIN links l ON l.from_id = e.id WHERE e.source = 'calendar'").all())
     .toEqual([{ id: "calendar:sync", to_ref: "gdoc:D1" }]);
+  expect(db.query("SELECT kind, l.to_ref FROM events e JOIN links l ON l.from_id = e.id WHERE e.source = 'drive' ORDER BY 1").all())
+    .toEqual([{ kind: "doc_created", to_ref: "gdoc:D2" }, { kind: "doc_edited", to_ref: "gdoc:D1" }]);
   expect(db.query("SELECT project_id, milestone_id, week FROM events WHERE id = 'linear:ACME-41'").get())
     .toEqual({ project_id: "P-ACME-1", milestone_id: "m1", week: "2026-W42" });
   expect(db.query("SELECT to_ref FROM links WHERE from_id = 'linear:ACME-41'").all()).toEqual([{ to_ref: "github:acme/api#101" }]);
