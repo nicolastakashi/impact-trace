@@ -74,7 +74,7 @@ export function ingestWeek(db: Database, dir: string, week: string) {
       payload=excluded.payload, run_id=excluded.run_id`);
   const link = db.query("INSERT OR IGNORE INTO links (from_id, to_ref, rel) VALUES (?, ?, ?)");
 
-  for (const source of ["linear", "github", "slack_own", "slack_mention"]) {
+  for (const source of ["linear", "github", "slack_own", "slack_mention", "calendar"]) {
     const file = join(dir, `${source}.run.json`);
     if (!existsSync(file)) continue;
     const run = JSON.parse(readFileSync(file, "utf8"));
@@ -96,6 +96,7 @@ export function ingestWeek(db: Database, dir: string, week: string) {
         if (missed.length) console.warn(`linear ${week}: no attachments collected for ${missed.join(", ")}`);
         [expected, got] = [inWindow.size, [...inWindow].filter((id) => picked.has(id)).length];
       } else if (source === "github") got = out.prs_merged.length;
+      else if (source === "calendar") got = out.events.length;
       else {
         // No source gives Slack a total, so the only check left is that paging finished.
         got = out.messages.length;
@@ -112,6 +113,7 @@ export function ingestWeek(db: Database, dir: string, week: string) {
       if (status === "error") return;
       if (source === "linear") ingestLinear(db, out, week, runId, now, event, link);
       else if (source === "github") ingestGithub(out, week, runId, event, link);
+      else if (source === "calendar") ingestCalendar(out, week, runId, event, link);
       else ingestSlack(db, out, week, runId, event, link);
     })();
   }
@@ -154,6 +156,19 @@ function ingestLinear(db: Database, out: any, week: string, runId: string, now: 
 function issueKeys(db: Database) {
   const rows = db.query("SELECT DISTINCT substr(id, 8, instr(substr(id, 8), '-') - 1) k FROM events WHERE source = 'linear'").all() as { k: string }[];
   return new Set(rows.map((r) => r.k));
+}
+
+function ingestCalendar(out: any, week: string, runId: string, event: any, link: any) {
+  for (const e of out.events) {
+    // A meeting is a regular event with someone else in it that you did not decline.
+    const meeting = e.event_type === "DEFAULT" && e.status !== "cancelled" && e.my_response !== "declined" && e.attendees.length > 1;
+    const at = new Date(e.start).toISOString();
+    if (!meeting || isoWeek(at) !== week) continue;
+    const id = `calendar:${e.id}`;
+    event.run(id, "calendar", "meeting", week, at, e.summary, e.html_link, e.organizer, null, null, JSON.stringify(e), runId);
+    // Only typed refs: agendas also carry board and huddle links that would join unrelated threads.
+    for (const u of e.urls) if (refOf(u) !== u) link.run(id, refOf(u), "agenda");
+  }
 }
 
 function ingestSlack(db: Database, out: any, week: string, runId: string, event: any, link: any) {

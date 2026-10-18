@@ -18,6 +18,7 @@ out="data/raw/$week"; mkdir -p "$out"
 linear_tools="mcp__claude_ai_Linear__list_issues,mcp__claude_ai_Linear__get_issue,mcp__claude_ai_Linear__list_projects"
 github_tools="Bash(gh search prs:*),Bash(gh api --paginate repos/:*)"
 slack_tools="mcp__claude_ai_Slack__slack_search_public_and_private"
+calendar_tools="mcp__claude_ai_Google_Calendar__list_events"
 
 collect() { # source tools [skill args]: the raw file is named after the source
   echo "▶ $1 $week"
@@ -34,6 +35,7 @@ collect github "$github_tools"
 # Two calls: one pass each. A single call skipped the mention pass.
 collect slack_own "$slack_tools" own
 collect slack_mention "$slack_tools" mention
+collect calendar "$calendar_tools"
 
 # Independent count for GitHub, to catch rows Claude dropped.
 gh search prs --author nicolastakashi --merged --merged-at "$monday..$sunday" --limit 200 \
