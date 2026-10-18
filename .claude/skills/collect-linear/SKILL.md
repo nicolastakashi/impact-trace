@@ -23,25 +23,25 @@ Page with `cursor` until `hasNextPage` is false. `pages_read` is how many calls 
 Stopping early is the one mistake that matters here: rows on a later page are silently
 lost, and nobody notices.
 
-Keep `completed` issues whose `completedAt` falls inside the window.
+Copy **every** row from every page into `issues`, including canceled and duplicate
+ones. Do not filter by date or status: the ingest step does that in code, and compares
+its result with your attachment picks below. A row you leave out is a row that is lost.
 
-Open issues (`started`, `unstarted`, `backlog`, `triage`) only when the window's Sunday
-is today or later. For a past week, the open state you see is today's, not that week's.
-The `updatedAt` call above misses open issues nobody touched this week, so collect them
-with a second `list_issues` call: `assignee: "me"`, no `updatedAt`, same `fields`, paged
-to the end the same way, keeping only the open status types. Count these pages in
-`pages_read` too.
+When the window's Sunday is today or later, also collect open issues nobody touched this
+week: a second `list_issues` call with `assignee: "me"`, no `updatedAt`, same `fields`,
+paged to the end. Add its rows to `issues` too (repeating an id is fine) and count its
+pages in `pages_read`.
 
-Drop `canceled` and `duplicate`.
-
-For each kept `completed` issue, call `get_issue` with `fields: ["attachments"]` and copy
-every attachment `url` into `attachment_urls`. Open issues get `[]`.
+For each `completed` issue whose `completedAt` falls inside the window, call `get_issue`
+with `fields: ["attachments"]` and add `{id, urls}` to `attachments`, with every
+attachment `url`. Use `[]` for an issue that has none.
 
 `project_name` and `milestone_name` are the names exactly as Linear returns them.
 
 ## 3. Projects
 
-For each distinct non-null `project_name`, call `list_projects` with `query: <name>`,
+For each distinct non-null `project_name` among the issues that got an `attachments` entry
+or are open, call `list_projects` with `query: <name>`,
 `includeMilestones: true`, `fields: ["name","url","status","lead","milestones"]`.
 Take the row whose name matches exactly. Copy its `id` (the `P-...` identifier), `url`,
 `status.name`, `lead.name` (or `null`), and each milestone's `id`, `name`, `progress`

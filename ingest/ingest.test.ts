@@ -19,9 +19,15 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
     week: "2026-W42", pages_read: 1,
     projects: [{ id: "P-ACME-1", name: "Exports", url: "https://linear.app/p", status: "Completed", lead: null,
       milestones: [{ id: "m1", name: "Safe delete", progress: 92.31, target_date: null }] }],
-    issues: [{ id: "ACME-41", title: "Add DELETE", url: "https://linear.app/i", status_type: "completed",
-      completed_at: "2026-10-14T07:57:35Z", project_name: "Exports", milestone_name: "Safe delete",
-      attachment_urls: ["https://github.com/acme/api/pull/101"] }],
+    issues: [
+      { id: "ACME-41", title: "Add DELETE", url: "https://linear.app/i", status_type: "completed",
+        completed_at: "2026-10-14T07:57:35Z", project_name: "Exports", milestone_name: "Safe delete" },
+      { id: "ACME-40", title: "Keep origin", url: "https://linear.app/j", status_type: "completed",
+        completed_at: "2026-10-14T12:40:28Z", project_name: "Exports", milestone_name: null },
+      { id: "ACME-1", title: "Older", url: "https://linear.app/k", status_type: "completed",
+        completed_at: "2026-08-19T15:31:35Z", project_name: null, milestone_name: null },
+    ],
+    attachments: [{ id: "ACME-41", urls: ["https://github.com/acme/api/pull/101"] }],
   }));
   writeFileSync(join(dir, "github.run.json"), wrap({
     week: "2026-W42", reviews_given: 10, review_comments_received: [], prs_open: [],
@@ -36,8 +42,10 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   const first = ingestWeek(db, dir, "2026-W42");
   ingestWeek(db, dir, "2026-W42");
 
-  expect(first).toEqual({ linear: "ok", github: "count_mismatch" });
-  expect(db.query("SELECT count(*) n FROM events").get()).toEqual({ n: 3 });
+  // ACME-40 is in the window but Claude did not pick it: flagged, and still ingested from the raw rows.
+  expect(first).toEqual({ linear: "count_mismatch", github: "count_mismatch" });
+  expect(db.query("SELECT group_concat(id) ids FROM events WHERE kind = 'issue_completed'").get()).toEqual({ ids: "linear:ACME-41,linear:ACME-40" });
+  expect(db.query("SELECT count(*) n FROM events").get()).toEqual({ n: 4 });
   expect(db.query("SELECT project_id, milestone_id, week FROM events WHERE id = 'linear:ACME-41'").get())
     .toEqual({ project_id: "P-ACME-1", milestone_id: "m1", week: "2026-W42" });
   expect(db.query("SELECT to_ref FROM links WHERE from_id = 'linear:ACME-41'").all()).toEqual([{ to_ref: "github:acme/api#101" }]);

@@ -35,6 +35,14 @@ export function isoWeek(iso: string) {
   return `${d.getUTCFullYear()}-W${String(w).padStart(2, "0")}`;
 }
 
+const completedIn = (i: any, week: string) => i.status_type === "completed" && !!i.completed_at && isoWeek(i.completed_at) === week;
+const OPEN = new Set(["started", "unstarted", "backlog", "triage"]);
+
+// The open state Linear returns is today's, so it only describes the current week.
+export function isCurrentWeek(week: string, today = new Date()) {
+  return isoWeek(today.toISOString()) <= week;
+}
+
 const prRef = (url: string) => {
   const m = url.match(/^https:\/\/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/);
   return m ? `github:${m[1]}#${m[2]}` : url;
@@ -61,14 +69,21 @@ export function ingestWeek(db: Database, dir: string, week: string) {
     const runId = `${week}:${source}:${run.session_id ?? "unknown"}`;
     const out = run.structured_output;
     const expFile = join(dir, `${source}.expected`);
-    const expected = existsSync(expFile) ? Number(readFileSync(expFile, "utf8").trim()) : null;
+    let expected = existsSync(expFile) ? Number(readFileSync(expFile, "utf8").trim()) : null;
 
     let got: number | null = null;
     let status: Status = "error";
     if (!run.is_error && out) {
       // Trust boundary: the shape was enforced by --json-schema, so check only what it cannot.
       check(out.week === week, `${source}: collected ${out.week}, expected ${week}`);
-      got = source === "linear" ? out.issues.filter((i: any) => i.status_type === "completed").length : out.prs_merged.length;
+      if (source === "linear") {
+        // Claude copies every row; the window filter is ours. Its own picks are the check.
+        const inWindow = new Set(out.issues.filter((i: any) => completedIn(i, week)).map((i: any) => i.id));
+        const picked = new Set(out.attachments.map((a: any) => a.id));
+        const missed = [...inWindow].filter((id) => !picked.has(id));
+        if (missed.length) console.warn(`linear ${week}: no attachments collected for ${missed.join(", ")}`);
+        [expected, got] = [inWindow.size, [...inWindow].filter((id) => picked.has(id)).length];
+      } else got = out.prs_merged.length;
       status = expected == null || expected === got ? "ok" : "count_mismatch";
     }
     result[source] = status;
@@ -100,16 +115,20 @@ function ingestLinear(db: Database, out: any, week: string, runId: string, now: 
       milestoneId.set(`${p.id}/${m.name}`, m.id);
     }
   }
+  const urls = new Map<string, string[]>(out.attachments.map((a: any) => [a.id, a.urls]));
+  const current = isCurrentWeek(week);
+  const seen = new Set<string>();
   for (const i of out.issues) {
-    const done = i.status_type === "completed";
-    check(!done || i.completed_at, `linear: ${i.id} is completed without completed_at`);
+    const done = completedIn(i, week);
+    if (seen.has(i.id) || !(done || (current && OPEN.has(i.status_type)))) continue;
+    seen.add(i.id);
     const pid = i.project_name ? projectId.get(i.project_name) ?? null : null;
     if (i.project_name && !pid) console.warn(`linear: ${i.id} names project "${i.project_name}", which was not collected`);
     const mid = pid && i.milestone_name ? milestoneId.get(`${pid}/${i.milestone_name}`) ?? null : null;
     const id = `linear:${i.id}`;
     event.run(id, "linear", done ? "issue_completed" : "issue_open", done ? isoWeek(i.completed_at) : week,
       i.completed_at, i.title, i.url, null, pid, mid, JSON.stringify(i), runId);
-    for (const u of i.attachment_urls) link.run(id, prRef(u), "attachment");
+    for (const u of urls.get(i.id) ?? []) link.run(id, prRef(u), "attachment");
   }
 }
 
