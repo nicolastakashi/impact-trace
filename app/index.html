@@ -1,0 +1,767 @@
+<title>Impact Trace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Schibsted+Grotesk:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: bento cockpit as home (rings + tiles), observability views for Trace and Item (heatmap + brush, flame graph), Wrapped-style story for the recap. Dark-first, glow as elevation. */
+:root{
+  color-scheme: light;
+  --ground:#f3f3f1; --s1:#ffffff; --s2:#f7f7f5; --s3:#ebebe7; --line:#deded9; --line-2:#c9c9c2;
+  --ink:#121214; --ink-2:#4f4f55; --ink-3:#86868c;
+  --accent:#d93a3f; --accent-ink:#ffffff;
+  --m-clarify:#a68300; --m-prevent:#c8326a; --m-solve:#d0571f; --m-build:#12854a; --m-elevate:#5b47d6; --m-external:#5f6470;
+  --glow:0 0 0 transparent; --shadow:0 1px 2px rgba(20,20,30,.06), 0 8px 24px -12px rgba(20,20,30,.18);
+  --key-bg:#ffffff; --key-edge:#cfcfc8;
+  --f-num:"Barlow Condensed", "DIN Condensed", "Arial Narrow", sans-serif;
+  --f-body:"Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  color-scheme: dark;
+  --ground:#070709; --s1:#0f0f13; --s2:#15151b; --s3:#1d1d25; --line:#24242d; --line-2:#34343f;
+  --ink:#f4f4f1; --ink-2:#b4b4b8; --ink-3:#74747c;
+  --accent:#ff4d52; --accent-ink:#0b0b0b;
+  --m-clarify:#ffe37a; --m-prevent:#ff4f8f; --m-solve:#ff7a45; --m-build:#7dffa8; --m-elevate:#b3a1ff; --m-external:#9aa3b5;
+  --glow:0 0 32px -6px color-mix(in srgb,var(--accent) 55%,transparent); --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 20px 40px -24px rgba(0,0,0,.8);
+  --key-bg:#1b1b22; --key-edge:#0a0a0d;
+}}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#070709; --s1:#0f0f13; --s2:#15151b; --s3:#1d1d25; --line:#24242d; --line-2:#34343f;
+  --ink:#f4f4f1; --ink-2:#b4b4b8; --ink-3:#74747c;
+  --accent:#ff4d52; --accent-ink:#0b0b0b;
+  --m-clarify:#ffe37a; --m-prevent:#ff4f8f; --m-solve:#ff7a45; --m-build:#7dffa8; --m-elevate:#b3a1ff; --m-external:#9aa3b5;
+  --glow:0 0 32px -6px color-mix(in srgb,var(--accent) 55%,transparent); --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 20px 40px -24px rgba(0,0,0,.8);
+  --key-bg:#1b1b22; --key-edge:#0a0a0d;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--ground);color:var(--ink);font:15px/1.5 var(--f-body);padding-inline:clamp(16px,3.5vw,40px);padding-block:0 72px;
+  background-image:radial-gradient(1200px 500px at 85% -10%,color-mix(in srgb,var(--accent) 9%,transparent),transparent 70%)}
+a{color:inherit;text-decoration-color:var(--ink-3);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1240px;margin:0 auto}
+.lbl{font:600 12px/1 var(--f-num);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+.ref{font:500 11px/1.4 var(--f-mono);color:var(--ink-3);text-decoration:none}
+.ref:hover{color:var(--accent)}
+kbd{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;font:500 11px var(--f-mono);color:var(--ink-2);background:var(--key-bg);border:1px solid var(--line-2);border-bottom:3px solid var(--key-edge);border-radius:6px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+
+/* header */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;padding-block:16px;
+  background:color-mix(in srgb,var(--ground) 82%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.mark{width:26px;height:26px;border-radius:7px;background:var(--accent);box-shadow:var(--glow);display:grid;place-items:center}
+.mark svg{width:16px;height:16px}
+.brand b{font:800 21px/1 var(--f-num);letter-spacing:.02em;text-transform:uppercase}
+nav{display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--s1)}
+nav button{border:0;background:none;border-radius:999px;padding:7px 14px;font:500 13px var(--f-body);color:var(--ink-2);cursor:pointer;display:flex;gap:6px;align-items:center}
+nav button:hover{color:var(--ink)}
+nav button[aria-selected="true"]{background:var(--s3);color:var(--ink)}
+nav .badge{font:700 11px var(--f-num);background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:1px 6px}
+.hright{margin-left:auto;display:flex;align-items:center;gap:12px}
+.cmdk-btn{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--s1);border-radius:10px;padding:6px 8px 6px 12px;color:var(--ink-3);cursor:pointer;font-size:13px}
+.cmdk-btn:hover{border-color:var(--line-2);color:var(--ink-2)}
+.proto{font:500 10.5px/1.3 var(--f-mono);color:var(--ink-3);max-width:28ch}
+
+section.view{padding-top:26px;display:grid;gap:22px}
+.vhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:10px 24px}
+.vhead h1{font:800 clamp(30px,4.2vw,52px)/.95 var(--f-num);text-transform:uppercase;letter-spacing:-.005em;margin:0;text-wrap:balance}
+.vhead h1 em{font-style:normal;color:var(--accent)}
+.vhead p{margin:0;color:var(--ink-2);max-width:56ch;font-size:14px}
+
+/* bento */
+.bento{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(150px,auto);gap:12px}
+.tile{position:relative;background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow);overflow:hidden;min-width:0}
+.tile .th{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.t-rings{grid-column:span 2;grid-row:span 2}
+.t-big{grid-column:span 2;grid-row:span 2}
+.t-wide{grid-column:span 2}
+button.tile{text-align:left;cursor:pointer}
+button.tile:hover{border-color:var(--line-2)}
+
+.rings-wrap{display:grid;grid-template-columns:minmax(180px,240px) 1fr;gap:20px;align-items:center;flex:1}
+.rings{width:100%;height:auto;aspect-ratio:1;max-width:240px}
+.rings text{fill:var(--ink);font:800 34px var(--f-num)}
+.rings .sub{fill:var(--ink-3);font:600 10px var(--f-num);letter-spacing:.14em}
+.glist{display:grid;gap:14px;margin:0;padding:0;list-style:none}
+.glist button{all:unset;cursor:pointer;display:grid;grid-template-columns:12px 1fr auto;gap:10px;align-items:start;border-radius:8px;padding:4px}
+.glist button:focus-visible{outline:2px solid var(--accent)}
+.glist .gt{font-size:14px;line-height:1.3}
+.glist .gp{font:700 22px/1 var(--f-num)}
+.glist .gs{font-size:12px;color:var(--ink-3);grid-column:2/-1}
+.ex{font:500 9.5px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);border:1px dashed var(--line-2);border-radius:4px;padding:3px 5px}
+
+.big-q{font:700 clamp(19px,2vw,24px)/1.28 var(--f-body);letter-spacing:-.01em;margin:0;text-wrap:balance}
+.big-q::before{content:"“";color:var(--accent)}
+.big-q::after{content:"”";color:var(--accent)}
+.by{font:500 11.5px var(--f-mono);color:var(--ink-3)}
+.oneline{font:800 clamp(28px,3.4vw,44px)/.98 var(--f-num);text-transform:uppercase;margin:0;text-wrap:balance}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;font:500 11.5px var(--f-mono);padding:5px 9px;border-radius:999px;border:1px solid var(--line);background:var(--s2);text-decoration:none;color:var(--ink);cursor:pointer}
+a.chip:hover,button.chip:hover{border-color:var(--accent)}
+.statn{font:800 64px/.85 var(--f-num)}
+.statn small{font-size:20px;color:var(--ink-3);margin-left:4px}
+
+.mixbars{display:grid;gap:7px}
+.mb{display:grid;grid-template-columns:74px 1fr 18px;gap:8px;align-items:center;font-size:12.5px;color:var(--ink-2)}
+.mb .tr{height:7px;border-radius:4px;background:var(--s3);overflow:hidden}
+.mb .tr i{display:block;height:100%;border-radius:4px;transform-origin:left}
+.mb .n{font:700 14px var(--f-num);text-align:right;color:var(--ink)}
+
+.reach svg{width:100%;height:auto}
+.reach text{font:600 11px var(--f-num);letter-spacing:.1em;text-transform:uppercase;fill:var(--ink-2)}
+.reach .cn{fill:var(--ink);font:800 13px var(--f-num)}
+.edge{stroke-dasharray:3 7;animation:flow 1.6s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-20}}
+
+.spark text{fill:var(--ink-3);font:600 10px var(--f-num)}
+.rec-nav{display:flex;gap:6px;align-items:center}
+.rec-nav button{border:1px solid var(--line);background:var(--s2);border-radius:8px;width:28px;height:28px;cursor:pointer;color:var(--ink-2)}
+.rec-dots{display:flex;gap:4px}
+.rec-dots i{width:5px;height:5px;border-radius:50%;background:var(--line-2)}
+.rec-dots i.on{background:var(--accent)}
+
+.t-recap{background:linear-gradient(135deg,color-mix(in srgb,var(--m-prevent) 85%,#000),color-mix(in srgb,var(--m-solve) 85%,#000) 55%,color-mix(in srgb,var(--m-clarify) 80%,#000));border:0;color:#fff}
+.t-recap .lbl{color:rgba(255,255,255,.75)}
+.t-recap .play{width:44px;height:44px;border-radius:50%;background:#fff;color:#111;display:grid;place-items:center;font-size:16px}
+.t-recap .oneline{color:#fff}
+
+/* trace */
+.panel{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
+.hm-wrap{overflow-x:auto}
+.hm{min-width:640px;display:grid;grid-template-columns:96px repeat(8,1fr);gap:4px;user-select:none;-webkit-user-select:none}
+.hm .wk{font:600 12px var(--f-num);letter-spacing:.1em;color:var(--ink-3);text-align:center;padding:6px 0;border-radius:6px;cursor:pointer}
+.hm .wk.sel{color:var(--accent-ink);background:var(--accent)}
+.hm .ml{font-size:12.5px;color:var(--ink-2);display:flex;align-items:center;gap:7px}
+.cell{height:34px;border-radius:7px;background:var(--s3);position:relative;cursor:pointer;border:0;padding:0;transition:transform .15s}
+.cell:hover{transform:scale(1.06)}
+.cell.in{outline:1.5px solid var(--accent);outline-offset:1px}
+.cell b{position:absolute;inset:0;display:grid;place-items:center;font:700 13px var(--f-num);color:var(--ink)}
+.hm-hint{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:12.5px;color:var(--ink-3);margin-top:12px}
+.split{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;align-items:start}
+.bub{display:grid;gap:9px}
+.bub .row{display:grid;grid-template-columns:78px 1fr 64px;gap:10px;align-items:center;font-size:12.5px;color:var(--ink-2)}
+.bub .pair{display:grid;gap:3px}
+.bub .pair i{display:block;height:6px;border-radius:3px}
+.bub .pair i.b{background:var(--line-2)}
+.bub .d{font:700 13px var(--f-num);text-align:right}
+.up{color:var(--m-build)} .down{color:var(--ink-3)}
+.feed{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.feed button{width:100%;text-align:left;background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;display:grid;grid-template-columns:4px 1fr auto;gap:12px;align-items:center}
+.feed button:hover{border-color:var(--line-2)}
+.feed .stripe{align-self:stretch;border-radius:2px}
+.feed .ft{font-size:14px;line-height:1.35}
+.feed .fm{font:500 11px var(--f-mono);color:var(--ink-3);margin-top:3px}
+.feed .wk{font:700 14px var(--f-num);color:var(--ink-3)}
+
+/* item overlay */
+.sheet{position:fixed;inset:0;z-index:40;display:grid;place-items:end center;background:color-mix(in srgb,#000 55%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px))}
+.sheet-in{width:min(880px,100%);max-height:calc(100% - 8px);overflow-y:auto;background:var(--s1);border:1px solid var(--line-2);border-radius:22px;padding:24px;display:grid;gap:18px;box-shadow:0 40px 80px -30px rgba(0,0,0,.6)}
+.sheet h2{font:800 clamp(26px,3.4vw,38px)/1 var(--f-num);text-transform:uppercase;margin:0;text-wrap:balance}
+.x{justify-self:end;border:1px solid var(--line);background:var(--s2);border-radius:999px;padding:6px 10px;cursor:pointer;font:500 12px var(--f-mono);color:var(--ink-2);display:flex;gap:8px;align-items:center}
+.flame{display:grid;gap:3px}
+.flame .lv{display:flex;gap:3px}
+.flame .sp{min-width:0;flex:1;height:30px;border-radius:5px;display:flex;align-items:center;padding:0 10px;font:500 11.5px var(--f-mono);color:#0b0b0b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none;transform-origin:left}
+.flame a.sp:hover{filter:brightness(1.12)}
+.qblock{margin:0;padding:16px 18px;border-radius:14px;background:var(--s2);border:1px solid var(--line);display:grid;gap:10px}
+.qblock p{margin:0;font:500 16px/1.45 var(--f-body)}
+.why{display:grid;gap:8px;padding:16px;border-radius:14px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));background:color-mix(in srgb,var(--accent) 6%,var(--s1))}
+.why p{margin:0;font-size:14.5px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.wm{display:flex;flex-wrap:wrap;gap:6px}
+.opt{display:inline-flex;align-items:center;gap:8px;padding:8px 12px 8px 8px;border-radius:10px;border:1px solid var(--line);background:var(--s2);cursor:pointer;font-size:13px}
+.opt:hover{border-color:var(--line-2)}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--s2))}
+
+/* review */
+.review{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
+.rcard{display:grid;gap:18px}
+.rcard h2{font:800 clamp(28px,3.6vw,42px)/1 var(--f-num);text-transform:uppercase;margin:0;text-wrap:balance}
+.prog{display:flex;gap:3px}
+.prog i{flex:1;height:4px;border-radius:2px;background:var(--s3)}
+.prog i.d{background:var(--accent)}
+.prog i.c{background:var(--ink-2)}
+.prob{display:grid;grid-template-columns:82px 1fr 38px;gap:10px;align-items:center;font-size:12.5px}
+.prob .tr{height:8px;border-radius:4px;background:var(--s3);overflow:hidden}
+.prob .tr i{display:block;height:100%;border-radius:4px}
+.prob .v{font:700 14px var(--f-num);text-align:right}
+.sec{display:grid;gap:10px}
+.queue{display:grid;gap:3px;margin:0;padding:0;list-style:none;max-height:640px;overflow-y:auto}
+.queue button{width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:10px;padding:8px 10px;cursor:pointer;display:grid;grid-template-columns:8px 1fr 18px;gap:10px;align-items:center;font-size:13px;color:var(--ink-2)}
+.queue button[aria-current="true"]{background:var(--s2);border-color:var(--line);color:var(--ink)}
+.queue .ok{color:var(--m-build);font-size:12px}
+.keys{display:flex;flex-wrap:wrap;gap:10px 18px;font-size:12px;color:var(--ink-3);align-items:center}
+.keys span{display:inline-flex;gap:4px;align-items:center}
+
+/* projects */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
+.pcard{display:grid;gap:14px;align-content:start}
+.pcard h3{margin:0;font:800 22px/1.02 var(--f-num);text-transform:uppercase;text-wrap:balance}
+.pcard h3 a{text-decoration:none}
+.pcard h3 a:hover{color:var(--accent)}
+.pmeta{display:flex;flex-wrap:wrap;gap:6px 14px;font:500 11.5px var(--f-mono);color:var(--ink-3)}
+.pill{font:600 11px/1 var(--f-num);letter-spacing:.1em;text-transform:uppercase;padding:4px 7px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2)}
+.pill.done{border-color:color-mix(in srgb,var(--m-build) 60%,var(--line));color:var(--m-build)}
+.pill.warn{border-color:color-mix(in srgb,var(--m-solve) 60%,var(--line));color:var(--m-solve)}
+.msr{display:grid;grid-template-columns:1fr 90px 40px;gap:10px;align-items:center;font-size:12.5px;color:var(--ink-2)}
+.msr .tr{height:6px;border-radius:3px;background:var(--s3);overflow:hidden}
+.msr .tr i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.msr b{font:700 13px var(--f-num);text-align:right;color:var(--ink)}
+.pbars{display:flex;gap:3px;align-items:end;height:38px}
+.pbars i{flex:1;border-radius:3px 3px 1px 1px;background:var(--accent);min-height:2px;opacity:.85}
+.pbars i.z{background:var(--s3);opacity:1}
+.pitems{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.pitems button{width:100%;text-align:left;background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;display:grid;grid-template-columns:8px 1fr auto;gap:10px;align-items:center;font-size:13px}
+.pitems button:hover{border-color:var(--line-2)}
+.crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font:500 12px var(--f-mono);color:var(--ink-2)}
+.crumbs span.sep{color:var(--ink-3)}
+.crumbs a,.crumbs b{font-weight:500;padding:4px 8px;border-radius:6px;background:var(--s2);border:1px solid var(--line);text-decoration:none}
+.crumbs a:hover{border-color:var(--accent)}
+.ex2{border-style:dashed}
+
+/* refs */
+.refs{columns:3 300px;column-gap:12px}
+.refc{break-inside:avoid;margin-bottom:12px;background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;display:grid;gap:12px;box-shadow:var(--shadow)}
+.refc h3{margin:0;font:800 20px/1 var(--f-num);text-transform:uppercase;display:flex;gap:8px;align-items:center}
+.refc ul{margin:0;padding:0;list-style:none;display:grid;gap:14px}
+.refc li{display:grid;gap:5px}
+.refc q{font-size:14px;line-height:1.45}
+.refc.hl{border-color:var(--accent);box-shadow:var(--glow)}
+.warn{color:var(--m-solve)}
+
+/* cmdk */
+.cmdk{position:fixed;inset:0;z-index:60;background:color-mix(in srgb,#000 50%,transparent);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:grid;place-items:start center;padding:12vh 16px 16px}
+.cmdk-in{width:min(620px,100%);background:var(--s1);border:1px solid var(--line-2);border-radius:16px;overflow:hidden;box-shadow:0 40px 80px -30px rgba(0,0,0,.6)}
+.cmdk input{width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);font:500 16px var(--f-body);padding:16px 18px;outline:none}
+.cmdk ul{list-style:none;margin:0;padding:6px;max-height:50vh;overflow-y:auto}
+.cmdk li button{width:100%;text-align:left;border:0;background:none;border-radius:10px;padding:10px 12px;cursor:pointer;display:grid;grid-template-columns:10px 1fr auto;gap:12px;align-items:center;font-size:14px}
+.cmdk li button[aria-selected="true"]{background:var(--s3)}
+.cmdk .k{font:500 11px var(--f-mono);color:var(--ink-3)}
+
+/* story */
+.story{position:fixed;inset:0;z-index:80;display:grid;color:#fff;overflow:hidden;padding-top:env(safe-area-inset-top,0px)}
+.story .bg{position:absolute;inset:0;transition:background 0.6s}
+.story .bars{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:16px;right:16px;display:flex;gap:4px;z-index:2}
+.story .bars i{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.3);overflow:hidden}
+.story .bars i b{display:block;height:100%;width:0;background:#fff}
+.story .bars i.done b{width:100%}
+.story .close{position:absolute;top:calc(28px + env(safe-area-inset-top,0px));right:16px;z-index:3;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;padding:6px 12px;font:500 12px var(--f-mono);cursor:pointer}
+.slide{position:relative;z-index:1;align-self:center;justify-self:center;width:min(820px,100%);padding:80px 28px 60px;display:grid;gap:22px}
+.slide .k{font:700 14px var(--f-num);letter-spacing:.2em;text-transform:uppercase;opacity:.8}
+.slide .huge{font:800 clamp(90px,20vw,220px)/.8 var(--f-num);letter-spacing:-.02em}
+.slide .h{font:800 clamp(36px,6vw,72px)/.92 var(--f-num);text-transform:uppercase;margin:0;text-wrap:balance}
+.slide .q{font:700 clamp(22px,3.2vw,36px)/1.2 var(--f-body);letter-spacing:-.015em;margin:0;text-wrap:balance}
+.slide .by{color:rgba(255,255,255,.75);font-size:13px}
+.slide .rowx{display:flex;flex-wrap:wrap;gap:10px}
+.slide .pill{background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:8px 14px;font:600 14px var(--f-body)}
+.slide .bars2{display:grid;gap:10px}
+.slide .bars2 div{display:grid;grid-template-columns:120px 1fr 30px;gap:12px;align-items:center;font:700 18px var(--f-num);text-transform:uppercase}
+.slide .bars2 span.t{height:16px;border-radius:8px;background:rgba(0,0,0,.25);overflow:hidden}
+.slide .bars2 span.t i{display:block;height:100%;background:#fff;border-radius:8px}
+.story .tap{position:absolute;top:0;bottom:0;width:35%;z-index:1;background:none;border:0;cursor:pointer}
+.story .tap.l{left:0} .story .tap.r{right:0}
+.story .hint{position:absolute;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font:500 11px var(--f-mono);opacity:.7;z-index:2}
+
+@media (max-width:980px){ .bento{grid-template-columns:repeat(2,minmax(0,1fr))} .split,.review{grid-template-columns:1fr} }
+@media (max-width:620px){ .bento{grid-template-columns:1fr} .t-rings,.t-big,.t-wide{grid-column:auto;grid-row:auto} .rings-wrap{grid-template-columns:1fr} .rings{max-width:200px;justify-self:center} .two{grid-template-columns:1fr} .proto{display:none} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M1 8h3l2-5 4 10 2-5h3" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><b>Impact Trace</b></div>
+  <nav role="tablist" aria-label="Telas">
+    <button role="tab" id="t-home" data-v="home" aria-selected="true">Norte</button>
+    <button role="tab" id="t-proj" data-v="proj" aria-selected="false">Projetos</button>
+    <button role="tab" id="t-trace" data-v="trace" aria-selected="false">Trace</button>
+    <button role="tab" id="t-review" data-v="review" aria-selected="false">Review <span class="badge" id="badge"></span></button>
+    <button role="tab" id="t-refs" data-v="refs" aria-selected="false">Referências</button>
+  </nav>
+  <div class="hright">
+    <span class="proto" id="proto">Protótipo. Objetivos e probabilidades são exemplos.</span>
+    <button class="cmdk-btn" id="cmdk-open">Buscar <kbd>⌘</kbd><kbd>K</kbd></button>
+  </div>
+</header>
+
+<!-- HOME -->
+<section class="view" id="v-home">
+  <div class="vhead">
+    <h1 id="home-h">W35–W42 <em>·</em> 8 semanas</h1>
+    <p id="home-p"></p>
+  </div>
+  <div class="bento">
+    <div class="tile t-rings">
+      <div class="th"><span class="lbl">Para onde vai o trabalho</span><span class="ex">objetivos de exemplo</span></div>
+      <div class="rings-wrap">
+        <svg class="rings" viewBox="0 0 240 240" role="img" aria-label="Parte dos itens que serve a cada objetivo" id="rings"></svg>
+        <ul class="glist" id="glist"></ul>
+      </div>
+    </div>
+    <div class="tile t-big" id="bigthing"></div>
+    <div class="tile" id="t-mix"></div>
+    <div class="tile reach" id="t-reach"></div>
+    <div class="tile" id="t-rec"></div>
+    <div class="tile" id="t-rev"></div>
+    <button class="tile t-wide" id="t-wm" data-v="review"></button>
+    <button class="tile t-wide t-recap" id="t-recap"></button>
+  </div>
+</section>
+
+<!-- PROJECTS -->
+<section class="view" id="v-proj" hidden>
+  <div class="vhead">
+    <h1>Do PR ao <em>objetivo</em></h1>
+    <p>PR → issue → projeto → milestone vem do Linear, automático. Projeto → objetivo é a única ligação manual, feita uma vez por projeto. As initiatives do Linear são só "Running Projects", então não servem como OKR.</p>
+  </div>
+  <div class="panel"><div class="hm-wrap"><div class="hm" id="phm" style="grid-template-columns:minmax(150px,230px) repeat(8,1fr)"></div></div>
+    <div class="hm-hint"><span>Issues seus fechados por semana, por projeto. Dados do Linear, 2026-10-18.</span></div></div>
+  <div class="pgrid" id="pgrid"></div>
+</section>
+
+<!-- TRACE -->
+<section class="view" id="v-trace" hidden>
+  <div class="vhead">
+    <h1>Como entrego, <em>semana a semana</em></h1>
+    <p>Clique em semanas ou arraste por elas para selecionar. O painel compara a seleção com o resto do período, como o BubbleUp do Honeycomb.</p>
+  </div>
+  <div class="panel">
+    <div class="hm-wrap"><div class="hm" id="hm"></div></div>
+    <div class="hm-hint"><span id="selinfo"></span><button class="chip" id="clearsel">limpar seleção</button></div>
+  </div>
+  <div class="split">
+    <div class="panel" style="display:grid;gap:12px"><div class="th" style="display:flex;justify-content:space-between"><span class="lbl">Itens da seleção</span><span class="lbl" id="feedn"></span></div><ul class="feed" id="feed"></ul></div>
+    <div class="panel" style="display:grid;gap:16px">
+      <span class="lbl">Seleção vs resto</span>
+      <div class="bub" id="bub"></div>
+      <div style="display:flex;gap:14px;font-size:12px;color:var(--ink-3)"><span style="display:flex;gap:6px;align-items:center"><i class="dot" style="background:var(--accent)"></i>seleção</span><span style="display:flex;gap:6px;align-items:center"><i class="dot" style="background:var(--line-2)"></i>resto</span></div>
+      <span class="lbl">Alcance na seleção</span>
+      <div class="bub" id="bub2"></div>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEW -->
+<section class="view" id="v-review" hidden>
+  <div class="vhead"><h1>Review <em>semanal</em></h1><p>O classificador sugere, e você confirma. A única pergunta que é sempre sua: sem você, isso teria acontecido?</p></div>
+  <div class="review">
+    <div class="panel rcard" id="rcard"></div>
+    <div class="panel sec"><span class="lbl">Fila</span><ul class="queue" id="queue"></ul></div>
+  </div>
+</section>
+
+<!-- REFS -->
+<section class="view" id="v-refs" hidden>
+  <div class="vhead"><h1>Por que <em>isso conta</em></h1><p>As fontes por trás de cada modo de entrega. As citações foram verificadas nas páginas originais em 2026-10-18. ⚠ marca uma fonte secundária.</p></div>
+  <div class="refs" id="refs"></div>
+</section>
+</div>
+
+<div class="sheet" id="sheet" hidden><div class="sheet-in" id="sheet-in" role="dialog" aria-modal="true" aria-label="Detalhe do item"></div></div>
+<div class="cmdk" id="cmdk" hidden><div class="cmdk-in" role="dialog" aria-label="Buscar"><input id="cmdk-input" type="text" placeholder="Buscar itens, pessoas, telas…" autocomplete="off"><ul id="cmdk-list" role="listbox"></ul></div></div>
+<div class="story" id="story" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="/data.js"></script>
+<script>
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const G = (!RM && window.gsap) ? window.gsap : null;
+
+const MODES = {clarify:"clarificar", prevent:"evitar", solve:"resolver", build:"construir", elevate:"elevar", external:"externo"};
+const REACH = {team:"meu time", lateral:"lateral", up:"para cima", external:"indústria"};
+const PILLAR = {big:"big-picture", exec:"execution", level:"leveling-up"};
+const WEEKS = ["W35","W36","W37","W38","W39","W40","W41","W42"];
+const REVIEWS = [28,19,22,27,17,27,15,10];
+
+const REFS = {
+  clarify:{title:"Clarificar", items:[
+    {q:"The highest-leverage work I do is to provide technical clarity to the organization", who:"Sean Goedecke, Staff Engineer no GitHub", url:"https://www.seangoedecke.com/clarity/"},
+    {q:"Illuminate and clarify", who:"Amazon, Principal Engineering Tenets", url:"https://www.amazon.jobs/content/en/teams/principal-engineering/tenets"},
+    {q:"Where a Product Manager focuses on the 'What', the Tech Lead focuses on the 'How.'", who:"Pat Kua", url:"https://www.patkua.com/blog/the-definition-of-a-tech-lead/"}]},
+  prevent:{title:"Evitar o build errado", items:[
+    {q:"Often the most impactful things I do is convince someone not to write a new thing.", who:"Silvia Botros, Senior Principal na Twilio", url:"https://staffeng.com/stories/silvia-botros/"},
+    {q:"A surprising number of projects are one small change away from succeeding", who:"Will Larson, Work on what matters", url:"https://staffeng.com/guides/work-on-what-matters/"}]},
+  solve:{title:"Resolver o que não tem dono", items:[
+    {q:"The Solver digs deep into arbitrarily complex problems and finds an appropriate path forward.", who:"Will Larson, Staff archetypes", url:"https://staffeng.com/guides/staff-archetypes/"},
+    {q:"at the senior levels, we are expected to identify problems that match business opportunities", who:"Camille Fournier", url:"https://www.elidedbranches.com/2023/07/the-next-larger-context.html"}]},
+  build:{title:"Construir com escopo de empresa", items:[
+    {q:"I own and deliver org/company-wide multi-year, multi-team goals", who:"Dropbox, IC6 Principal", url:"https://dropbox.github.io/dbx-career-framework/ic6_principal_software_engineer.html"},
+    {q:"Principal Engineers are hands-on and lead by example.", who:"Amazon, Exemplary practitioner", warn:"repost no Hacker News, não é a página oficial", url:"https://news.ycombinator.com/item?id=26004088"},
+    {q:"Solves technical problems of the highest scope, complexity, and ambiguity for their sub-department.", who:"GitLab, Principal Engineer", url:"https://handbook.gitlab.com/job-families/engineering/development/management/principal-engineer/"}]},
+  elevate:{title:"Elevar pessoas", items:[
+    {q:"To sponsor someone is to feel on the hook to help get someone promoted.", who:"Lara Hogan", url:"https://larahogan.me/blog/what-sponsorship-looks-like/"},
+    {q:"our job isn't to do the code, but to help others do it with growth and the long-term in mind.", who:"Silvia Botros", url:"https://staffeng.com/stories/silvia-botros/"},
+    {q:"Who have you mentored and through what accomplishments?", who:"Will Larson, Promo packets", url:"https://lethain.com/promo-packets/"}]},
+  external:{title:"Presença na indústria", items:[
+    {q:"She is an approver for the OpenTelemetry Go SIG, wrote vendor exporters for Go and Python", who:"Liz Fong-Jones, candidatura ao OTel GC 2020", url:"https://github.com/open-telemetry/community/blob/main/elections/2020/governance-committee-candidates.md"},
+    {q:"As a GC member, I actively mediate community conflicts.", who:"Juraci Paixão Kröhling", url:"https://grafana.com/blog/2024/08/16/behind-the-scenes-of-the-opentelemetry-governance-committee/"},
+    {q:"Interact with customers and other external stakeholders as a consultant and spokesperson", who:"GitLab, Principal Engineer", url:"https://handbook.gitlab.com/job-families/engineering/development/management/principal-engineer/"}]},
+  glue:{title:"Glue work", items:[
+    {q:"Glue work is the difference between a project that succeeds and one that fails.", who:"Tanya Reilly, Being Glue", url:"https://noidea.dog/glue"},
+    {q:"If you only do glue, you will only get better at glue.", who:"Tanya Reilly", url:"https://noidea.dog/glue"},
+    {q:"You should do this kind of extra work for the projects you lead", who:"Sean Goedecke", url:"https://www.seangoedecke.com/glue-work-considered-harmful/"}]},
+  counterfactual:{title:"Sem mim, teria acontecido?", items:[
+    {q:"things that simply won't happen if you don't do them are your biggest opportunity to work on something that matters", who:"Will Larson", url:"https://staffeng.com/guides/work-on-what-matters/"},
+    {q:"you won't get promoted if your company's leadership doesn't know who you are.", who:"Will Larson, Getting the title where you are", url:"https://staffeng.com/guides/getting-the-title-where-you-are/"}]},
+  scope:{title:"Escopo de Principal", items:[
+    {q:"While a senior engineer typically works across a team, a Staff or Principal engineer usually works across a larger organization.", who:"Gergely Orosz", url:"https://newsletter.pragmaticengineer.com/p/engineering-career-paths"},
+    {q:"Principal Engineers and Senior Directors of Engineering primarily focus on the engineering output of multiple groups", who:"Mike McQuaid", url:"https://mikemcquaid.com/what-is-a-staff-plus-principal-engineer/"},
+    {q:"I deliver results against a strategic company-level business objective", who:"Dropbox, IC6", url:"https://dropbox.github.io/dbx-career-framework/ic6_principal_software_engineer.html"}]},
+  tracking:{title:"Registrar o trabalho", items:[
+    {q:"So if your manager is going to effectively advocate for you, they need help.", who:"Julia Evans, Brag documents", url:"https://jvns.ca/blog/brag-documents/"},
+    {q:"Engineers who know all their work have an easier way of saying no to new work", who:"Gergely Orosz, Work log", url:"https://blog.pragmaticengineer.com/work-log-template-for-software-engineers/"},
+    {q:"can take on massive ambiguous cross-org projects and make them succeed despite the difficulty.", who:"Tanya Reilly, The Staff Engineer's Path", url:"https://noidea.dog/staff"}]},
+};
+
+/* GOALS, PROJECTS, REC, ITEMS, HIGHLIGHT and PHASES come from /data.js */
+
+/* state */
+let answers = {};
+try{ answers = JSON.parse(localStorage.getItem("it-answers")||"{}") }catch(e){}
+const save = () => { try{ localStorage.setItem("it-answers", JSON.stringify(answers)) }catch(e){} };
+const modeOf = it => answers[it.id]?.mode || it.mode;
+const goalOf = it => PROJECTS[it.s].goal;
+const mc = m => `var(--m-${m})`;
+const esc = s => String(s).replace(/[&<>"]/g, ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+const $ = s => document.querySelector(s);
+const cnt = (arr, f) => arr.reduce((o,x)=>{const k=f(x); o[k]=(o[k]||0)+1; return o},{});
+let sel = new Set(), cur = 0, recI = REC.length-1;
+
+function countUp(root){
+  if(!G) return;
+  root.querySelectorAll("[data-count]").forEach(el=>{
+    const end = +el.dataset.count, o = {v:0};
+    G.to(o,{v:end,duration:1.1,ease:"power3.out",onUpdate:()=>el.textContent=Math.round(o.v)});
+  });
+}
+
+/* HOME */
+function renderHome(){
+  const ups = ITEMS.filter(i=>i.reach==="up").length;
+  $("#home-p").innerHTML = `<b>${ITEMS.length}</b> itens, <b>${REC.length}</b> reconhecimentos públicos, <b>${ups}</b> itens que chegaram à liderança. Dados das notas Evidence.`;
+
+  // rings: share of items per goal
+  const by = cnt(ITEMS, goalOf), n = ITEMS.length;
+  const R = [96,74,52];
+  $("#rings").innerHTML = GOALS.map((g,i)=>`
+    <circle cx="120" cy="120" r="${R[i]}" fill="none" stroke="var(--s3)" stroke-width="16"/>
+    <circle class="ring" data-v="${(by[g.id]||0)/n*100}" cx="120" cy="120" r="${R[i]}" fill="none" stroke="${g.color}" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="${100-(by[g.id]||0)/n*100}" transform="rotate(-90 120 120)" style="filter:drop-shadow(0 0 6px color-mix(in srgb,${g.color} 60%,transparent))"/>`).join("")
+    + `<text x="120" y="124" text-anchor="middle"><tspan data-count="${n-(by.null||0)}">${n-(by.null||0)}</tspan>/${n}</text><text class="sub" x="120" y="142" text-anchor="middle">COM OBJETIVO</text>`;
+  $("#glist").innerHTML = GOALS.map(g=>`<li><button data-goal="${g.id}"><i class="dot" style="background:${g.color};margin-top:5px"></i><span class="gt">${esc(g.title)}</span><span class="gp num">${Math.round((by[g.id]||0)/n*100)}%</span><span class="gs">${by[g.id]||0} itens · ${Object.values(PROJECTS).filter(P=>P.goal===g.id).length} projetos · ${ITEMS.filter(i=>goalOf(i)===g.id&&i.reach==="up").length} para cima</span></button></li>`).join("")
+    + `<li><button data-goal="none"><i class="dot" style="background:var(--line-2);margin-top:5px"></i><span class="gt" style="color:var(--ink-2)">Sem objetivo</span><span class="gp num" style="color:var(--ink-3)">${Math.round((by.null||0)/n*100)}%</span><span class="gs">pode ser normal, ou glue sem dono · <a class="ref" href="#" data-ref="glue">glue work</a></span></button></li>`;
+
+  // one big thing (Oura)
+  const big = ITEMS.find(i=>i.id===HIGHLIGHT.item), r = REC[big.rec];
+  $("#bigthing").innerHTML = `<div class="th"><span class="lbl">Destaque da semana · ${WEEKS[big.w]}</span><span class="chip" style="cursor:default"><i class="dot" style="background:${mc(modeOf(big))}"></i>${MODES[modeOf(big)]}</span></div>
+    <p class="oneline">${esc(big.title)}</p>
+    <p class="big-q">${esc(r.t)}</p>
+    <span class="by">${esc(r.who)} · ${esc(r.where)} · ${HIGHLIGHT.when}</span>
+    <div style="margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><button class="chip" data-item="${big.id}">abrir evidência →</button><a class="ref" href="#" data-ref="solve">por que conta: resolver o que não tem dono</a></div>`;
+
+  // mix
+  const m = cnt(ITEMS, modeOf), mx = Math.max(...Object.values(m));
+  $("#t-mix").innerHTML = `<div class="th"><span class="lbl">Como entrego</span><a class="ref" href="#" data-v="trace">trace →</a></div>
+    <div class="mixbars">${Object.keys(MODES).map(k=>`<div class="mb"><a class="ref" style="color:var(--ink-2);font-size:12.5px;font-family:var(--f-body)" href="#" data-ref="${k}">${MODES[k]}</a><span class="tr"><i style="width:${(m[k]||0)/mx*100}%;background:${mc(k)}"></i></span><span class="n">${m[k]||0}</span></div>`).join("")}</div>`;
+
+  // reach graph
+  const rc = cnt(ITEMS, i=>i.reach);
+  const pos = {up:[130,22], lateral:[226,80], external:[34,80], team:[130,140]};
+  $("#t-reach").innerHTML = `<div class="th"><span class="lbl">Até onde chega</span><a class="ref" href="#" data-ref="scope">escopo →</a></div>
+    <svg viewBox="0 0 260 162" role="img" aria-label="Itens por alcance: ${Object.keys(REACH).map(k=>REACH[k]+" "+(rc[k]||0)).join(", ")}">
+      ${Object.keys(pos).map(k=>`<line class="edge" x1="130" y1="80" x2="${pos[k][0]}" y2="${pos[k][1]}" stroke="var(--accent)" stroke-opacity=".7" stroke-width="${1+(rc[k]||0)*.7}"/>`).join("")}
+      <circle cx="130" cy="80" r="17" fill="var(--accent)"/><text x="130" y="84" text-anchor="middle" fill="var(--accent-ink)" style="fill:var(--accent-ink)">EU</text>
+      ${Object.keys(pos).map(k=>`<circle cx="${pos[k][0]}" cy="${pos[k][1]}" r="${8+(rc[k]||0)*1.6}" fill="var(--s3)" stroke="var(--line-2)"/><text class="cn" x="${pos[k][0]}" y="${pos[k][1]+4.5}" text-anchor="middle">${rc[k]||0}</text>`).join("")}
+      <text x="164" y="22">${REACH.up}</text><text x="226" y="112" text-anchor="middle">${REACH.lateral}</text><text x="34" y="112" text-anchor="middle">${REACH.external}</text><text x="164" y="150">${REACH.team}</text>
+    </svg>`;
+
+  renderRec();
+
+  // reviews with baseline
+  const avg = REVIEWS.reduce((a,b)=>a+b)/REVIEWS.length;
+  const X = i=>12+i*32, Y = v=>78-v/30*62;
+  const pts = REVIEWS.map((v,i)=>`${X(i)},${Y(v)}`).join(" ");
+  $("#t-rev").innerHTML = `<div class="th"><span class="lbl">Reviews dados</span><a class="ref" href="#" data-ref="elevate">elevar →</a></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="statn num" data-count="${REVIEWS[7]}">${REVIEWS[7]}</span><span style="font-size:12.5px;color:var(--ink-3)">na W42 · seu normal é ${avg.toFixed(0)}</span></div>
+    <svg class="spark" viewBox="0 0 248 96" width="100%" role="img" aria-label="Reviews por semana: ${REVIEWS.join(", ")}">
+      <line x1="12" x2="236" y1="${Y(avg)}" y2="${Y(avg)}" stroke="var(--ink-3)" stroke-dasharray="3 4"/>
+      <text x="236" y="${Y(avg)-5}" text-anchor="end">NORMAL ${avg.toFixed(0)}</text>
+      <polygon points="12,78 ${pts} ${X(7)},78" fill="var(--accent)" fill-opacity=".16"/>
+      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+      <circle cx="${X(7)}" cy="${Y(REVIEWS[7])}" r="4" fill="var(--accent)"/>
+      ${WEEKS.map((w,i)=>`<text x="${X(i)}" y="93" text-anchor="middle">${w.slice(1)}</text>`).join("")}
+    </svg>`;
+
+  // without me
+  const done = ITEMS.filter(i=>answers[i.id]?.wm).length;
+  $("#t-wm").innerHTML = `<div class="th"><span class="lbl">Sem mim, teria acontecido?</span><span class="ref">só você responde</span></div>
+    <div style="display:flex;align-items:end;gap:20px;flex-wrap:wrap"><span class="statn num"><span data-count="${done}">${done}</span><small>/ ${ITEMS.length}</small></span>
+    <div style="display:grid;gap:8px;flex:1;min-width:200px"><div class="prog">${ITEMS.map(i=>`<i class="${answers[i.id]?.wm?"d":""}"></i>`).join("")}</div>
+    <span class="keys"><span>abrir review →</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> responder</span><span><kbd>J</kbd><kbd>K</kbd> navegar</span></span></div></div>`;
+
+  // recap
+  $("#t-recap").innerHTML = `<div class="th"><span class="lbl">Recap · Q3 → Q4</span><span class="play" aria-hidden="true">▶</span></div>
+    <p class="oneline">Suas 8 semanas,<br>em ${PHASES.length+4} telas</p><span style="font-size:13px;opacity:.85">No estilo Wrapped. Use ← → ou toque nas laterais.</span>`;
+
+  if(G){
+    G.from(".bento .tile",{y:14,opacity:0,duration:.5,stagger:.05,ease:"power2.out",clearProps:"all"});
+    document.querySelectorAll("#rings .ring").forEach((c,i)=>G.fromTo(c,{attr:{"stroke-dashoffset":100}},{attr:{"stroke-dashoffset":100-c.dataset.v},duration:1.4,delay:.2+i*.15,ease:"power3.out"}));
+    G.from(".mb .tr i",{scaleX:0,duration:.9,stagger:.06,ease:"power3.out",delay:.3});
+    countUp($("#v-home"));
+  }
+}
+function renderRec(){
+  const r = REC[recI];
+  $("#t-rec").innerHTML = `<div class="th"><span class="lbl">★ ${REC.length} reconhecimentos</span><div class="rec-nav"><button data-rec="-1" aria-label="anterior">‹</button><button data-rec="1" aria-label="próximo">›</button></div></div>
+    <p style="margin:0;font-size:14px;line-height:1.45">“${esc(r.t)}”</p>
+    <span class="by" style="margin-top:auto">${esc(r.who)}${r.role?` · ${esc(r.role)}`:""} · ${WEEKS[r.w]}</span>
+    <div class="rec-dots">${REC.map((_,i)=>`<i class="${i===recI?"on":""}"></i>`).join("")}</div>`;
+}
+
+/* PROJECTS */
+function renderProj(){
+  const keys = Object.keys(PROJECTS).filter(k=>PROJECTS[k].done);
+  const mx = Math.max(...keys.flatMap(k=>PROJECTS[k].done));
+  $("#phm").innerHTML = `<div></div>` + WEEKS.map(w=>`<div class="wk">${w}</div>`).join("") + keys.map(k=>{ const P = PROJECTS[k], g = GOALS.find(x=>x.id===P.goal);
+    return `<div class="ml" title="${esc(P.name)}"><i class="dot" style="background:${g?g.color:"var(--line-2)"}"></i><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(P.name)}</span></div>` + P.done.map((n,w)=>`<button class="cell" data-proj="${k}" style="${n?`background:color-mix(in srgb,var(--accent) ${25+n/mx*70}%,var(--s3))`:""}" aria-label="${esc(P.name)} ${WEEKS[w]}: ${n}">${n?`<b>${n}</b>`:""}</button>`).join(""); }).join("");
+  const order = [...GOALS.map(g=>g.id), null];
+  $("#pgrid").innerHTML = Object.entries(PROJECTS).sort((a,b)=>order.indexOf(a[1].goal)-order.indexOf(b[1].goal)).map(([k,P])=>{
+    const g = GOALS.find(x=>x.id===P.goal), its = ITEMS.filter(i=>i.s===k), tot = P.done ? P.done.reduce((a,b)=>a+b,0) : 0, pm = P.done ? Math.max(1,...P.done) : 1;
+    return `<article class="panel pcard" id="proj-${k}">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:start"><h3>${P.url?`<a href="${P.url}" target="_blank" rel="noopener">${esc(P.name)} ↗</a>`:esc(P.name)}</h3>
+        <span style="display:flex;gap:6px">${P.live?`<span class="pill done">ao vivo</span>`:""}<span class="pill ${P.status==="Completed"?"done":""}">${esc(P.status)}</span></span></div>
+      <div class="pmeta"><span>${g?`<i class="dot" style="background:${g.color}"></i> ${esc(g.short)} <span class="ex">exemplo</span>`:"sem objetivo"}</span>${P.lead?`<span>lead: ${esc(P.lead)}${P.lead==="Nicolas Takashi"?" (você)":""}</span>`:""}${P.done?`<span>${tot} issues seus fechados</span>`:""}${P.open?`<span class="${k==="none"?"warn":""}">${P.open} abertos</span>`:""}</div>
+      ${P.done?`<div class="pbars" aria-label="Issues fechados por semana: ${P.done.join(", ")}">${P.done.map(n=>`<i class="${n?"":"z"}" style="height:${n?Math.max(10,n/pm*100):6}%"></i>`).join("")}</div>`:""}
+      ${P.note?`<span class="pill ${k==="none"?"warn":""}" style="justify-self:start;letter-spacing:.02em;text-transform:none;font:500 12px var(--f-body)">${esc(P.note)}</span>`:""}
+      ${P.ms.length?`<div class="sec"><span class="lbl">Milestones</span>${P.ms.map(m=>`<div class="msr"><span>${esc(m.name)}</span><span class="tr"><i style="width:${m.progress||0}%"></i></span><b>${m.progress==null?"—":m.progress+"%"}</b></div>`).join("")}</div>`:""}
+      ${its.length?`<div class="sec"><span class="lbl">Impacto ligado · ${its.length}</span><ul class="pitems">${its.map(i=>`<li><button data-item="${i.id}"><i class="dot" style="background:${mc(modeOf(i))}"></i><span>${esc(i.title)}</span><span class="ref">${WEEKS[i.w]}${i.rec!=null?" ★":""}</span></button></li>`).join("")}</ul></div>`:`<span class="ref">Nenhum item de impacto ligado ainda. Trabalho fechado sem história registrada.</span>`}
+    </article>`; }).join("");
+}
+
+/* TRACE */
+let drag = null;
+function renderTrace(){
+  const grid = {}; ITEMS.forEach(i=>{const k=modeOf(i)+i.w; grid[k]=(grid[k]||0)+1});
+  let h = `<div></div>` + WEEKS.map((w,i)=>`<div class="wk ${sel.has(i)?"sel":""}" data-wk="${i}">${w}</div>`).join("");
+  Object.keys(MODES).forEach(m=>{
+    h += `<div class="ml"><i class="dot" style="background:${mc(m)}"></i>${MODES[m]}</div>`;
+    WEEKS.forEach((_,w)=>{ const n = grid[m+w]||0;
+      h += `<button class="cell ${sel.has(w)?"in":""}" data-wk="${w}" style="${n?`background:color-mix(in srgb,${mc(m)} ${n>1?95:55}%,var(--s3));box-shadow:0 0 14px -4px ${mc(m)}`:""}" aria-label="${MODES[m]} ${WEEKS[w]}: ${n}">${n?`<b>${n}</b>`:""}</button>`; });
+  });
+  $("#hm").innerHTML = h;
+  const ws = [...sel].sort((a,b)=>a-b);
+  $("#selinfo").textContent = ws.length ? `Seleção: ${ws.map(i=>WEEKS[i]).join(", ")}` : "Nenhuma seleção. Mostrando as 8 semanas.";
+  const inSel = ITEMS.filter(i=>!ws.length || sel.has(i.w)), rest = ITEMS.filter(i=>ws.length && !sel.has(i.w));
+  $("#feedn").textContent = inSel.length + " itens";
+  $("#feed").innerHTML = inSel.slice().reverse().map(i=>`<li><button data-item="${i.id}"><span class="stripe" style="background:${mc(modeOf(i))}"></span><span><div class="ft">${esc(i.title)}</div><div class="fm">${MODES[modeOf(i)]} · ${REACH[i.reach]}${i.rec!=null?" · ★":""}</div></span><span class="wk">${WEEKS[i.w]}</span></button></li>`).join("");
+  const comp = (keys, f, labels) => keys.map(k=>{
+    const a = inSel.filter(i=>f(i)===k).length/(inSel.length||1), b = rest.length ? rest.filter(i=>f(i)===k).length/rest.length : null;
+    const d = b==null ? null : Math.round((a-b)*100);
+    return `<div class="row"><span>${labels[k]}</span><span class="pair"><i style="width:${a*100}%;background:var(--accent)"></i>${b!=null?`<i class="b" style="width:${b*100}%"></i>`:""}</span><span class="d ${d>0?"up":"down"}">${d==null?Math.round(a*100)+"%":(d>0?"+":"")+d+" pp"}</span></div>`;
+  }).join("");
+  $("#bub").innerHTML = comp(Object.keys(MODES), modeOf, MODES);
+  $("#bub2").innerHTML = comp(Object.keys(REACH), i=>i.reach, REACH);
+}
+
+/* ITEM SHEET */
+function openItem(id){
+  const it = ITEMS.find(i=>i.id===id), m = modeOf(it), st = PROJECTS[it.s], g = GOALS.find(x=>x.id===st.goal);
+  const r = it.rec!=null ? REC[it.rec] : null, q = it.quote || (r && {t:r.t, who:`${r.who} · ${r.where}`});
+  const ref = REFS[m].items[0];
+  // flame: item → sources → links
+  const srcs = cnt(it.links, l=>l[0]);
+  if(q) srcs[r?"Reconhecimento":"Slack"] = (srcs[r?"Reconhecimento":"Slack"]||0)+1;
+  const lv2 = Object.keys(srcs);
+  const flame = `<div class="flame" aria-label="Evidência do item, como flame graph">
+    <div class="lv"><span class="sp" style="background:${mc(m)}">${esc(it.id)} · ${MODES[m]}</span></div>
+    ${lv2.length?`<div class="lv">${lv2.map(s=>`<span class="sp" style="flex:${srcs[s]};background:color-mix(in srgb,${mc(m)} 62%,var(--s3))">${s} · ${srcs[s]}</span>`).join("")}</div>
+    <div class="lv">${lv2.map(s=>{ const ls = it.links.filter(l=>l[0]===s);
+      const extra = (s==="Reconhecimento"||(s==="Slack"&&q&&!r)) ? [`<span class="sp" style="flex:1;background:color-mix(in srgb,${mc(m)} 38%,var(--s3));color:var(--ink)">${s==="Reconhecimento"?"★ "+esc(r.who):"citação"}</span>`] : [];
+      return ls.map(l=>`<a class="sp" href="${l[2]}" target="_blank" rel="noopener" style="flex:1;background:color-mix(in srgb,${mc(m)} 38%,var(--s3));color:var(--ink)" title="${esc(l[1])}">${esc(l[1])} ↗</a>`).concat(extra).join(""); }).join("")}</div>`:""}
+  </div>`;
+  $("#sheet-in").innerHTML = `<button class="x" id="x">fechar <kbd>esc</kbd></button>
+    <div class="crumbs" aria-label="Ligação do item">
+      ${g?`<b class="ex2" style="border-style:dashed"><i class="dot" style="background:${g.color}"></i> ${esc(g.short)}</b>`:`<b class="ex2">sem objetivo</b>`}<span class="sep">▸</span>
+      ${st.url?`<a href="${st.url}" target="_blank" rel="noopener">${esc(st.name)} ↗</a>`:`<b>${esc(st.name)}</b>`}
+      ${it.ms?`<span class="sep">▸</span><b>${esc(it.ms)}</b>`:""}<span class="sep">▸</span><b>${it.id} · ${WEEKS[it.w]}</b>
+    </div>
+    <h2>${esc(it.title)}</h2>
+    <div class="chips">
+      <button class="chip" data-ref="${m}"><i class="dot" style="background:${mc(m)}"></i>${MODES[m]}</button>
+      <button class="chip" data-ref="scope">${REACH[it.reach]}</button>
+      <button class="chip" data-ref="tracking">${PILLAR[it.pillar]}</button>
+      <span class="chip" style="cursor:default">${g?`<i class="dot" style="background:${g.color}"></i>${esc(g.short)}`:"sem objetivo"}</span>
+    </div>
+    <div class="sec"><span class="lbl">Evidência</span>${flame}</div>
+    ${q?`<figure class="qblock"><p>“${esc(q.t)}”</p><figcaption class="by">${esc(q.who)}</figcaption></figure>`:""}
+    <div class="two">
+      <div class="why"><span class="lbl">Por que isso conta · ${MODES[m]}</span><p>“${esc(ref.q)}”</p><a class="ref" href="${ref.url}" target="_blank" rel="noopener">${esc(ref.who)} ↗</a><a class="ref" href="#" data-ref="${m}">todas as fontes →</a></div>
+      <div class="sec"><span class="lbl">Sem mim, teria acontecido?</span><div class="wm" style="display:grid;gap:6px">${wmBtns(it)}</div><a class="ref" href="#" data-ref="counterfactual">por que essa pergunta →</a></div>
+    </div>`;
+  $("#sheet").hidden = false; $("#x").focus();
+  if(G){ G.from("#sheet-in",{y:40,opacity:0,duration:.35,ease:"power3.out",clearProps:"all"}); G.from("#sheet-in .flame .sp",{scaleX:0,duration:.5,stagger:.04,ease:"power2.out",clearProps:"transform"}); }
+}
+const WM = [["wouldnt","não aconteceria"],["slower","mais devagar"],["same","igual"]];
+const wmBtns = it => WM.map(([k,l],i)=>`<button class="opt" data-wm="${k}" data-id="${it.id}" aria-pressed="${answers[it.id]?.wm===k}"><kbd>${i+1}</kbd>${l}</button>`).join("");
+
+/* REVIEW */
+function renderReview(){
+  const left = ITEMS.filter(i=>!answers[i.id]?.wm).length;
+  $("#badge").textContent = left; $("#badge").hidden = !left;
+  const it = ITEMS[cur], m = modeOf(it), st = PROJECTS[it.s], r = it.rec!=null ? REC[it.rec] : null, q = it.quote || (r && {t:r.t, who:`${r.who} · ${r.where}`});
+  $("#rcard").innerHTML = `
+    <div class="prog">${ITEMS.map((i,ix)=>`<i class="${answers[i.id]?.wm?"d":ix===cur?"c":""}"></i>`).join("")}</div>
+    <div class="sec"><span class="lbl">${esc(st.name)} · ${WEEKS[it.w]} · ${ITEMS.length-left}/${ITEMS.length} respondidos</span><h2>${esc(it.title)}</h2></div>
+    ${q?`<figure class="qblock" style="margin:0"><p>“${esc(q.t)}”</p><figcaption class="by">${esc(q.who)}</figcaption></figure>`:""}
+    <div class="two">
+      <div class="sec"><span class="lbl">Modo · sugestão simulada</span>
+        ${Object.entries(it.p).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="prob"><span>${MODES[k]}</span><span class="tr"><i style="width:${v*100}%;background:${mc(k)}"></i></span><span class="v">${v.toFixed(2)}</span></div>`).join("")}
+        <div class="chips" style="margin-top:4px">${Object.keys(MODES).map(k=>`<button class="chip" data-mode="${k}" aria-pressed="${m===k}" style="${m===k?`border-color:${mc(k)};box-shadow:0 0 12px -4px ${mc(k)}`:""}"><i class="dot" style="background:${mc(k)}"></i>${MODES[k]}</button>`).join("")}</div>
+      </div>
+      <div class="sec"><span class="lbl">Sem mim, teria acontecido?</span><div style="display:grid;gap:6px">${wmBtns(it)}</div>
+        <span class="lbl" style="margin-top:6px">Alcance · calculado pelo mapa de pessoas</span><span>${REACH[it.reach]}</span></div>
+    </div>
+    <div class="keys"><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> responder e avançar</span><span><kbd>J</kbd><kbd>K</kbd> navegar</span><span><kbd>O</kbd> abrir evidência</span><span><kbd>⌘</kbd><kbd>K</kbd> buscar</span></div>`;
+  $("#queue").innerHTML = ITEMS.map((i,ix)=>`<li><button data-q="${ix}" aria-current="${ix===cur}"><i class="dot" style="background:${mc(modeOf(i))}"></i><span>${esc(i.title)}</span><span class="ok">${answers[i.id]?.wm?"✓":""}</span></button></li>`).join("");
+}
+
+/* REFS */
+function renderRefs(){
+  $("#refs").innerHTML = Object.entries(REFS).map(([k,r])=>`<article class="refc" id="ref-${k}">
+    <h3>${MODES[k]?`<i class="dot" style="background:${mc(k)};width:12px;height:12px"></i>`:""}${esc(r.title)}</h3>
+    <ul>${r.items.map(x=>`<li><q>${esc(x.q)}</q><a class="ref" href="${x.url}" target="_blank" rel="noopener">${esc(x.who)} ↗</a>${x.warn?`<span class="ref warn">⚠ ${esc(x.warn)}</span>`:""}</li>`).join("")}</ul></article>`).join("");
+}
+
+/* STORY (Wrapped) */
+let sI = 0;
+const ph = (a,b)=>ITEMS.filter(i=>i.w>=a&&i.w<=b);
+const PHASE_BG = ["linear-gradient(160deg,#2a1406,#ff7a45)","linear-gradient(160deg,#ff7a45,#c8326a)","linear-gradient(160deg,#2a2406,#c9a400 70%,#ffe37a)","linear-gradient(160deg,#0d1a2a,#5b47d6 60%,#b3a1ff)","linear-gradient(160deg,#5b47d6,#ff4d52)"];
+const SLIDES = [
+  {bg:"linear-gradient(160deg,#16161d,#3a0d12 60%,#ff4d52)", html:()=>`<span class="k">W35 – W42 · 2026</span><span class="huge num">8</span><p class="h">semanas de trabalho, com rastro</p>`},
+  {bg:"linear-gradient(160deg,#2a0b1a,#ff4f8f)", html:()=>`<span class="k">No total</span><span class="huge num">${ITEMS.length}</span><p class="h">itens com evidência. ${REC.length} reconhecimentos públicos.</p>`},
+  ...PHASES.map((p,n)=>({bg:PHASE_BG[n%PHASE_BG.length], html:()=>p.rec!=null
+    ? `<span class="k">${esc(p.k)}</span><p class="q">“${esc(REC[p.rec].t)}”</p><span class="by">${esc(REC[p.rec].who)}${REC[p.rec].role?" · "+esc(REC[p.rec].role):""}</span>`
+    : `<span class="k">${esc(p.k)}</span><p class="h">${esc(p.h)}</p><div class="rowx">${ph(p.from,p.to).map(i=>`<span class="pill">${esc(i.title)}</span>`).join("")}</div>`})),
+  {bg:"linear-gradient(160deg,#08230f,#12854a 60%,#7dffa8)", html:()=>{ const m = cnt(ITEMS, modeOf), mx = Math.max(...Object.values(m));
+    return `<span class="k">Como você entregou</span><div class="bars2">${Object.keys(MODES).map(k=>`<div><span>${MODES[k]}</span><span class="t"><i style="width:${(m[k]||0)/mx*100}%"></i></span><span>${m[k]||0}</span></div>`).join("")}</div>`}},
+  {bg:"linear-gradient(160deg,#16161d,#2c2c38)", html:()=>{ const d = ITEMS.filter(i=>answers[i.id]?.wm).length;
+    return `<span class="k">A pergunta que falta</span><p class="h">Sem você, quais destes teriam acontecido?</p><p class="by" style="font-size:15px">${d} de ${ITEMS.length} respondidos. Só você sabe a resposta.</p><div class="rowx"><button class="pill" data-story-go="review" style="cursor:pointer;color:#fff">Abrir review →</button></div>`}},
+];
+function openStory(){ sI = 0; $("#story").hidden = false; drawStory(); }
+function drawStory(){
+  const s = SLIDES[sI];
+  $("#story").innerHTML = `<div class="bg" style="background:${s.bg}"></div>
+    <div class="bars">${SLIDES.map((_,i)=>`<i class="${i<sI?"done":""}"><b ${i===sI?'id="curbar"':""}></b></i>`).join("")}</div>
+    <button class="close" id="story-x">fechar · esc</button>
+    <button class="tap l" data-step="-1" aria-label="anterior"></button><button class="tap r" data-step="1" aria-label="próximo"></button>
+    <div class="slide" id="slide">${s.html()}</div>
+    <div class="hint">← → ou toque nas laterais · ${sI+1}/${SLIDES.length}</div>`;
+  const bar = $("#curbar");
+  if(G){
+    G.from("#slide > *",{y:30,opacity:0,duration:.6,stagger:.08,ease:"power3.out",clearProps:"all"});
+    G.from("#slide .bars2 i",{width:0,duration:1,stagger:.08,ease:"power3.out",delay:.2});
+    const h = $("#slide .huge"); if(h){ const end=+h.textContent,o={v:0}; G.to(o,{v:end,duration:1.2,ease:"power3.out",onUpdate:()=>h.textContent=Math.round(o.v)}); }
+    G.to(bar,{width:"100%",duration:.9,ease:"power1.out"});
+  } else bar.style.width="100%";
+}
+function step(d){ sI = Math.max(0, Math.min(SLIDES.length-1, sI+d)); drawStory(); }
+
+/* CMDK */
+let cmdSel = 0, cmdRes = [];
+const VIEWS = [["home","Norte"],["proj","Projetos"],["trace","Trace"],["review","Review"],["refs","Referências"]];
+function openCmd(){ $("#cmdk").hidden = false; $("#cmdk-input").value=""; filterCmd(); $("#cmdk-input").focus(); }
+function filterCmd(){
+  const q = $("#cmdk-input").value.toLowerCase();
+  cmdRes = [...VIEWS.map(([v,l])=>({t:"tela", label:"Ir para "+l, v})), {t:"recap", label:"Abrir recap (Wrapped)", story:1},
+    ...ITEMS.map(i=>({t:WEEKS[i.w], label:i.title, item:i.id, m:modeOf(i), hay:(i.title+" "+PROJECTS[i.s].name+" "+(i.quote?.who||"")+" "+(i.rec!=null?REC[i.rec].who:"")).toLowerCase()}))]
+    .filter(r=>!q || (r.hay||r.label.toLowerCase()).includes(q)).slice(0,12);
+  cmdSel = 0; drawCmd();
+}
+function drawCmd(){
+  $("#cmdk-list").innerHTML = cmdRes.map((r,i)=>`<li><button role="option" data-cmd="${i}" aria-selected="${i===cmdSel}"><i class="dot" style="background:${r.m?mc(r.m):"var(--line-2)"}"></i><span>${esc(r.label)}</span><span class="k">${esc(r.t)}</span></button></li>`).join("") || `<li style="padding:14px;color:var(--ink-3)">Nada encontrado. Tente o nome de uma pessoa ou de um stream.</li>`;
+}
+function runCmd(i){ const r = cmdRes[i]; if(!r) return; $("#cmdk").hidden = true; if(r.v) show(r.v); else if(r.story) openStory(); else openItem(r.item); }
+
+/* NAV */
+function show(v){
+  document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.v===v));
+  document.querySelectorAll("section.view").forEach(s=>s.hidden = s.id!=="v-"+v);
+  $("#sheet").hidden = true; window.scrollTo(0,0);
+  if(v==="home") renderHome();
+  if(G && v!=="home") G.from(`#v-${v} .panel, #v-${v} .refc, #v-${v} .pcard`,{y:12,opacity:0,duration:.4,stagger:.04,clearProps:"all"});
+}
+function renderAll(){ renderTrace(); renderReview(); renderProj(); }
+
+document.addEventListener("click", e=>{
+  const t = e.target.closest("button,a,[data-wk]"); if(!t) return;
+  const d = t.dataset;
+  if(d.storyGo){ $("#story").hidden = true; show(d.storyGo); return; }
+  if(d.step){ step(+d.step); return; }
+  if(t.id==="story-x"){ $("#story").hidden = true; return; }
+  if(t.id==="t-recap"){ openStory(); return; }
+  if(t.id==="cmdk-open"){ openCmd(); return; }
+  if(d.cmd){ runCmd(+d.cmd); return; }
+  if(d.v){ e.preventDefault(); show(d.v); return; }
+  if(d.ref){ e.preventDefault(); show("refs"); const el = document.getElementById("ref-"+d.ref); if(el){ el.scrollIntoView({block:"center"}); document.querySelectorAll(".refc").forEach(x=>x.classList.toggle("hl", x===el)); } return; }
+  if(d.goal){ sel.clear(); ITEMS.filter(i=>(goalOf(i)??"none")===d.goal).forEach(i=>sel.add(i.w)); renderTrace(); show("trace"); return; }
+  if(d.item){ openItem(d.item); return; }
+  if(d.proj){ document.getElementById("proj-"+d.proj)?.scrollIntoView({block:"center",behavior:RM?"auto":"smooth"}); return; }
+  if(t.id==="x"){ $("#sheet").hidden = true; return; }
+  if(d.rec){ recI = (recI + +d.rec + REC.length) % REC.length; renderRec(); return; }
+  if(d.wm){ answers[d.id] = {...answers[d.id], wm:d.wm}; save(); renderAll(); if(!$("#sheet").hidden) openItem(d.id); return; }
+  if(d.mode){ const id = ITEMS[cur].id; answers[id] = {...answers[id], mode:d.mode}; save(); renderAll(); return; }
+  if(d.q){ cur = +d.q; renderReview(); return; }
+  if(t.id==="clearsel"){ sel.clear(); renderTrace(); return; }
+});
+$("#sheet").addEventListener("click", e=>{ if(e.target.id==="sheet") $("#sheet").hidden = true; });
+$("#cmdk").addEventListener("click", e=>{ if(e.target.id==="cmdk") $("#cmdk").hidden = true; });
+$("#cmdk-input").addEventListener("input", filterCmd);
+
+// heatmap brush
+$("#hm").addEventListener("pointerdown", e=>{ const c = e.target.closest("[data-wk]"); if(!c) return; drag = {a:+c.dataset.wk, moved:false}; });
+$("#hm").addEventListener("pointerover", e=>{ if(!drag) return; const c = e.target.closest("[data-wk]"); if(!c) return; const b = +c.dataset.wk; if(b!==drag.a) drag.moved = true;
+  if(drag.moved){ sel.clear(); for(let i=Math.min(drag.a,b); i<=Math.max(drag.a,b); i++) sel.add(i); renderTrace(); } });
+addEventListener("pointerup", e=>{ if(!drag) return; if(!drag.moved){ const w = drag.a; sel.has(w) ? sel.delete(w) : sel.add(w); renderTrace(); } drag = null; });
+
+document.addEventListener("keydown", e=>{
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="k"){ e.preventDefault(); $("#cmdk").hidden ? openCmd() : ($("#cmdk").hidden = true); return; }
+  if(!$("#cmdk").hidden){
+    if(e.key==="Escape") $("#cmdk").hidden = true;
+    else if(e.key==="ArrowDown"){ e.preventDefault(); cmdSel = Math.min(cmdSel+1, cmdRes.length-1); drawCmd(); }
+    else if(e.key==="ArrowUp"){ e.preventDefault(); cmdSel = Math.max(cmdSel-1, 0); drawCmd(); }
+    else if(e.key==="Enter") runCmd(cmdSel);
+    return;
+  }
+  if(!$("#story").hidden){ if(e.key==="ArrowRight"||e.key===" ") { e.preventDefault(); step(1); } else if(e.key==="ArrowLeft") step(-1); else if(e.key==="Escape") $("#story").hidden = true; return; }
+  if(e.key==="Escape"){ $("#sheet").hidden = true; return; }
+  const inSheet = !$("#sheet").hidden;
+  if(["1","2","3"].includes(e.key) && (inSheet || !$("#v-review").hidden)){
+    const id = inSheet ? $("#sheet-in [data-wm]")?.dataset.id : ITEMS[cur].id; if(!id) return;
+    answers[id] = {...answers[id], wm:WM[+e.key-1][0]}; save();
+    if(inSheet){ renderAll(); openItem(id); } else { cur = Math.min(cur+1, ITEMS.length-1); renderAll(); }
+    return;
+  }
+  if($("#v-review").hidden || inSheet) return;
+  if(e.key==="j"){ cur = Math.min(cur+1, ITEMS.length-1); renderReview(); }
+  else if(e.key==="k"){ cur = Math.max(cur-1, 0); renderReview(); }
+  else if(e.key==="o"){ openItem(ITEMS[cur].id); }
+});
+
+// Live data from the local SQLite, when served by app/server.ts. Static values stay as the fallback.
+async function hydrate(){
+  let api;
+  try{ const r = await fetch("/api/projects?weeks="+WEEKS.map(w=>"2026-"+w).join(",")); if(!r.ok) return; api = await r.json(); }catch(e){ return; }
+  const known = Object.values(PROJECTS);
+  for(const a of api.projects){
+    const P = known.find(x=>x.name===a.name) || (PROJECTS[a.id] = {name:a.name, goal:null, ms:[]});
+    Object.assign(P, {url:a.url, lead:a.lead, status:a.status, done:a.done, open:a.open, live:true});
+    if(a.ms.length) P.ms = a.ms.map(m=>({name:m.name, progress:m.progress}));
+  }
+  Object.assign(PROJECTS.none, {done:api.none.done, open:api.none.open, live:true});
+  $("#proto").textContent = `Projetos ao vivo do SQLite · ${api.collected_at?.slice(0,16).replace("T"," ") ?? "sem coleta"}. Objetivos e probabilidades são exemplos.`;
+  renderAll(); renderHome();
+}
+renderRefs(); renderHome(); renderAll(); hydrate();
+</script>
