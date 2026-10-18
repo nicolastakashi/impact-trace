@@ -74,7 +74,7 @@ export function ingestWeek(db: Database, dir: string, week: string) {
       payload=excluded.payload, run_id=excluded.run_id`);
   const link = db.query("INSERT OR IGNORE INTO links (from_id, to_ref, rel) VALUES (?, ?, ?)");
 
-  for (const source of ["linear", "github"]) {
+  for (const source of ["linear", "github", "slack_own", "slack_mention"]) {
     const file = join(dir, `${source}.run.json`);
     if (!existsSync(file)) continue;
     const run = JSON.parse(readFileSync(file, "utf8"));
@@ -95,8 +95,13 @@ export function ingestWeek(db: Database, dir: string, week: string) {
         const missed = [...inWindow].filter((id) => !picked.has(id));
         if (missed.length) console.warn(`linear ${week}: no attachments collected for ${missed.join(", ")}`);
         [expected, got] = [inWindow.size, [...inWindow].filter((id) => picked.has(id)).length];
-      } else got = out.prs_merged.length;
-      status = expected == null || expected === got ? "ok" : "count_mismatch";
+      } else if (source === "github") got = out.prs_merged.length;
+      else {
+        // No source gives Slack a total, so the only check left is that paging finished.
+        got = out.messages.length;
+        if (!out.exhausted) console.warn(`slack ${week}: paging did not finish after ${out.pages_read} pages`);
+      }
+      status = (expected == null || expected === got) && out.exhausted !== false ? "ok" : "count_mismatch";
     }
     result[source] = status;
 
@@ -106,7 +111,8 @@ export function ingestWeek(db: Database, dir: string, week: string) {
         .run(runId, week, source, run.total_cost_usd ?? null, run.num_turns ?? null, expected, got, status, now);
       if (status === "error") return;
       if (source === "linear") ingestLinear(db, out, week, runId, now, event, link);
-      else ingestGithub(out, week, runId, event, link);
+      else if (source === "github") ingestGithub(out, week, runId, event, link);
+      else ingestSlack(db, out, week, runId, event, link);
     })();
   }
   return result;
@@ -141,6 +147,29 @@ function ingestLinear(db: Database, out: any, week: string, runId: string, now: 
     event.run(id, "linear", done ? "issue_completed" : "issue_open", done ? isoWeek(i.completed_at) : week,
       i.completed_at, i.title, i.url, null, pid, mid, JSON.stringify(i), runId);
     for (const u of urls.get(i.id) ?? []) link.run(id, refOf(u), "attachment");
+  }
+}
+
+// Team keys of the Linear issues already ingested, so bare ids in text can be told from noise.
+function issueKeys(db: Database) {
+  const rows = db.query("SELECT DISTINCT substr(id, 8, instr(substr(id, 8), '-') - 1) k FROM events WHERE source = 'linear'").all() as { k: string }[];
+  return new Set(rows.map((r) => r.k));
+}
+
+function ingestSlack(db: Database, out: any, week: string, runId: string, event: any, link: any) {
+  const keys = issueKeys(db);
+  for (const m of out.messages) {
+    const at = new Date(Number(m.ts) * 1000).toISOString();
+    const mine = m.author_id === out.self_user_id;
+    // Search matches the name anywhere, threads included; a mention must name you in the text.
+    const names = m.text.includes(`<@${out.self_user_id}`) || m.text.includes("Nicolas Takashi");
+    // ponytail: GitHub app posts echo PRs the github source already has; match by name until Slack gives a bot flag.
+    const echo = m.author_name === "GitHub";
+    if (isoWeek(at) !== week || (m.pass === "mention" && (mine || !names || echo))) continue;
+    const id = `slack:${m.channel_id}/${m.ts}`;
+    event.run(id, "slack", mine ? "slack_message" : "slack_mention", week, at, m.channel_name, m.permalink, m.author_name,
+      null, null, JSON.stringify(m), runId);
+    for (const r of refsIn(m.text, keys)) link.run(id, r, "mentions");
   }
 }
 

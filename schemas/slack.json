@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "required": ["week", "self_user_id", "pages_read", "exhausted", "messages"],
+  "properties": {
+    "week": { "type": "string", "pattern": "^\\d{4}-W\\d{2}$" },
+    "self_user_id": { "type": "string" },
+    "pages_read": { "type": "integer", "minimum": 1 },
+    "exhausted": { "type": "boolean" },
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["pass", "channel_id", "channel_name", "ts", "permalink", "author_id", "author_name", "text"],
+        "properties": {
+          "pass": { "enum": ["own", "mention"] },
+          "channel_id": { "type": "string" },
+          "channel_name": { "type": "string" },
+          "ts": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+          "permalink": { "type": "string" },
+          "author_id": { "type": "string" },
+          "author_name": { "type": "string" },
+          "text": { "type": "string" }
+        }
+      }
+    }
+  }
+}

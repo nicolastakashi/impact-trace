@@ -35,6 +35,19 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
       at: "2026-10-14T07:50:00Z", linear_refs: ["ACME-41"] }],
   }));
   writeFileSync(join(dir, "github.expected"), "2\n");
+  writeFileSync(join(dir, "slack_own.run.json"), wrap({
+    week: "2026-W42", self_user_id: "U1", pages_read: 2, exhausted: true,
+    messages: [
+      { pass: "own", channel_id: "C1", channel_name: "#dev", ts: "1791833652.842769", permalink: "https://s/1", author_id: "U1", author_name: "Me",
+        text: "PTAL <https://github.com/acme/api/pull/101|#101>, closes ACME-41" },
+      { pass: "mention", channel_id: "C2", channel_name: "#kudos", ts: "1791900000.000100", permalink: "https://s/2", author_id: "U2", author_name: "Riley",
+        text: "thanks <@U1|Me>" },
+      { pass: "mention", channel_id: "C2", channel_name: "#kudos", ts: "1791900000.000200", permalink: "https://s/4", author_id: "U3", author_name: "Blair",
+        text: "this should unblock them" },
+      { pass: "mention", channel_id: "C1", channel_name: "#dev", ts: "1791833652.842769", permalink: "https://s/1", author_id: "U1", author_name: "Me", text: "dup" },
+      { pass: "own", channel_id: "C3", channel_name: "#old", ts: "1700000000.000001", permalink: "https://s/3", author_id: "U1", author_name: "Me", text: "out of window" },
+    ],
+  }));
 
   const db = new Database(":memory:", { strict: true });
   db.exec("PRAGMA foreign_keys = ON");
@@ -43,9 +56,13 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   ingestWeek(db, dir, "2026-W42");
 
   // ACME-40 is in the window but Claude did not pick it: flagged, and still ingested from the raw rows.
-  expect(first).toEqual({ linear: "count_mismatch", github: "count_mismatch" });
+  expect(first).toEqual({ linear: "count_mismatch", github: "count_mismatch", slack_own: "ok" });
   expect(db.query("SELECT group_concat(id) ids FROM events WHERE kind = 'issue_completed'").get()).toEqual({ ids: "linear:ACME-41,linear:ACME-40" });
-  expect(db.query("SELECT count(*) n FROM events").get()).toEqual({ n: 4 });
+  expect(db.query("SELECT count(*) n FROM events").get()).toEqual({ n: 6 });
+  expect(db.query("SELECT kind, count(*) n FROM events WHERE source = 'slack' GROUP BY 1 ORDER BY 1").all())
+    .toEqual([{ kind: "slack_mention", n: 1 }, { kind: "slack_message", n: 1 }]);
+  expect(db.query("SELECT to_ref FROM links WHERE from_id = 'slack:C1/1791833652.842769' ORDER BY 1").all())
+    .toEqual([{ to_ref: "github:acme/api#101" }, { to_ref: "linear:ACME-41" }]);
   expect(db.query("SELECT project_id, milestone_id, week FROM events WHERE id = 'linear:ACME-41'").get())
     .toEqual({ project_id: "P-ACME-1", milestone_id: "m1", week: "2026-W42" });
   expect(db.query("SELECT to_ref FROM links WHERE from_id = 'linear:ACME-41'").all()).toEqual([{ to_ref: "github:acme/api#101" }]);

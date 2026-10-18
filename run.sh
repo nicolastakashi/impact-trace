@@ -17,19 +17,23 @@ out="data/raw/$week"; mkdir -p "$out"
 # pattern alone cannot. ponytail: prompt-level guard, move to a wrapper script if it slips.
 linear_tools="mcp__claude_ai_Linear__list_issues,mcp__claude_ai_Linear__get_issue,mcp__claude_ai_Linear__list_projects"
 github_tools="Bash(gh search prs:*),Bash(gh api --paginate repos/:*)"
+slack_tools="mcp__claude_ai_Slack__slack_search_public_and_private"
 
-collect() { # source tools
+collect() { # source tools [skill args]: the raw file is named after the source
   echo "▶ $1 $week"
-  claude -p "/collect-$1 $monday" \
+  claude -p "/collect-${1%%_*} $monday ${3:-}" \
     --model haiku \
     --allowedTools "$2" \
     --output-format json \
-    --json-schema "$(cat "schemas/$1.json")" \
+    --json-schema "$(cat "schemas/${1%%_*}.json")" \
     > "$out/$1.run.json"
 }
 
 collect linear "$linear_tools"
 collect github "$github_tools"
+# Two calls: one pass each. A single call skipped the mention pass.
+collect slack_own "$slack_tools" own
+collect slack_mention "$slack_tools" mention
 
 # Independent count for GitHub, to catch rows Claude dropped.
 gh search prs --author nicolastakashi --merged --merged-at "$monday..$sunday" --limit 200 \
