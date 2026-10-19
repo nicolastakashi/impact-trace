@@ -261,7 +261,8 @@ const server = Bun.serve({
   hostname: process.env.HOST ?? "127.0.0.1",
   async fetch(req) {
     const url = new URL(req.url);
-    if (url.pathname === "/") return new Response(Bun.file(page));
+    // No cache: after an update or a new review, the next load shows it.
+    if (url.pathname === "/") return new Response(Bun.file(page), { headers: { "cache-control": "no-cache" } });
     // Old addresses: review and groups now live inside the one page.
     if (url.pathname === "/review" || url.pathname === "/groups") return new Response(null, { status: 302, headers: { location: `/#${url.pathname === "/groups" ? "/projects" : url.pathname}${url.search}` } });
     if (url.pathname === "/api/setup" && req.method === "GET") return setup(url.searchParams.has("guess"));
@@ -283,7 +284,7 @@ const server = Bun.serve({
     if (url.pathname === "/api/delete" && json) return del(await req.json().catch(() => null));
     if (url.pathname === "/api/restore" && json) return restore(await req.json().catch(() => null));
     if (url.pathname === "/api/unmerge" && json) return unmerge(await req.json().catch(() => null));
-    if (url.pathname === "/data.js") { const d = north(); return new Response(d ?? Bun.file(sample), { headers: { "content-type": "text/javascript" } }); }
+    if (url.pathname === "/data.js") { const d = north(); return new Response(d ?? Bun.file(sample), { headers: { "content-type": "text/javascript", "cache-control": "no-cache" } }); }
     if (url.pathname === "/api/projects") {
       const weeks = (url.searchParams.get("weeks") ?? "").split(",").filter((w) => /^\d{4}-W\d{2}$/.test(w));
       return Response.json(projects(weeks));
