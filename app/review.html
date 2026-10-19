@@ -72,6 +72,9 @@ header .back{margin-left:auto;font:500 12px var(--f-mono);color:var(--ink-2)}
 .prog i.c{background:var(--accent)}
 .title{width:100%;font:700 30px/1.15 var(--f-num);letter-spacing:.01em;color:var(--ink);background:transparent;border:0;border-bottom:1px dashed var(--line-2);padding:2px 0 6px}
 .title:focus{outline:0;border-bottom-color:var(--accent)}
+.summary{width:100%;max-width:72ch;font:400 16px/1.55 var(--f-body);color:var(--ink-2);background:transparent;border:0;border-radius:8px;padding:6px 8px;margin:-6px -8px 0;resize:none;field-sizing:content;min-height:2lh}
+.summary:hover{background:var(--s2)}
+.summary:focus{outline:0;background:var(--s2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line-2)}
 .sec{display:grid;gap:10px}
 
 .events{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:12px;max-height:300px;overflow:auto}
@@ -148,7 +151,7 @@ async function load(week){
 
 // What the card shows: your decision if any, else Claude's suggestion.
 function pick(t){
-  const d = draft[t.key] ??= {title: t.human.title ?? t.claude.title ?? "", mode: t.human.mode ?? t.claude.mode, pillar: t.human.pillar ?? t.claude.pillar};
+  const d = draft[t.key] ??= {title: t.human.title ?? t.claude.title ?? "", summary: t.human.summary ?? t.claude.summary ?? "", mode: t.human.mode ?? t.claude.mode, pillar: t.human.pillar ?? t.claude.pillar};
   return d;
 }
 
@@ -172,7 +175,8 @@ function render(){
   $("#card").innerHTML = `
     <div class="prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.without_me==="discard"?"x":x.human.without_me?"d":i===cur?"c":""}"></i>`).join("")}</div>
     <div class="sec"><span class="lbl">${esc(data.week)} · ${kinds}</span>
-      <input class="title" id="title" value="${esc(d.title)}" aria-label="Título da thread"></div>
+      <input class="title" id="title" value="${esc(d.title)}" aria-label="Título da thread">
+      <textarea class="summary" id="summary" rows="2" aria-label="Resumo do que você fez" placeholder="Sem resumo ainda">${esc(d.summary)}</textarea></div>
     <div class="sec"><span class="lbl">Evidência</span><ul class="events">${t.events.map(e => `<li class="${ev.has(e.id)?"ev":""}">
       <span class="k">${KIND[e.kind]??e.kind}</span>
       <span class="x">${e.url?`<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title ?? e.id)} ↗</a>`:esc(e.title ?? e.id)}
@@ -187,7 +191,7 @@ function render(){
       <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}"><kbd>0</kbd>Descartar · não é impacto</button></div>
     <div class="keys"><span><kbd>A</kbd>–<kbd>H</kbd> modo</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> pilar</span>
       <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> sem mim, salva</span><span><kbd>0</kbd> descartar</span><span><kbd>J</kbd><kbd>K</kbd> navegar</span>
-      <span><kbd>T</kbd> editar título</span><span><kbd>O</kbd> abrir evidência</span></div>`;
+      <span><kbd>T</kbd> editar título</span><span><kbd>E</kbd> editar resumo</span><span><kbd>O</kbd> abrir evidência</span></div>`;
   $("#queue [aria-current=true]")?.scrollIntoView({block:"nearest"});
 }
 
@@ -204,7 +208,8 @@ function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = f
 async function save(wm){
   const t = data.threads[cur], d = pick(t);
   d.title = $("#title").value.trim() || d.title;
-  const labels = wm === "discard" ? {without_me: wm} : {title: d.title, mode: d.mode, pillar: d.pillar, without_me: wm};
+  d.summary = $("#summary").value.trim();
+  const labels = wm === "discard" ? {without_me: wm} : {title: d.title, mode: d.mode, pillar: d.pillar, without_me: wm, ...(d.summary && {summary: d.summary})};
   const r = await fetch("/api/labels", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({week: data.week, key: t.key, labels})});
   if(!r.ok){ toast(`Não salvou: ${await r.text()}`); return; }
   Object.assign(t.human, labels);
@@ -220,9 +225,9 @@ document.addEventListener("click", e => {
   else if(b.dataset.pillar) set("pillar", b.dataset.pillar);
   else if(b.dataset.wm) save(b.dataset.wm);
 });
-document.addEventListener("input", e => { if(e.target.id === "title") pick(data.threads[cur]).title = e.target.value; });
+document.addEventListener("input", e => { if(e.target.id === "title" || e.target.id === "summary") pick(data.threads[cur])[e.target.id] = e.target.value; });
 document.addEventListener("keydown", e => {
-  if(e.target.id === "title"){ if(e.key === "Escape" || e.key === "Enter") e.target.blur(); return; }
+  if(e.target.id === "title" || e.target.id === "summary"){ if(e.key === "Escape" || (e.key === "Enter" && !e.shiftKey)){ e.preventDefault(); e.target.blur(); } return; }
   if(e.metaKey || e.ctrlKey || e.altKey || !data.threads.length) return;
   const k = e.key.toLowerCase();
   if(MODE_KEYS.includes(k)) set("mode", Object.keys(MODES)[MODE_KEYS.indexOf(k)]);
@@ -232,6 +237,7 @@ document.addEventListener("keydown", e => {
   else if(k === "j") go(cur+1);
   else if(k === "k") go(cur-1);
   else if(k === "t"){ e.preventDefault(); $("#title").focus(); $("#title").select(); }
+  else if(k === "e"){ e.preventDefault(); const s = $("#summary"); s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
   else if(k === "o"){ const a = $(".events li.ev a") ?? $(".events a"); if(a) window.open(a.href, "_blank", "noopener"); }
   else return;
   e.preventDefault();

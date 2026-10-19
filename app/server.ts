@@ -33,7 +33,7 @@ function projects(weeks: string[]) {
 }
 
 const WEEK = /^\d{4}-W\d{2}$/;
-const FIELDS = { title: null, mode: ["clarify", "prevent", "solve", "build", "elevate", "external"], pillar: ["big", "exec", "level"], without_me: ["wouldnt", "slower", "same", "discard"] } as Record<string, string[] | null>;
+const FIELDS = { title: null, summary: null, mode: ["clarify", "prevent", "solve", "build", "elevate", "external"], pillar: ["big", "exec", "level"], without_me: ["wouldnt", "slower", "same", "discard"] } as Record<string, string[] | null>;
 
 function review(week: string) {
   const rows = db.query("SELECT thread_key, field, value, source FROM labels WHERE week = ?").all(week) as any[];
@@ -53,7 +53,7 @@ function decide(body: any) {
   const entries = Object.entries(body.labels ?? {}) as [string, string][];
   for (const [f, v] of entries) {
     const allowed = FIELDS[f];
-    if (f in FIELDS === false || typeof v !== "string" || !v.trim() || (allowed && !allowed.includes(v)))
+    if (f in FIELDS === false || typeof v !== "string" || !v.trim() || v.length > 1000 || (allowed && !allowed.includes(v)))
       return new Response(`Bad value for ${f}`, { status: 400 });
   }
   const put = db.query(`INSERT INTO labels (thread_key, week, field, value, source, events, at) VALUES (?, ?, ?, ?, 'human', ?, ?)
