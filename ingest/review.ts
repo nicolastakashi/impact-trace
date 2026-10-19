@@ -37,7 +37,7 @@ export function saveSuggestions(db: Database, week: string, run: any, promptVers
       // A key Claude made up or changed would label nothing.
       if (!byKey.has(l.key)) { unknown++; continue; }
       // without_me is yours alone: the events rarely show the counterfactual.
-      for (const f of ["title", "mode", "pillar", "evidence"])
+      for (const f of ["title", "summary", "mode", "pillar", "evidence"])
         put.run(l.key, week, f, f === "evidence" ? JSON.stringify(l[f]) : l[f], model, promptVersion, JSON.stringify(byKey.get(l.key)), at);
     }
   })();
