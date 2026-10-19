@@ -1,7 +1,7 @@
 // Serve the app and its data. Usage: bun app/server.ts  →  http://localhost:4317
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { open } from "../ingest/ingest";
+import { LIVE, open, PLACED } from "../ingest/ingest";
 import { labelsOf, reviewThreads } from "../ingest/review";
 
 const db = open();
@@ -32,8 +32,6 @@ function projects(weeks: string[]) {
 }
 
 const WEEK = /^\d{4}-W\d{2}$/;
-// A merged project lives on inside the one it was merged into, so pickers and lists skip it.
-const LIVE = "id NOT IN (SELECT from_id FROM project_merges)";
 const FIELDS = { title: null, summary: null, mode: ["clarify", "prevent", "solve", "build", "elevate", "external"], pillar: ["big", "exec", "level"], without_me: ["wouldnt", "slower", "same", "discard"] } as Record<string, string[] | null>;
 
 // Threads you have not decided yet, per week. Review opens on the latest week that has some.
@@ -98,6 +96,8 @@ function group(body: any) {
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const existing = db.query("SELECT id FROM projects WHERE lower(name) = lower(?)").get(name) as any;
     id = existing?.id ?? `topic:${slug}`;
+    // Creating a topic with a deleted one's name brings it back.
+    db.query("DELETE FROM project_deletions WHERE id = ?").run(id);
     if (!existing) db.query("INSERT INTO projects (id, name, kind, updated_at) VALUES (?, ?, 'topic', ?)").run(id, name, new Date().toISOString());
   }
   const put = db.query(`INSERT INTO assignments (event_id, project_id, source, at) VALUES (?, ?, 'human', ?)
@@ -121,6 +121,20 @@ function merge(body: any) {
   })();
   return Response.json({ ok: true });
 }
+// Delete a project: its threads lose their project. Projects merged into it stand alone again.
+function del(body: any) {
+  const id = String(body?.id ?? "");
+  if (!db.query(`SELECT 1 FROM projects WHERE id = ? AND ${LIVE}`).get(id)) return new Response("Unknown project", { status: 400 });
+  db.transaction(() => {
+    db.query("DELETE FROM project_merges WHERE into_id = ?").run(id);
+    db.query("INSERT INTO project_deletions VALUES (?, ?)").run(id, new Date().toISOString());
+  })();
+  return Response.json({ ok: true });
+}
+function restore(body: any) {
+  const n = db.query("DELETE FROM project_deletions WHERE id = ?").run(String(body?.id ?? "")).changes;
+  return n ? Response.json({ ok: true }) : new Response("Not deleted", { status: 400 });
+}
 function unmerge(body: any) {
   const n = db.query("DELETE FROM project_merges WHERE from_id = ?").run(String(body?.from ?? "")).changes;
   return n ? Response.json({ ok: true }) : new Response("Not merged", { status: 400 });
@@ -140,7 +154,29 @@ function groups() {
     if (v("without_me") === "discard" && l.some((r) => r.field === "without_me" && r.source === "human")) continue;
     (g.weeks[week] ??= []).push({ key: t.key, title: v("title"), summary: v("summary"), events: t.events.length, decided: l.some((r) => r.source === "human" && r.field === "without_me") });
   }
-  return { weeks, groups: [...by.values()].filter((g) => Object.keys(g.weeks).length || g.kind === "topic") };
+  return { weeks, groups: [...by.values()].filter((g) => Object.keys(g.weeks).length || g.kind === "topic"),
+    deleted: db.query("SELECT p.id, p.name, p.kind FROM project_deletions d JOIN projects p ON p.id = d.id ORDER BY d.at DESC").all() };
+}
+
+// One project, all of it: where its events come from (itself and what you merged in),
+// and every thread week by week with its events. Discarded threads come flagged.
+function project(id: string) {
+  const p = db.query("SELECT id, name, kind, url, lead, status FROM projects WHERE id = ?").get(id) as any;
+  if (!p) return new Response("Unknown project", { status: 404 });
+  const into = db.query("SELECT into_id FROM project_merges WHERE from_id = ?").get(id) as any;
+  if (into) return Response.json({ into: into.into_id });
+  const sources = [p, ...db.query("SELECT p.id, p.name, p.kind, p.url FROM project_merges m JOIN projects p ON p.id = m.from_id WHERE m.into_id = ? ORDER BY p.name").all(id) as any[]];
+  const src = db.query(`SELECT ${PLACED} s FROM events WHERE id = ?`);
+  const weeks = (db.query("SELECT DISTINCT week FROM labels ORDER BY 1").all() as any[]).map((r) => r.week);
+  const threads = weeks.flatMap((week) => reviewThreads(db, week).filter((t) => t.projects.some((x) => x.id === id)).map((t) => {
+    const l = labelsOf(db, t);
+    const v = (f: string) => (l.find((r) => r.field === f && r.source === "human") ?? l.find((r) => r.field === f && r.source === "claude"))?.value;
+    const wm = l.find((r) => r.field === "without_me" && r.source === "human")?.value;
+    return { week, key: t.key, title: v("title"), summary: v("summary"), decided: !!wm, discarded: wm === "discard",
+      events: t.events.map((e) => ({ id: e.id, kind: e.kind, title: e.title, url: e.url, source: (src.get(e.id) as any)?.s })) };
+  }));
+  return Response.json({ project: p, deleted: !!db.query("SELECT 1 FROM project_deletions WHERE id = ?").get(id), sources, weeks, threads, ms: db.query("SELECT name, progress FROM milestones WHERE project_id = ? ORDER BY name").all(id),
+    open: (db.query("SELECT count(*) n FROM events WHERE kind = 'issue_open' AND project_id = ?").get(id) as any).n });
 }
 
 const server = Bun.serve({
@@ -154,6 +190,7 @@ const server = Bun.serve({
     if (url.pathname === "/review" || url.pathname === "/groups") return new Response(null, { status: 302, headers: { location: `/#${url.pathname === "/groups" ? "/projects" : url.pathname}${url.search}` } });
     if (url.pathname === "/api/groups") return Response.json(groups());
     if (url.pathname === "/api/pending") return Response.json(pending());
+    if (url.pathname === "/api/project") return project(url.searchParams.get("id") ?? "");
     if (url.pathname === "/api/review") {
       const left = Object.entries(pending()).find(([, n]) => n > 0);
       const week = url.searchParams.get("week") ?? left?.[0] ?? (db.query("SELECT max(week) w FROM labels").get() as any).w;
@@ -165,6 +202,8 @@ const server = Bun.serve({
     if (url.pathname === "/api/unassign" && json) return unassign(await req.json().catch(() => null));
     if (url.pathname === "/api/group" && json) return group(await req.json().catch(() => null));
     if (url.pathname === "/api/merge" && json) return merge(await req.json().catch(() => null));
+    if (url.pathname === "/api/delete" && json) return del(await req.json().catch(() => null));
+    if (url.pathname === "/api/restore" && json) return restore(await req.json().catch(() => null));
     if (url.pathname === "/api/unmerge" && json) return unmerge(await req.json().catch(() => null));
     if (url.pathname === "/data.js") return new Response(Bun.file(existsSync(local) ? local : sample), { headers: { "content-type": "text/javascript" } });
     if (url.pathname === "/api/projects") {
