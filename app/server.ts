@@ -2,7 +2,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { open } from "../ingest/ingest";
-import { reviewThreads } from "../ingest/review";
+import { labelsOf, reviewThreads } from "../ingest/review";
 
 const db = open();
 const page = join(import.meta.dir, "index.html");
@@ -32,23 +32,24 @@ function projects(weeks: string[]) {
 }
 
 const WEEK = /^\d{4}-W\d{2}$/;
+// A merged project lives on inside the one it was merged into, so pickers and lists skip it.
+const LIVE = "id NOT IN (SELECT from_id FROM project_merges)";
 const FIELDS = { title: null, summary: null, mode: ["clarify", "prevent", "solve", "build", "elevate", "external"], pillar: ["big", "exec", "level"], without_me: ["wouldnt", "slower", "same", "discard"] } as Record<string, string[] | null>;
 
 // Threads you have not decided yet, per week. Review opens on the latest week that has some.
 function pending() {
   const weeks = (db.query("SELECT DISTINCT week FROM labels ORDER BY 1 DESC").all() as any[]).map((r) => r.week);
-  const done = db.query("SELECT 1 FROM labels WHERE thread_key = ? AND field = 'without_me' AND source = 'human'");
-  return Object.fromEntries(weeks.map((w) => [w, reviewThreads(db, w).filter((t) => !done.get(t.key)).length]));
+  const done = (t: any) => labelsOf(db, t).some((r) => r.field === "without_me" && r.source === "human");
+  return Object.fromEntries(weeks.map((w) => [w, reviewThreads(db, w).filter((t) => !done(t)).length]));
 }
 
 function review(week: string) {
-  const rows = db.query("SELECT thread_key, field, value, source FROM labels WHERE week = ?").all(week) as any[];
-  const by = (key: string, source: string) => Object.fromEntries(rows.filter((r) => r.thread_key === key && r.source === source).map((r) => [r.field, r.value]));
+  const by = (rows: any[], source: string) => Object.fromEntries(rows.filter((r) => r.source === source).map((r) => [r.field, r.value]));
   return {
     week,
     weeks: (db.query("SELECT DISTINCT week FROM labels ORDER BY 1 DESC").all() as any[]).map((r) => r.week),
-    threads: reviewThreads(db, week).map((t) => ({ ...t, claude: by(t.key, "claude"), human: by(t.key, "human") })),
-    groups: db.query("SELECT id, name, kind FROM projects ORDER BY name").all(),
+    threads: reviewThreads(db, week).map((t) => { const l = labelsOf(db, t); return { ...t, claude: by(l, "claude"), human: by(l, "human") }; }),
+    groups: db.query(`SELECT id, name, kind FROM projects WHERE ${LIVE} ORDER BY name`).all(),
     pending: pending(),
   };
 }
@@ -106,16 +107,35 @@ function group(body: any) {
   return Response.json({ ok: true, group_id: id });
 }
 
+// You say two projects are one piece of work. Undo with unmerge; nothing else is rewritten.
+function merge(body: any) {
+  const known = db.query(`SELECT 1 FROM projects WHERE id = ? AND ${LIVE}`);
+  const { from, into } = body ?? {};
+  if (typeof from !== "string" || typeof into !== "string" || from === into || !known.get(from) || !known.get(into))
+    return new Response("Pick two different projects", { status: 400 });
+  const at = new Date().toISOString();
+  db.transaction(() => {
+    // Projects already merged into `from` follow it, so there is never a chain.
+    db.query("UPDATE project_merges SET into_id = ? WHERE into_id = ?").run(into, from);
+    db.query("INSERT INTO project_merges VALUES (?, ?, ?)").run(from, into, at);
+  })();
+  return Response.json({ ok: true });
+}
+function unmerge(body: any) {
+  const n = db.query("DELETE FROM project_merges WHERE from_id = ?").run(String(body?.from ?? "")).changes;
+  return n ? Response.json({ ok: true }) : new Response("Not merged", { status: 400 });
+}
+
 // Every group, week by week: the threads in it, with Claude's title or yours.
 function groups() {
   const weeks = (db.query("SELECT DISTINCT week FROM labels ORDER BY 1").all() as any[]).map((r) => r.week);
-  const label = db.query("SELECT field, value, source FROM labels WHERE thread_key = ? AND field IN ('title', 'summary', 'without_me')");
-  const all = db.query("SELECT id, name, kind FROM projects ORDER BY name").all() as any[];
-  const by = new Map(all.map((g) => [g.id, { ...g, weeks: {} as Record<string, any[]> }]));
+  const all = db.query(`SELECT id, name, kind FROM projects WHERE ${LIVE} ORDER BY name`).all() as any[];
+  const merged = db.query("SELECT p.id, p.name FROM project_merges m JOIN projects p ON p.id = m.from_id WHERE m.into_id = ? ORDER BY p.name");
+  const by = new Map(all.map((g) => [g.id, { ...g, merged: merged.all(g.id), weeks: {} as Record<string, any[]> }]));
   for (const week of weeks) for (const t of reviewThreads(db, week)) {
     const g = t.projects[0] && by.get(t.projects[0].id);
     if (!g) continue;
-    const l = label.all(t.key) as any[];
+    const l = labelsOf(db, t);
     const v = (f: string) => (l.find((r) => r.field === f && r.source === "human") ?? l.find((r) => r.field === f && r.source === "claude"))?.value;
     if (v("without_me") === "discard" && l.some((r) => r.field === "without_me" && r.source === "human")) continue;
     (g.weeks[week] ??= []).push({ key: t.key, title: v("title"), summary: v("summary"), events: t.events.length, decided: l.some((r) => r.source === "human" && r.field === "without_me") });
@@ -144,6 +164,8 @@ const server = Bun.serve({
     if (url.pathname === "/api/labels" && json) return decide(await req.json().catch(() => null));
     if (url.pathname === "/api/unassign" && json) return unassign(await req.json().catch(() => null));
     if (url.pathname === "/api/group" && json) return group(await req.json().catch(() => null));
+    if (url.pathname === "/api/merge" && json) return merge(await req.json().catch(() => null));
+    if (url.pathname === "/api/unmerge" && json) return unmerge(await req.json().catch(() => null));
     if (url.pathname === "/data.js") return new Response(Bun.file(existsSync(local) ? local : sample), { headers: { "content-type": "text/javascript" } });
     if (url.pathname === "/api/projects") {
       const weeks = (url.searchParams.get("weeks") ?? "").split(",").filter((w) => /^\d{4}-W\d{2}$/.test(w));

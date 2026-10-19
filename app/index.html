@@ -287,6 +287,11 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .facts a{text-decoration:none}
   .facts a:hover{color:var(--accent)}
   .ms{display:grid;gap:6px}
+  .mrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
+  .mrow select{font:500 12px var(--f-mono);padding:4px 6px}
+  .mchip{display:inline-flex;align-items:center;gap:6px;font:500 11.5px var(--f-mono);color:var(--ink-2);background:var(--s2);border:1px solid var(--line);border-radius:8px;padding:2px 4px 2px 8px}
+  .mchip button{all:unset;cursor:pointer;color:var(--ink-3);padding:0 4px;border-radius:4px}
+  .mchip button:hover,.mchip button:focus-visible{color:var(--accent)}
   .grp{background:var(--s1);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px clamp(14px,2.5vw,22px);display:grid;gap:14px;scroll-margin-top:96px}
   .grp.on{border-color:var(--accent);box-shadow:var(--glow)}
   .gh{all:unset;cursor:pointer;display:flex;align-items:baseline;gap:8px 14px}
@@ -1046,7 +1051,8 @@ document.addEventListener("keydown", e => {
   else return;
   e.preventDefault();
 });
-return {open};
+// Threads change when projects merge, so the next visit loads them again.
+return {open, reset: () => { data = null; }};
 })();
 
 /* PROJECTS: every project across weeks. A thread opens in review, with a way back here. */
@@ -1072,6 +1078,21 @@ function milestones(g){
   const ms = linear.get(g.id)?.ms ?? [];
   return ms.length ? `<div class="ms">${ms.map(m => `<div class="msr"><span>${esc(m.name)}</span><span class="tr"><i style="width:${m.progress||0}%"></i></span><b>${m.progress==null?"—":m.progress+"%"}</b></div>`).join("")}</div>` : "";
 }
+// Merge another project into this one. Pick it, then press the button that names it.
+function mergeRow(g, gs){
+  const others = gs.filter(x => x.id !== g.id);
+  return `<div class="mrow">
+    ${g.merged.map(m => `<span class="mchip">includes ${esc(m.name)}<button data-unmerge="${esc(m.id)}" aria-label="Split ${esc(m.name)} out again">✕</button></span>`).join("")}
+    ${others.length ? `<select data-pick="${esc(g.id)}" aria-label="Project to merge into ${esc(g.name)}"><option value="">Merge another project in…</option>${others.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("")}</select>
+    <button class="undo" data-merge="${esc(g.id)}" hidden></button>` : ""}</div>`;
+}
+const post = (url, body) => fetch(url, {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
+function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
+async function act(url, body, done){
+  const r = await post(url, body);
+  if(!r.ok){ toast(await r.text()); return; }
+  RV.reset(); toast(done); await open(focus);
+}
 function render(){
   const gs = data.groups.filter(g => filter === "all" || g.kind === filter)
     .map(g => ({...g, total: Object.values(g.weeks).reduce((a, ts) => a + ts.length, 0)}))
@@ -1084,7 +1105,7 @@ function render(){
     ${facts(g)}
     <div class="strip" style="--n:${n}">${data.weeks.map(w => { const c = (g.weeks[w] ?? []).length;
       return `<i class="${c ? "on" : ""}" style="--v:${c / max}" title="${w}: ${c}">${c || ""}</i>`; }).join("")}${data.weeks.map(w => `<span>${w.slice(5)}</span>`).join("")}</div>
-    ${opened.has(g.id) ? milestones(g) : ""}
+    ${opened.has(g.id) ? milestones(g) + mergeRow(g, gs) : ""}
     <div class="weeks" ${opened.has(g.id) ? "" : "hidden"}>${data.weeks.filter(w => g.weeks[w]).map(w => `<div class="wk"><span class="lbl">${w.slice(5)}</span><ul>
       ${g.weeks[w].map(t => `<li><a href="#/review?week=${w}&key=${encodeURIComponent(t.key)}&from=${encodeURIComponent(g.id)}"><b>${esc(t.title ?? "Untitled")}</b><span class="n">${t.events}</span>${t.decided ? `<span class="ok" title="You decided this">✓</span>` : `<span class="todo">to review</span>`}
 </a></li>`).join("")}</ul></div>`).join("")
@@ -1092,10 +1113,20 @@ function render(){
     || `<div class="empty">No projects yet. In review, press P on a thread to pick one or create a topic.</div>`;
 }
 $("#v-projects").addEventListener("click", e => {
+  const mb = e.target.closest("[data-merge]"), ub = e.target.closest("[data-unmerge]");
+  if(mb){ const from = mb.dataset.from, into = mb.dataset.merge; return act("/api/merge", {from, into}, `Merged ${mb.dataset.name}`); }
+  if(ub){ return act("/api/unmerge", {from: ub.dataset.unmerge}, "Split out again"); }
   const tg = e.target.closest("[data-toggle]");
   if(tg){ const id = tg.dataset.toggle; opened.has(id) ? opened.delete(id) : opened.add(id); return render(); }
   const b = e.target.closest("[data-f]"); if(!b) return;
   filter = b.dataset.f; document.querySelectorAll("#v-projects [data-f]").forEach(x => x.setAttribute("aria-pressed", x === b)); render(); });
+// Picking a project shows a button that says exactly what will happen.
+$("#v-projects").addEventListener("change", e => {
+  const sel = e.target.closest("[data-pick]"); if(!sel) return;
+  const btn = sel.parentElement.querySelector("[data-merge]"), name = sel.selectedOptions[0].textContent;
+  btn.hidden = !sel.value; btn.dataset.from = sel.value; btn.dataset.name = name;
+  btn.textContent = `merge ${name} in`;
+});
 return {open};
 })();
 
