@@ -261,12 +261,12 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .seg button.sug::after{position:absolute;top:4px;right:4px}
   .legend{display:flex;align-items:center;gap:6px;font:500 11px var(--f-mono);color:var(--ink-3)}
 
-  .r-wm{display:grid;grid-template-columns:repeat(3,1fr) auto;gap:8px}
+  .r-wm{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   .r-wm button{display:flex;align-items:center;gap:10px;padding:12px;background:var(--s2);border:1px solid var(--line);border-radius:12px;cursor:pointer;text-align:left}
   .r-wm button:hover{border-color:var(--ink-2)}
   .r-wm button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
   .r-wm button[aria-pressed="true"] kbd{color:var(--ink)}
-  .discard{display:inline-flex;align-items:center;gap:8px;padding:7px 10px 7px 7px;background:none;border:1px dashed var(--line-2);border-radius:10px;cursor:pointer;font-size:13px;color:var(--ink-2)}
+  .discard{margin-left:auto;display:inline-flex;align-items:center;gap:8px;padding:7px 10px 7px 7px;background:none;border:1px dashed var(--line-2);border-radius:10px;cursor:pointer;font-size:13px;color:var(--ink-2)}
   .discard:hover{color:var(--ink);border-color:var(--ink-2)}
   .discard[aria-pressed="true"]{border-style:solid;border-color:var(--ink-2);color:var(--ink);background:var(--s3)}
 
@@ -275,7 +275,6 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 }
 @media (max-width:820px){ #v-review .rv-grid{grid-template-columns:1fr} #v-review .r-queue{max-height:220px;position:static} }
 @media (max-width:620px){ #v-review .r-fields{grid-template-columns:1fr} #v-review .r-fields > span:empty{display:none} }
-@media (max-width:720px){ #v-review .r-wm{grid-template-columns:1fr 1fr} }
 @media (max-width:520px){ #v-review .r-wm{grid-template-columns:1fr} #v-review .r-events li{grid-template-columns:1fr;gap:2px} }
 
 /* groups: one card per group; a week strip, then its threads week by week. */
@@ -936,6 +935,7 @@ function render(){
       <button class="gbtn" id="gopen" aria-haspopup="listbox" aria-expanded="false" title="Change group (P)">${t.projects.length ? t.projects.map(p => esc(p.name) + (p.by === "claude" ? ` <span class="ai" title="Claude placed this thread here">Claude</span>` : "")).join(", ") : "no group"} ▾</button>
       ${t.projects.some(p => p.by === "claude") ? `<button class="undo" id="unassign">wrong group ✕</button>` : ""}
       ${group && group.id !== from ? `<a class="crumb" href="#/groups?g=${encodeURIComponent(group.id)}">across weeks →</a>` : ""}
+      <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}" title="Not impact: routine work, skip it (0)"><kbd>0</kbd>not impact${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button>
       <div class="gpop" id="gpop" hidden><input id="gq" placeholder="Find a group, or type a new one" autocomplete="off" aria-label="Group"><ul id="gl-list" role="listbox"></ul></div></div>
     <div class="r-sec">
       <input class="r-title" id="rv-title" value="${esc(d.title)}" aria-label="Thread title">
@@ -953,8 +953,7 @@ function render(){
       <span></span><span class="legend"><i class="sug-dot"></i> Claude's pick</span>
     </div>
     <div class="r-ask"><span class="q">Without you?</span>
-      <div class="r-wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}
-      <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}"><kbd>0</kbd>discard${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button></div></div>
+      <div class="r-wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}</div></div>
     <div class="r-keys" ${keys ? "" : "hidden"}><span><kbd>A</kbd>–<kbd>H</kbd> mode</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> pillar</span>
       <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> without you, save</span><span><kbd>0</kbd> discard</span><span><kbd>⇧0</kbd> discard all routine</span><span><kbd>J</kbd><kbd>K</kbd> move</span>
       <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>V</kbd> evidence</span><span><kbd>O</kbd> open evidence</span><span><kbd>P</kbd> group</span><span><kbd>?</kbd> hide</span></div>`;
