@@ -113,7 +113,7 @@ export function ingestWeek(db: Database, dir: string, week: string) {
         .run(runId, week, source, run.total_cost_usd ?? null, run.num_turns ?? null, expected, got, status, now);
       if (status === "error") return;
       if (source === "linear") ingestLinear(db, out, week, runId, now, event, link);
-      else if (source === "github") ingestGithub(out, week, runId, event, link);
+      else if (source === "github") ingestGithub(db, out, week, runId, event, link);
       else if (source === "calendar") ingestCalendar(out, week, runId, event, link);
       else if (source === "drive") ingestDrive(out, week, runId, event, link);
       else ingestSlack(db, out, week, runId, event, link);
@@ -205,12 +205,19 @@ function ingestSlack(db: Database, out: any, week: string, runId: string, event:
   }
 }
 
-function ingestGithub(out: any, week: string, runId: string, event: any, link: any) {
+function ingestGithub(db: Database, out: any, week: string, runId: string, event: any, link: any) {
+  // Claude copies anything shaped like ABC-123 from a PR body: eu-west-1, UTF-8, names. Only
+  // your Linear teams' keys are issues. ponytail: teams seen in your issues; a PR citing another
+  // team's issue loses that link, fetch the team list from Linear if that matters.
+  const keys = issueKeys(db);
+  const drop = db.query("DELETE FROM links WHERE from_id = ? AND rel = 'mentions'");
   for (const [kind, prs] of [["pr_merged", out.prs_merged], ["pr_open", out.prs_open]] as const) {
     for (const p of prs) {
       const id = `github:${p.repo}#${p.number}`;
       event.run(id, "github", kind, kind === "pr_merged" ? isoWeek(p.at) : week, p.at, p.title, p.url, "nicolastakashi", null, null, JSON.stringify(p), runId);
-      for (const r of p.linear_refs) link.run(id, `linear:${r}`, "mentions");
+      // Re-ingest replaces the links, so a fixed filter also removes old wrong ones.
+      drop.run(id);
+      for (const r of p.linear_refs) if (keys.has(r.split("-")[0])) link.run(id, `linear:${r}`, "mentions");
     }
   }
   event.run(`github:reviews_given:${week}`, "github", "reviews_given", week, null, null, null, "nicolastakashi", null, null,

@@ -32,7 +32,7 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   writeFileSync(join(dir, "github.run.json"), wrap({
     week: "2026-W42", reviews_given: 10, review_comments_received: [], prs_open: [],
     prs_merged: [{ repo: "acme/api", number: 101, title: "feat: delete", url: "https://github.com/acme/api/pull/101",
-      at: "2026-10-14T07:50:00Z", linear_refs: ["ACME-41"] }],
+      at: "2026-10-14T07:50:00Z", linear_refs: ["ACME-41", "WEST-1", "UTF-8"] }],
   }));
   writeFileSync(join(dir, "github.expected"), "2\n");
   writeFileSync(join(dir, "slack_own.run.json"), wrap({
@@ -95,6 +95,8 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   expect(db.query("SELECT project_id, milestone_id, week FROM events WHERE id = 'linear:ACME-41'").get())
     .toEqual({ project_id: "P-ACME-1", milestone_id: "m1", week: "2026-W42" });
   expect(db.query("SELECT to_ref FROM links WHERE from_id = 'linear:ACME-41'").all()).toEqual([{ to_ref: "github:acme/api#101" }]);
+  // eu-west-1 and UTF-8 are not issues: only known team keys link.
+  expect(db.query("SELECT to_ref FROM links WHERE from_id = 'github:acme/api#101'").all()).toEqual([{ to_ref: "linear:ACME-41" }]);
 });
 
 test("threads merge by main project, and a bridge between projects does not merge them", () => {
