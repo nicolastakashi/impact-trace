@@ -130,50 +130,118 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 
 /* trace */
 .panel{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
-.hm-wrap{overflow-x:auto}
-/* Trace: one neutral chart, one accent for what you selected. Mode is a label, not a color. */
-.tr-chart{display:grid;gap:18px;padding:22px clamp(16px,2.5vw,28px)}
-.tr-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px}
-.tr-sel{display:flex;gap:10px;align-items:baseline;font-size:13px;color:var(--ink-2)}
-.tr-clear{font:500 12px var(--f-mono);color:var(--ink-3);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.tr-clear:hover{color:var(--ink)}
-.tc{min-width:620px;display:grid;grid-template-columns:104px repeat(var(--n),minmax(0,1fr)) 44px;column-gap:6px;user-select:none;-webkit-user-select:none}
-.tc .bar{display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;height:132px;cursor:pointer;border-radius:6px;padding:0 10%}
-.tc .bar i{display:block;background:var(--line-2);border-radius:4px 4px 1px 1px;min-height:2px;transition:background .15s}
-.tc .bar b{font:600 12px var(--f-num);color:var(--ink-3);text-align:center;margin-bottom:6px;font-variant-numeric:tabular-nums}
-.tc .bar:hover i{background:var(--ink-3)}
-.tc .bar.sel i{background:var(--accent)}
-.tc .bar.sel b{color:var(--ink)}
-.tc .wkl{font:600 12px var(--f-num);letter-spacing:.08em;color:var(--ink-3);text-align:center;padding:8px 0 12px;border-top:1px solid var(--line);cursor:pointer}
-.tc .wkl.sel{color:var(--ink)}
-.tc .axis{border-top:1px solid var(--line)}
-.tc .ml{font-size:13px;color:var(--ink-2);display:flex;align-items:center;height:30px;border-top:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
-.tc .dot-c{display:grid;place-items:center;height:30px;cursor:pointer;border-top:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
-.tc .dot-c i{display:block;border-radius:50%;background:var(--ink-3);opacity:.55}
-.tc .dot-c.sel i{background:var(--accent);opacity:1}
-.tc .tot{font:600 12.5px var(--f-num);color:var(--ink-2);text-align:right;display:flex;align-items:center;justify-content:flex-end;height:30px;font-variant-numeric:tabular-nums;border-top:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
-.tc .hd{font:500 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:flex-end;padding-bottom:6px}
-.tr-split{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:12px;align-items:start}
-.tr-diff{display:grid;gap:16px;position:sticky;top:calc(env(safe-area-inset-top, 0px) + 96px)}
-#diff{display:grid;gap:4px}
-.dl{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:baseline;padding:10px 0;border-top:1px solid var(--line);font-size:14px;color:var(--ink-2)}
-.dl:first-child{border-top:0}
-.dl b{font:700 15px var(--f-num);font-variant-numeric:tabular-nums}
-.dl b.up{color:var(--ink)} .dl b.down{color:var(--ink-3)}
-.dl small{display:block;font:500 11px var(--f-mono);color:var(--ink-3);margin-top:2px}
-.tr-note{font-size:13.5px;color:var(--ink-3);line-height:1.5;margin:0}
-.tr-list{display:grid;gap:16px}
-#feed{display:grid;gap:22px}
-.fweek{display:grid;gap:2px}
-.fweek h3{margin:0 0 6px;font:700 13px var(--f-num);letter-spacing:.08em;color:var(--ink);display:flex;gap:10px;align-items:baseline}
-.fweek h3 small{font:500 11px var(--f-mono);letter-spacing:0;color:var(--ink-3)}
-.feed{display:grid;margin:0;padding:0;list-style:none}
-.feed button{width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:10px 4px;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:baseline;border-radius:0}
-.feed li:first-child button{border-top:0}
-.feed button:hover .ft{text-decoration:underline;text-underline-offset:3px}
-.feed .ft{font-size:14px;line-height:1.4;color:var(--ink)}
-.feed .fm{font:500 11px var(--f-mono);color:var(--ink-3);margin-top:3px}
-@media (max-width:860px){ .tr-split{grid-template-columns:1fr} .tr-diff{position:static} }
+/* Trace: your weeks as Dash0 traces. Explorer heatmap on top (start day × duration, drag to brush weeks),
+   waterfall below (a week is a trace, a kept thread is a span), span sidebar on the right.
+   Color map: mode = service color (--m-*), heatmap = accent ramp (mode color when filtered),
+   selection = ink outline, critical path ("without you it wouldn't happen") = ink ring, span events = ticks. */
+.tx{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;padding:20px clamp(16px,2.5vw,26px)}
+.tx-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px}
+.tx-sel{font-size:13px;color:var(--ink-2)}
+.tx-sel small{color:var(--ink-3);font-size:12px;margin-left:8px}
+.tx-scroll{overflow-x:auto;padding:6px 2px 2px}
+.hmap{--n:56;display:grid;grid-template-columns:64px repeat(var(--n),minmax(9px,1fr));grid-template-rows:repeat(4,22px) auto;gap:3px 2px;min-width:760px;user-select:none;-webkit-user-select:none;touch-action:none;cursor:crosshair}
+.hm-c{position:relative;z-index:1;border-radius:3px;background:var(--s2);transition:opacity .2s}
+.hm-c.we{background:color-mix(in srgb,var(--s2) 45%,transparent)}
+.hm-c[data-n]{background:color-mix(in srgb,var(--c) var(--v),var(--s3));box-shadow:0 0 14px -5px var(--c)}
+.hmap .hm-c:not(.in){opacity:.5}
+.hmap .hm-c.in[data-n]{box-shadow:0 0 16px -3px var(--c)}
+.hm-c.ping{opacity:1;outline:2px solid var(--ink);outline-offset:1px;z-index:2}
+.hm-band{grid-row:1 / span 4;z-index:0;margin:-5px -2px;border-radius:7px;background:color-mix(in srgb,var(--ink) 5%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 34%,transparent)}
+.hm-y{grid-column:1;font:500 11px var(--f-mono);color:var(--ink-3);display:flex;align-items:center}
+.hm-x{grid-row:5;display:flex;gap:6px;align-items:baseline;padding:9px 0 0 2px;background:none;border:0;text-align:left;cursor:pointer;font:600 12px var(--f-num);letter-spacing:.08em;color:var(--ink-3);white-space:nowrap}
+.hm-x small{font:500 10.5px var(--f-mono);letter-spacing:0}
+.hm-x:hover,.hm-x.in{color:var(--ink)}
+.tx-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 18px}
+.svc{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.svc button{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--s2);border-radius:999px;padding:5px 11px 5px 10px;font-size:12.5px;color:var(--ink-2);cursor:pointer;transition:opacity .2s,border-color .2s,background .2s}
+.svc button b{font:600 11.5px var(--f-mono);color:var(--ink-3)}
+.svc button:hover{color:var(--ink);border-color:var(--line-2)}
+.svc button[aria-pressed="true"]{color:var(--ink);border-color:var(--c,var(--ink));background:color-mix(in srgb,var(--c,var(--ink)) 14%,var(--s2))}
+.svc.f button[data-mf][aria-pressed="false"]{opacity:.45}
+.svc-sep{width:1px;height:18px;background:var(--line);margin:0 4px}
+.tx-scale{display:flex;align-items:center;gap:8px;font:500 11px var(--f-mono);color:var(--ink-3)}
+.tx-scale i{width:72px;height:8px;border-radius:4px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 25%,var(--s3)),var(--c))}
+.sw{display:inline-block;flex:none;width:14px;height:6px;border-radius:2px;background:var(--c)}
+.sw.crit{background:none;box-shadow:inset 0 0 0 1.5px var(--ink)}
+
+.tv{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:12px;align-items:start}
+.wf{padding:0;overflow:hidden}
+.wf-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px;padding:18px 20px 14px}
+.wf-head h2{margin:6px 0 0;font:800 28px/1 var(--f-num);text-transform:uppercase;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+.wf-head h2 small{font:500 12px var(--f-mono);color:var(--ink-3);text-transform:none}
+.wf-ctl{display:flex;gap:6px}
+.wf-ctl button{border:1px solid var(--line);background:var(--s2);border-radius:8px;padding:6px 10px;font:500 12px var(--f-mono);color:var(--ink-2);cursor:pointer}
+.wf-ctl button:hover{color:var(--ink);border-color:var(--line-2)}
+.wf-body{--lc:clamp(220px,38%,380px);position:relative}
+.wf-grid,.wf-phl{position:absolute;top:0;bottom:0;left:var(--lc);right:0;pointer-events:none}
+.wf-grid{background:linear-gradient(90deg,transparent calc(500%/7),color-mix(in srgb,var(--ink) 3%,transparent) 0),repeating-linear-gradient(90deg,var(--line) 0 1px,transparent 1px calc(100%/7))}
+.wf-phl{z-index:3}
+.wf-ph{position:absolute;top:0;bottom:0;left:0;width:2px;margin-left:-1px;background:var(--ink);box-shadow:0 0 16px 2px color-mix(in srgb,var(--ink) 40%,transparent);opacity:0}
+.wf-axis,.wr{position:relative;z-index:1;display:grid;grid-template-columns:var(--lc) minmax(0,1fr)}
+.wf-axis{height:30px;align-items:center;border-block:1px solid var(--line);background:color-mix(in srgb,var(--s2) 70%,transparent)}
+.wf-axis .lbl{padding-left:20px}
+.wf-axis .wt{position:relative;height:100%}
+.wf-axis .wt span{position:absolute;top:0;bottom:0;display:flex;align-items:center;padding-left:7px;font:500 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.wr{min-height:34px;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.wr .wn{display:flex;align-items:center;gap:10px;min-width:0;padding:7px 14px 7px 20px;background:none;border:0;text-align:left;cursor:pointer;font-size:13.5px;color:var(--ink-2)}
+.wr .wt{position:relative;min-height:32px}
+.wn .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wn .du{font:500 11.5px var(--f-mono);color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.wn .chev{width:10px;color:var(--ink-3);font-size:11px}
+.wn .wd{flex:1;font:500 11.5px var(--f-mono);color:var(--ink-3)}
+.wr.root{min-height:38px;background:color-mix(in srgb,var(--s2) 65%,transparent)}
+.wr.root .wn{color:var(--ink);font:700 14px var(--f-num);letter-spacing:.06em}
+.wr.sp .wn{padding-left:42px}
+.wr.sp:hover{background:color-mix(in srgb,var(--ink) 4%,transparent)}
+.wr.sp:hover .wn,.wr.sp.on .wn{color:var(--ink)}
+.wr.sp.on{background:color-mix(in srgb,var(--c) 11%,transparent)}
+.wr.sp.dim{opacity:.4}
+.wr.none{display:block;padding:12px 20px 12px 42px;font-size:13px;color:var(--ink-3)}
+.bar{position:absolute;top:50%;height:14px;margin-top:-7px;min-width:8px;border-radius:4px;background:color-mix(in srgb,var(--c) 88%,transparent);transform-origin:left center;box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 45%,transparent),0 0 18px -6px var(--c)}
+.bar.crit{box-shadow:0 0 0 1.5px var(--ink),0 0 18px -4px var(--c)}
+.bar.ghost{background:none;box-shadow:none;border:1px dashed var(--line-2)}
+.evt{position:absolute;top:3px;bottom:3px;width:2px;margin-left:-1px;border-radius:1px;background:color-mix(in srgb,var(--ground) 72%,transparent)}
+.rbar{position:absolute;top:50%;height:2px;margin-top:-1px;border-radius:1px;background:var(--line-2);transform-origin:left center}
+.rtick{position:absolute;top:50%;width:3px;height:12px;margin:-6px 0 0 -1.5px;border-radius:2px;background:var(--c)}
+
+.sb{position:sticky;top:calc(env(safe-area-inset-top,0px) + 84px);max-height:calc(100vh - 104px);overflow-y:auto;display:grid;gap:14px;align-content:start}
+.sb h3{margin:0;font:600 18px/1.3 var(--f-body);text-wrap:balance}
+.sb-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sb-mode{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2)}
+.sb-big{display:flex;align-items:baseline;gap:10px}
+.sb-big b{font:800 56px/1 var(--f-num);font-variant-numeric:tabular-nums}
+.sb-big span{color:var(--ink-2);font-size:14px}
+.mixbar{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden}
+.mixbar i{background:var(--c);transform-origin:left center}
+.sb-modes{list-style:none;margin:0;padding:0;display:grid}
+.sb-modes li{display:grid;grid-template-columns:auto 1fr auto 64px;gap:10px;align-items:center;padding:7px 0;font-size:13.5px;border-top:1px solid var(--line)}
+.sb-modes li:first-child{border-top:0}
+.sb-modes b{font:600 13px var(--f-mono)}
+.sb-modes small{font:500 11.5px var(--f-mono);color:var(--ink-3);text-align:right}
+.sb-note{margin:0;font-size:12.5px;color:var(--ink-3);line-height:1.5}
+.sb-kv{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:baseline;padding-top:12px;border-top:1px solid var(--line);font-size:13.5px}
+.sb-kv span{font:500 12px var(--f-mono);color:var(--ink-3)}
+.sb-kv button{background:none;border:0;padding:0;text-align:left;cursor:pointer;color:var(--ink);text-decoration:underline;text-decoration-color:var(--ink-3);text-underline-offset:3px}
+.sb-dur{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sb-dur b{font:600 28px/1 var(--f-mono)}
+.sb-dur span{font-size:13px;color:var(--ink-3)}
+.attrs{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;margin:0;font-size:13px}
+.attrs dt{font:500 12px var(--f-mono);color:var(--ink-3)}
+.attrs dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.sb-sum{margin:0;font-size:14px;line-height:1.55;color:var(--ink-2)}
+.evl{list-style:none;margin:0;padding:0;display:grid;max-height:320px;overflow-y:auto}
+.evl li{display:grid;grid-template-columns:78px 104px minmax(0,1fr);gap:8px;padding:7px 0;border-top:1px solid var(--line);font-size:12.5px;align-items:baseline}
+.evl time,.evl .k{font:500 11.5px var(--f-mono);color:var(--ink-3)}
+.evl .k{color:var(--ink-2)}
+.evl a,.evl .t{color:var(--ink);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.evl a:hover{text-decoration:underline}
+#v-trace > *{min-width:0}
+@media (max-width:980px){ .tv{grid-template-columns:minmax(0,1fr)} .sb{position:static;max-height:none} }
+@media (max-width:640px){
+  .wf-body{--lc:0px} .wr,.wf-axis{grid-template-columns:minmax(0,1fr)} .wf-axis .lbl{display:none}
+  .wr .wn,.wr.sp .wn{padding-left:16px} .wr.sp .wt{min-height:24px}
+  .evl li{grid-template-columns:70px minmax(0,1fr)} .evl .k{display:none}
+}
 
 /* item overlay */
 .sheet{position:fixed;inset:0;z-index:40;display:grid;place-items:end center;background:color-mix(in srgb,#000 55%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px))}
@@ -563,13 +631,18 @@ nav .ex{font-size:8.5px;padding:2px 4px}
     <h1>How I deliver, <em>week by week</em></h1>
     <p id="tr-lead"></p>
   </div>
-  <div class="panel tr-chart">
-    <div class="tr-head"><span class="lbl">Threads you kept, per week</span><span class="tr-sel"><span id="selinfo"></span><button class="tr-clear" id="clearsel" hidden>clear</button></span></div>
-    <div class="hm-wrap"><div class="tc" id="hm"></div></div>
+  <div class="panel tx">
+    <div class="tx-head"><span class="lbl">Explorer · when each thread started, and how long it ran</span><span class="tx-sel" id="selinfo"></span></div>
+    <div class="tx-scroll"><div class="hmap" id="hm"></div></div>
+    <div class="tx-foot"><div class="svc" id="svc" role="group" aria-label="Filter spans"></div><span class="tx-scale" id="hm-scale"></span></div>
   </div>
-  <div class="tr-split" id="tr-detail">
-    <div class="panel tr-diff"><span class="lbl" id="diff-h"></span><div id="diff"></div></div>
-    <div class="panel tr-list"><div class="tr-head"><span class="lbl" id="feedh">Threads</span></div><div id="feed"></div></div>
+  <div class="tv">
+    <div class="panel wf">
+      <div class="wf-head" id="wf-head"></div>
+      <div class="wf-body"><div class="wf-grid"></div><div class="wf-phl"><i class="wf-ph" id="wf-ph"></i></div>
+        <div class="wf-axis" id="wf-axis"></div><div id="wf"></div></div>
+    </div>
+    <aside class="panel sb" id="sb" aria-live="polite"></aside>
   </div>
 </section>
 
@@ -758,53 +831,181 @@ function renderRec(){
     <div class="rec-dots">${REC.map((_,i)=>`<i class="${i===recI?"on":""}"></i>`).join("")}</div>`;
 }
 
-/* TRACE */
-let drag = null;
-function renderTrace(){
-  const N = WEEKS.length, modes = Object.keys(MODES);
-  const perWeek = WEEKS.map((_,w)=>ITEMS.filter(i=>i.w===w).length), maxW = Math.max(1, ...perWeek);
-  const count = (m, w) => ITEMS.filter(i=>modeOf(i)===m && i.w===w).length;
-  const tot = m => ITEMS.filter(i=>modeOf(i)===m).length;
-  // Busiest mode first, so the eye reads the matrix top-down by weight.
-  const order = modes.slice().sort((a,b)=>tot(b)-tot(a)), maxC = Math.max(1, ...order.flatMap(m=>WEEKS.map((_,w)=>count(m,w))));
-  const on = w => sel.has(w);
-  let h = `<span></span>` + WEEKS.map((w,i)=>`<div class="bar ${on(i)?"sel":""}" data-wk="${i}" title="${w}: ${perWeek[i]} threads"><b>${perWeek[i]}</b><i style="height:${perWeek[i]/maxW*100}px"></i></div>`).join("") + `<span></span>`;
-  h += `<span class="axis"></span>` + WEEKS.map((w,i)=>`<div class="wkl ${on(i)?"sel":""}" data-wk="${i}">${w}</div>`).join("") + `<span class="axis"></span>`;
-  h += `<span class="hd">Mode</span>${WEEKS.map(()=>"<span></span>").join("")}<span class="hd" style="justify-content:flex-end">Total</span>`;
-  for(const m of order){
-    h += `<div class="ml">${MODES[m]}</div>` + WEEKS.map((_,w)=>{ const n = count(m,w), d = n ? 6 + Math.sqrt(n/maxC)*14 : 0;
-      return `<div class="dot-c ${on(w)?"sel":""}" data-wk="${w}" title="${MODES[m]} · ${WEEKS[w]}: ${n}">${n?`<i style="width:${d}px;height:${d}px"></i>`:""}</div>`; }).join("") + `<div class="tot">${tot(m)}</div>`;
-  }
-  $("#hm").style.setProperty("--n", N); $("#hm").innerHTML = h;
-  // The address keeps the selection, so reload and a shared link show the same weeks.
-  if(!$("#v-trace").hidden) history.replaceState(null, "", `#/trace${sel.size ? `?w=${[...sel].sort((a,b)=>a-b).map(i=>WEEKS[i]).join(",")}` : ""}`);
-  const ws = [...sel].sort((a,b)=>a-b), any = ws.length > 0, span = !any ? "" : ws.length > 1 && ws.at(-1)-ws[0] === ws.length-1 ? `${WEEKS[ws[0]]}–${WEEKS[ws.at(-1)]}` : ws.map(i=>WEEKS[i]).join(", ");
-  const inSel = ITEMS.filter(i=>!any || on(i.w)), rest = ITEMS.filter(i=>any && !on(i.w));
-  const share = (xs, f, k) => xs.length ? xs.filter(i=>f(i)===k).length/xs.length : 0, pct = x => `${Math.round(x*100)}%`;
-  const top = order[0], busiest = perWeek.indexOf(maxW);
-  // The answer first, in words.
-  $("#tr-lead").innerHTML = ITEMS.length ? `<b>${MODES[top][0].toUpperCase()+MODES[top].slice(1)}</b> is ${pct(share(ITEMS, modeOf, top))} of the ${ITEMS.length} threads you kept. ${WEEKS[busiest]} was the busiest week, with ${maxW}.` : "No threads kept yet.";
-  $("#selinfo").textContent = any ? `${span} · ${inSel.length} threads` : "Click a week, or drag across weeks, to compare.";
-  $("#clearsel").hidden = !any;
-  if(!any){
-    $("#diff-h").textContent = "Where the time went";
-    $("#diff").innerHTML = order.map(m=>`<div class="dl"><span>${MODES[m]}</span><b class="up">${pct(share(ITEMS, modeOf, m))}</b></div>`).join("")
-      + `<p class="tr-note" style="margin-top:10px">Select weeks to see what was different about them.</p>`;
-  } else if(!rest.length){
-    $("#diff-h").textContent = "Compared with the other weeks"; $("#diff").innerHTML = `<p class="tr-note">Every week is selected, so there is nothing to compare with.</p>`;
-  } else {
-    // The three biggest differences, mode and "without you" together, as plain lines.
-    const rows = [...modes.map(k=>({k:MODES[k], f:modeOf, v:k, g:"mode"})), ...Object.keys(WMS).map(k=>({k:WMS[k], f:i=>i.wm, v:k, g:"without you"}))]
-      .map(x=>({...x, a:share(inSel,x.f,x.v), b:share(rest,x.f,x.v)})).map(x=>({...x, d:Math.round((x.a-x.b)*100)})).filter(x=>x.d).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d)).slice(0,3);
-    $("#diff-h").textContent = `${span} compared with the other weeks`;
-    $("#diff").innerHTML = rows.length ? rows.map(x=>`<div class="dl"><span>${x.d>0?"More":"Less"} ${x.k}<small>${x.g} · ${pct(x.a)} here, ${pct(x.b)} in the other weeks</small></span><b class="${x.d>0?"up":"down"}">${x.d>0?"+":"−"}${Math.abs(x.d)} pp</b></div>`).join("")
-      : `<p class="tr-note">These weeks look like the others.</p>`;
-  }
-  $("#feedh").textContent = any ? `Threads in ${span}` : "All threads";
-  $("#feed").innerHTML = [...new Set(inSel.map(i=>i.w))].sort((a,b)=>b-a).map(w=>{ const xs = inSel.filter(i=>i.w===w);
-    return `<div class="fweek"><h3>${WEEKS[w]}<small>${xs.length} thread${xs.length===1?"":"s"}</small></h3><ul class="feed">${xs.map(i=>`<li><button data-item="${esc(i.id)}">
-      <span><div class="ft">${esc(i.title)}</div><div class="fm">${MODES[modeOf(i)]}${i.wm?` · ${WMS[i.wm]}`:""}${i.s!=="none"&&PROJECTS[i.s]?` · ${esc(PROJECTS[i.s].name)}`:""}</div></span><span></span></button></li>`).join("")}</ul></div>`; }).join("");
+/* TRACE: your weeks as traces. A week is a trace, a kept thread is a span, its PRs, issues and messages are span events. */
+const DAY = 864e5, DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const EVK = {pr_merged:"PR merged", pr_open:"PR opened", issue_completed:"issue done", issue_open:"issue open", review_comment:"review received",
+  reviews_given:"reviews given", slack_message:"Slack", slack_mention:"mention", meeting:"meeting", doc_created:"doc created", doc_edited:"doc edited"};
+// Heatmap rows, longest on top like a duration axis: label and lower bound in hours.
+const BUCKETS = [["3d +", 72], ["1–3 d", 24], ["< 1 d", .25], ["instant", 0]];
+// ponytail: the year comes from the period start, so a range across New Year puts January weeks a year early.
+const YEAR = +PERIOD.slice(0,4);
+const monday = w => { const j = new Date(YEAR, 0, 4); return new Date(YEAR, 0, 4 - (j.getDay()+6)%7 + (+WEEKS[w].slice(1)-1)*7).getTime(); };
+const fmtDay = t => new Date(t).toLocaleDateString("en", {month:"short", day:"numeric"});
+const fmtWhen = t => { const d = new Date(t); return `${DOW[(d.getDay()+6)%7]} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; };
+const fmtDur = i => { const h = i.hrs; if(h == null) return "no time"; if(h < 1/60) return "instant"; if(h < 1) return `${Math.round(h*60)}m`;
+  return h < 24 ? `${Math.floor(h)}h ${Math.round(h%1*60)}m` : `${Math.floor(h/24)}d ${Math.round(h%24)}h`; };
+for(const it of ITEMS){
+  it.ev ??= [];
+  const ts = it.ev.filter(e=>e[1]).map(e=>Date.parse(e[1]));
+  it.t0 = ts.length ? Math.min(...ts) : null; it.t1 = ts.length ? Math.max(...ts) : null;
+  it.hrs = ts.length ? (it.t1 - it.t0)/36e5 : null;
+  it.day = ts.length ? Math.min(6, Math.max(0, Math.floor((it.t0 - monday(it.w))/DAY))) : 0;
+  it.b = it.hrs == null ? 3 : BUCKETS.findIndex(([,lo]) => it.hrs >= lo);
 }
+let tf = {mode:null, crit:false}, spanSel = null, openRoots = new Set(), selKey = "", heatShown = false, brush = null;
+const passes = i => (!tf.mode || i.mode === tf.mode) && (!tf.crit || i.wm === "wouldnt");
+const pctOf = (xs, f) => xs.length ? xs.filter(f).length / xs.length : 0;
+const selLabel = ws => ws.length > 1 && ws.at(-1)-ws[0] === ws.length-1 ? `${WEEKS[ws[0]]}–${WEEKS[ws.at(-1)]}` : ws.map(i=>WEEKS[i]).join(", ");
+const posIn = w => t => Math.min(100, Math.max(0, (t - monday(w)) / (7*DAY) * 100));
+
+function renderTrace(){
+  if(!ITEMS.length){ $("#tr-lead").textContent = "No threads kept yet. Keep one in Review and it shows here."; return; }
+  if(!sel.size) sel.add(LAST);
+  const ws = [...sel].sort((a,b)=>a-b), key = ws.join(), vis = !$("#v-trace").hidden;
+  // A new selection opens its newest week; two weeks or fewer open all.
+  if(key !== selKey){ selKey = key; openRoots = new Set(ws.length <= 2 ? ws : [ws.at(-1)]);
+    const sw = ITEMS.find(i=>i.id===spanSel)?.w; sel.has(sw) ? openRoots.add(sw) : spanSel = null; }
+  if(vis) traceUrl();
+  const by = cnt(ITEMS, modeOf), top = Object.keys(by).sort((a,b)=>by[b]-by[a])[0], crit = ITEMS.filter(i=>i.wm==="wouldnt").length;
+  $("#tr-lead").innerHTML = `${ITEMS.length} threads you kept, drawn as spans. Most are <b>${MODES[top]}</b> (${Math.round(by[top]/ITEMS.length*100)}%). <b>${crit}</b> are on your critical path: without you, they would not happen.`;
+  drawSvc(); drawHeat(); drawWaterfall(); drawSide();
+  if(vis){ if(!heatShown){ heatShown = true; animHeat(); } play(); }
+}
+
+function drawSvc(){
+  const by = cnt(ITEMS, modeOf), crit = ITEMS.filter(i=>i.wm==="wouldnt").length;
+  $("#svc").classList.toggle("f", !!tf.mode);
+  $("#svc").innerHTML = Object.keys(MODES).filter(m=>by[m]).sort((a,b)=>by[b]-by[a]).map(m=>
+    `<button data-mf="${m}" aria-pressed="${tf.mode===m}" style="--c:${mc(m)}"><i class="sw"></i>${MODES[m]}<b>${by[m]}</b></button>`).join("")
+    + `<span class="svc-sep" aria-hidden="true"></span><button data-crit aria-pressed="${tf.crit}" title="Spans where, without you, it would not happen"><i class="sw crit"></i>critical path<b>${crit}</b></button>`;
+}
+
+function drawHeat(){
+  const xs = ITEMS.filter(passes), N = WEEKS.length, c = {};
+  xs.forEach(i => { const k = `${i.w*7+i.day}:${i.b}`; c[k] = (c[k]||0)+1; });
+  const max = Math.max(1, ...Object.values(c)), col = tf.mode ? mc(tf.mode) : "var(--accent)";
+  let h = [...sel].map(w=>`<i class="hm-band" style="grid-column:${2+w*7} / span 7"></i>`).join("");
+  BUCKETS.forEach(([lab], b) => {
+    h += `<span class="hm-y" style="grid-row:${b+1}">${lab}</span>`;
+    for(let d = 0; d < N*7; d++){ const n = c[`${d}:${b}`] || 0, w = Math.floor(d/7);
+      h += `<i class="hm-c${d%7>4?" we":""}${sel.has(w)?" in":""}" data-w="${w}" data-d="${d}" data-b="${b}" style="grid-column:${d+2};grid-row:${b+1}${n?`;--v:${Math.round(45+55*n/max)}%;--c:${col}`:""}"${n?` data-n="${n}" title="${n} span${n>1?"s":""} · ${WEEKS[w]} ${DOW[d%7]} · ${lab}"`:""}></i>`; }
+  });
+  h += WEEKS.map((wk,w)=>`<button class="hm-x${sel.has(w)?" in":""}" data-w="${w}" style="grid-column:${2+w*7} / span 7">${wk}<small>${fmtDay(monday(w))}</small></button>`).join("");
+  $("#hm").style.setProperty("--n", N*7); $("#hm").innerHTML = h;
+  $("#hm-scale").innerHTML = `1<i style="--c:${col}"></i>${max} span${max>1?"s":""} per day`;
+  const ws = [...sel].sort((a,b)=>a-b);
+  $("#selinfo").innerHTML = `<b>${selLabel(ws)}</b> · ${xs.filter(i=>sel.has(i.w)).length} spans<small>drag across weeks to compare · shift-click adds a week</small>`;
+}
+function animHeat(){
+  if(!G) return;
+  // Time sweeps left to right: each column lands a beat after the one before.
+  G.from("#hm .hm-c[data-n]", {opacity:0, scale:.3, duration:.5, ease:"expo.out", stagger:(i, el)=>+el.dataset.d*.012, clearProps:"opacity,transform"});
+}
+
+function drawWaterfall(){
+  const ws = [...sel].sort((a,b)=>b-a), shown = ITEMS.filter(i=>sel.has(i.w) && passes(i));
+  $("#wf-head").innerHTML = `<div><span class="lbl">Trace view</span><h2>${ws.length === 1 ? WEEKS[ws[0]] : selLabel([...ws].reverse())}<small>${shown.length} span${shown.length===1?"":"s"} · ${ws.length} trace${ws.length===1?"":"s"}</small></h2></div>
+    <div class="wf-ctl">${ws.length > 1 ? `<button id="wf-all">${openRoots.size === ws.length ? "collapse all" : "expand all"}</button>` : ""}<button id="wf-replay" title="Play the week again">▶ replay</button></div>`;
+  $("#wf-axis").innerHTML = `<span class="lbl">Span</span><div class="wt">${DOW.map((d,k)=>`<span style="left:${k/7*100}%">${d}</span>`).join("")}</div>`;
+  $("#wf").innerHTML = ws.map(w => {
+    const pos = posIn(w), m0 = monday(w), on = ITEMS.filter(i=>i.w===w && passes(i)).sort((a,b)=>(a.t0??0)-(b.t0??0)), open = openRoots.has(w);
+    const t = on.filter(i=>i.t0!=null), a = t.length ? pos(Math.min(...t.map(i=>i.t0))) : 0, b = t.length ? pos(Math.max(...t.map(i=>i.t1))) : 0;
+    return `<div class="wr root"><button class="wn" data-root="${w}" aria-expanded="${open}"><span class="chev">${open?"▾":"▸"}</span>${WEEKS[w]}<span class="wd">${fmtDay(m0)} – ${fmtDay(m0+6*DAY)}</span><span class="du">${on.length} spans</span></button>
+      <div class="wt">${t.length ? `<span class="rbar" style="left:${a}%;width:${b-a}%"></span>` : ""}${t.map(i=>`<i class="rtick" style="left:${pos(i.t0)}%;--c:${mc(i.mode)}"></i>`).join("")}</div></div>`
+      + (!open ? "" : on.map(i => spanRow(i, pos)).join("") || `<div class="wr none">No spans in ${WEEKS[w]} match the filter.</div>`);
+  }).join("");
+}
+function spanRow(i, pos){
+  const L = i.t0 == null ? 0 : pos(i.t0), W = i.t0 == null ? 100 : pos(i.t1) - L;
+  // An instant span is its one event: no ticks inside.
+  const ticks = W < .4 ? "" : i.ev.filter(e=>e[1]).map(e=>`<i class="evt" style="left:${(pos(Date.parse(e[1]))-L)/W*100}%"></i>`).join("");
+  return `<div class="wr sp${spanSel===i.id?" on":""}" data-span="${esc(i.id)}" style="--c:${mc(i.mode)}"><button class="wn" data-span="${esc(i.id)}" aria-pressed="${spanSel===i.id}"><i class="sw"></i><span class="nm">${esc(i.title)}</span><span class="du">${fmtDur(i)}</span></button>
+    <div class="wt"><span class="bar${i.wm==="wouldnt"?" crit":""}${i.t0==null?" ghost":""}" style="left:${L}%;width:${W}%" title="${esc(i.title)} · ${fmtDur(i)} · ${i.ev.length} events">${ticks}</span></div></div>`;
+}
+function markSpan(){
+  document.querySelectorAll("#wf .wr.sp").forEach(r=>{ const on = r.dataset.span === spanSel; r.classList.toggle("on", on); r.querySelector(".wn").setAttribute("aria-pressed", on); });
+}
+function play(){
+  if(!G) return;
+  // A replay during a replay would start from half-drawn bars: finish the old one first.
+  play.tl?.progress(1).kill();
+  const W = $(".wf-phl").clientWidth, D = 1.4, tl = play.tl = G.timeline();
+  if(!W) return;
+  // The playhead sweeps Monday to Sunday; each span grows from its start as the playhead reaches it.
+  tl.from("#wf .wn", {opacity:0, x:-8, duration:.35, ease:"power3.out", stagger:.02, clearProps:"opacity,transform"}, 0);
+  tl.fromTo("#wf-ph", {x:0, opacity:1}, {x:W, duration:D, ease:"none"}, 0).to("#wf-ph", {opacity:0, duration:.3});
+  document.querySelectorAll("#wf .bar, #wf .rtick").forEach(b => tl.from(b, {scaleX:b.classList.contains("bar")?0:1, opacity:0, duration:.5, ease:"expo.out", clearProps:"opacity,transform"}, parseFloat(b.style.left)/100*D));
+}
+
+function drawSide(){
+  const i = spanSel && ITEMS.find(x=>x.id===spanSel), sb = $("#sb");
+  if(!i){
+    const ws = [...sel].sort((a,b)=>a-b), xs = ITEMS.filter(x=>sel.has(x.w) && passes(x)), rest = ITEMS.filter(x=>!sel.has(x.w) && passes(x));
+    const by = cnt(xs, modeOf), order = Object.keys(MODES).filter(m=>by[m]).sort((a,b)=>by[b]-by[a]);
+    const long = xs.filter(x=>x.hrs!=null).sort((a,b)=>b.hrs-a.hrs)[0], crit = xs.filter(x=>x.wm==="wouldnt");
+    sb.innerHTML = `<span class="lbl">Trace summary</span>
+      <div class="sb-big"><b>${xs.length}</b><span>span${xs.length===1?"":"s"} in ${selLabel(ws)}</span></div>
+      ${xs.length ? `<div class="mixbar" aria-hidden="true">${order.map(m=>`<i style="flex:${by[m]};--c:${mc(m)}" title="${MODES[m]}: ${by[m]}"></i>`).join("")}</div>
+      <ul class="sb-modes">${order.map(m=>{ const d = rest.length ? Math.round((pctOf(xs,x=>x.mode===m) - pctOf(rest,x=>x.mode===m))*100) : 0;
+        return `<li><i class="sw" style="--c:${mc(m)}"></i><span>${MODES[m]}</span><b>${by[m]}</b><small>${d ? `${d>0?"+":"−"}${Math.abs(d)} pp` : ""}</small></li>`; }).join("")}</ul>
+      ${rest.length ? `<p class="sb-note">pp: how much bigger or smaller the share of each mode is than in the other weeks.</p>` : ""}
+      <div class="sb-kv"><span>critical path</span><b>${crit.length} of ${xs.length}</b></div>
+      ${long ? `<div class="sb-kv"><span>longest</span><button data-span="${esc(long.id)}">${esc(long.title)} · ${fmtDur(long)}</button></div>` : ""}
+      <p class="sb-note">Click a span to see its events.</p>` : `<p class="sb-note">No spans match the filter.</p>`}`;
+  } else {
+    const pr = PROJECTS[i.s];
+    const pct = Math.round(pctOf(ITEMS, x => (x.hrs ?? 0) < (i.hrs ?? 0))*100);
+    const timed = i.ev.filter(e=>e[1]).sort((a,b)=>Date.parse(a[1])-Date.parse(b[1])), untimed = i.ev.filter(e=>!e[1]);
+    const ev = e => `<li><time>${e[1] ? fmtWhen(Date.parse(e[1])) : "no time"}</time><span class="k">${EVK[e[0]] ?? e[0]}</span>${e[3] ? `<a href="${esc(e[3])}" target="_blank" rel="noopener">${esc(e[2] || e[3])} ↗</a>` : `<span class="t">${esc(e[2])}</span>`}</li>`;
+    sb.innerHTML = `<div class="sb-top"><span class="sb-mode" style="--c:${mc(i.mode)}"><i class="sw"></i>${MODES[i.mode]} · ${WEEKS[i.w]}</span><button class="x" id="sb-x">close <kbd>esc</kbd></button></div>
+      <h3>${esc(i.title)}</h3>
+      <div class="sb-dur"><b>${fmtDur(i)}</b><span>${i.hrs ? `longer than ${pct}% of your spans` : "one moment, one event"}</span></div>
+      <dl class="attrs"><dt>mode</dt><dd>${MODES[i.mode]}</dd><dt>without_you</dt><dd>${i.wm ? WMS[i.wm] : "not answered"}</dd>
+        <dt>project</dt><dd>${pr && i.s!=="none" ? (pr.url ? `<a href="${esc(pr.url)}" target="_blank" rel="noopener">${esc(pr.name)} ↗</a>` : esc(pr.name)) : "none"}</dd>
+        <dt>pillar</dt><dd>${PILLAR[i.pillar] ?? "none"}</dd><dt>started</dt><dd>${i.t0 ? `${fmtWhen(i.t0)}, ${fmtDay(i.t0)}` : "no time"}</dd></dl>
+      ${i.summary ? `<p class="sb-sum">${esc(i.summary)}</p>` : ""}
+      <span class="lbl">Span events · ${i.ev.length}</span>
+      <ol class="evl">${timed.map(ev).join("")}${untimed.map(ev).join("")}</ol>
+      ${typeof SAMPLE === "undefined" ? `<a class="ref" href="#/review?week=${YEAR}-${esc(WEEKS[i.w])}&key=${encodeURIComponent(i.id)}">change it in review →</a>` : ""}`;
+  }
+  if(G && !$("#v-trace").hidden){
+    G.from("#sb > *", {y:8, opacity:0, filter:"blur(6px)", duration:.4, ease:"power3.out", stagger:.03, clearProps:"filter,transform,opacity"});
+    G.from("#sb .mixbar i", {scaleX:0, duration:.6, ease:"expo.out", stagger:.04, clearProps:"transform"});
+  }
+}
+// The address keeps weeks and the open span, so reload and a shared link show the same thing.
+const traceUrl = () => history.replaceState(null, "", `#/trace?w=${[...sel].sort((a,b)=>a-b).map(i=>WEEKS[i]).join(",")}${spanSel ? `&s=${encodeURIComponent(spanSel)}` : ""}`);
+const pickSpan = id => { spanSel = spanSel === id ? null : id; markSpan(); drawSide(); traceUrl(); };
+
+$("#v-trace").addEventListener("click", e => {
+  const b = e.target.closest("button, .wr.sp"); if(!b) return;
+  const d = b.dataset;
+  if(d.mf){ tf.mode = tf.mode === d.mf ? null : d.mf; drawSvc(); drawHeat(); drawWaterfall(); drawSide(); play(); }
+  else if("crit" in d){ tf.crit = !tf.crit; drawSvc(); drawHeat(); drawWaterfall(); drawSide(); play(); }
+  else if(d.root){ const w = +d.root; openRoots.has(w) ? openRoots.delete(w) : openRoots.add(w); drawWaterfall(); play(); }
+  else if(b.id === "wf-all"){ openRoots = new Set(openRoots.size === sel.size ? [] : sel); drawWaterfall(); play(); }
+  else if(b.id === "wf-replay") play();
+  else if(b.id === "sb-x") pickSpan(spanSel);
+  else if(d.span) pickSpan(d.span);
+  // Week labels are buttons, so the keyboard can pick a week too. Pointer picks go through the brush.
+  else if(d.w != null && e.detail === 0){ sel = new Set([+d.w]); renderTrace(); }
+});
+// Linked views: hovering a span lights its heatmap cell.
+$("#wf").addEventListener("pointerover", e => {
+  document.querySelectorAll("#hm .ping").forEach(c=>c.classList.remove("ping"));
+  const r = e.target.closest(".wr.sp"); if(!r) return; const i = ITEMS.find(x=>x.id===r.dataset.span); if(!i) return;
+  $(`#hm [data-d="${i.w*7+i.day}"][data-b="${i.b}"]`)?.classList.add("ping");
+});
+$("#wf").addEventListener("pointerleave", () => document.querySelectorAll("#hm .ping").forEach(c=>c.classList.remove("ping")));
+// Brush: drag across weeks selects them; shift-click adds or removes one week.
+const weekAt = e => { const el = document.elementFromPoint(e.clientX, e.clientY)?.closest("#hm [data-w]"); return el ? +el.dataset.w : null; };
+function brushTo(){ sel = new Set(brush.add ? brush.before : []); for(let w = Math.min(brush.a, brush.b); w <= Math.max(brush.a, brush.b); w++) sel.add(w); }
+$("#hm").addEventListener("pointerdown", e => { const w = weekAt(e); if(w == null) return; e.preventDefault();
+  $("#hm").setPointerCapture(e.pointerId); brush = {a:w, b:w, add:e.shiftKey || e.metaKey, before:new Set(sel)}; });
+$("#hm").addEventListener("pointermove", e => { if(!brush) return; const w = weekAt(e); if(w == null || w === brush.b) return; brush.b = w; brushTo(); drawHeat(); });
+$("#hm").addEventListener("pointerup", () => { if(!brush) return;
+  if(brush.add && brush.a === brush.b && brush.before.has(brush.a) && brush.before.size > 1){ sel = new Set(brush.before); sel.delete(brush.a); } else brushTo();
+  brush = null; renderTrace(); });
 
 /* ITEM SHEET */
 function openItem(id){
@@ -980,7 +1181,7 @@ function route(){
   if(v === "project") PV.open(p.get("id"));
   if(v === "refs") renderRefs(p.get("k"));
   if(v === "setup") SU.open();
-  if(v === "trace"){ sel = new Set((p.get("w") ?? "").split(",").map(w => WEEKS.indexOf(w)).filter(i => i >= 0)); renderTrace(); }
+  if(v === "trace"){ sel = new Set((p.get("w") ?? "").split(",").map(w => WEEKS.indexOf(w)).filter(i => i >= 0)); spanSel = p.get("s"); renderTrace(); }
 }
 function show(v){ if(location.hash.split("?")[0] !== "#/"+v) history.pushState(null, "", "#/"+v); route(); }
 addEventListener("hashchange", route);
@@ -997,21 +1198,14 @@ document.addEventListener("click", e=>{
   if(d.cmd){ runCmd(+d.cmd); return; }
   if(d.v){ e.preventDefault(); show(d.v); return; }
   if(d.ref){ e.preventDefault(); location.hash = `#/refs?k=${d.ref}`; return; }
-  if(d.goal){ sel.clear(); ITEMS.filter(i=>(goalOf(i)??"none")===d.goal).forEach(i=>sel.add(i.w)); renderTrace(); show("trace"); return; }
+  if(d.goal){ location.hash = `#/trace?w=${[...new Set(ITEMS.filter(i=>(goalOf(i)??"none")===d.goal).map(i=>i.w))].sort((a,b)=>a-b).map(w=>WEEKS[w]).join(",")}`; return; }
   if(d.item){ openItem(d.item); return; }
   if(t.id==="x"){ $("#sheet").hidden = true; return; }
   if(d.rec){ recI = (recI + +d.rec + REC.length) % REC.length; renderRec(); return; }
-  if(t.id==="clearsel"){ sel.clear(); renderTrace(); return; }
 });
 $("#sheet").addEventListener("click", e=>{ if(e.target.id==="sheet") $("#sheet").hidden = true; });
 $("#cmdk").addEventListener("click", e=>{ if(e.target.id==="cmdk") $("#cmdk").hidden = true; });
 $("#cmdk-input").addEventListener("input", filterCmd);
-
-// heatmap brush
-$("#hm").addEventListener("pointerdown", e=>{ const c = e.target.closest("[data-wk]"); if(!c) return; drag = {a:+c.dataset.wk, moved:false}; });
-$("#hm").addEventListener("pointerover", e=>{ if(!drag) return; const c = e.target.closest("[data-wk]"); if(!c) return; const b = +c.dataset.wk; if(b!==drag.a) drag.moved = true;
-  if(drag.moved){ sel.clear(); for(let i=Math.min(drag.a,b); i<=Math.max(drag.a,b); i++) sel.add(i); renderTrace(); } });
-addEventListener("pointerup", e=>{ if(!drag) return; if(!drag.moved){ const w = drag.a; sel.has(w) ? sel.delete(w) : sel.add(w); renderTrace(); } drag = null; });
 
 document.addEventListener("keydown", e=>{
   if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="k"){ e.preventDefault(); $("#cmdk").hidden ? openCmd() : ($("#cmdk").hidden = true); return; }
@@ -1023,6 +1217,7 @@ document.addEventListener("keydown", e=>{
     return;
   }
   if(!$("#story").hidden){ if(e.key==="ArrowRight"||e.key===" ") { e.preventDefault(); step(1); } else if(e.key==="ArrowLeft") step(-1); else if(e.key==="Escape") $("#story").hidden = true; return; }
+  if(e.key==="Escape" && $("#sheet").hidden && spanSel && !$("#v-trace").hidden){ pickSpan(spanSel); return; }
   if(e.key==="Escape"){ $("#sheet").hidden = true; return; }
 });
 
