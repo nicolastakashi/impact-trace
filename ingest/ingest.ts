@@ -232,12 +232,14 @@ function ingestGithub(db: Database, out: any, week: string, runId: string, event
 
 // An event's group, strongest first: yours; Linear's project; a dedicated #internal-* channel
 // as a topic; Claude's placement, unless you undid it (your row with no group).
-export const PROJECT = `coalesce(
+const PLACED = `coalesce(
   (SELECT a.project_id FROM assignments a WHERE a.event_id = events.id AND a.source = 'human'),
   events.project_id,
   CASE WHEN events.source = 'slack' AND events.title LIKE '#internal-%' THEN 'topic:' || substr(events.title, 2) END,
   (SELECT a.project_id FROM assignments a WHERE a.event_id = events.id AND a.source = 'claude'
      AND NOT EXISTS (SELECT 1 FROM assignments h WHERE h.event_id = events.id AND h.source = 'human')))`;
+// A merged project counts as the one you merged it into.
+export const PROJECT = `coalesce((SELECT m.into_id FROM project_merges m WHERE m.from_id = ${PLACED}), ${PLACED})`;
 
 // "#internal-axel-springer" → topic "Axel Springer".
 export function channelTopic(db: Database, channel: string) {

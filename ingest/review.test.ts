@@ -67,3 +67,22 @@ test("group precedence: yours, then Linear, then a dedicated channel, then Claud
   as.run("github:x/y#1", "topic:mine", "human");
   expect(groupOf("github:x/y#1")).toEqual({ id: "topic:mine", name: "Mine", by: "human" });
 });
+
+test("a merged project counts as the one it was merged into", () => {
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  for (const [id, name, kind] of [["P1", "Private Locations", "linear"], ["topic:pl", "PL worker", "topic"]])
+    db.query("INSERT INTO projects (id, name, kind, updated_at) VALUES (?, ?, ?, 'now')").run(id, name, kind);
+  const ev = db.query("INSERT INTO events (id, source, kind, week, title, project_id, payload, run_id) VALUES (?, 'x', ?, '2026-W42', ?, ?, '{}', 'r')");
+  ev.run("linear:A-1", "issue_completed", "Private location entity", "P1");
+  ev.run("github:x/api#1", "pr_merged", "feat: private location entity", null);
+  ev.run("github:x/worker#1", "pr_merged", "feat: worker", null);
+  db.query("INSERT INTO links VALUES ('github:x/api#1', 'linear:A-1', 'mentions')").run();
+  db.query("INSERT INTO assignments (event_id, project_id, source, at) VALUES ('github:x/worker#1', 'topic:pl', 'human', 'now')").run();
+  expect(reviewThreads(db, "2026-W42").length).toBe(2);
+
+  db.query("INSERT INTO project_merges VALUES ('topic:pl', 'P1', 'now')").run();
+  const [t, ...rest] = reviewThreads(db, "2026-W42");
+  expect(rest).toEqual([]);
+  expect(t.projects.map((p) => p.id)).toEqual(["P1"]);
+});
