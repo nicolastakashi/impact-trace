@@ -131,48 +131,48 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 /* trace */
 .panel{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
 .hm-wrap{overflow-x:auto}
-.hm{min-width:640px;display:grid;grid-template-columns:96px repeat(var(--n),1fr);gap:4px;user-select:none;-webkit-user-select:none}
-.hm .wk{font:600 12px var(--f-num);letter-spacing:.1em;color:var(--ink-3);text-align:center;padding:6px 0;border-radius:6px;cursor:pointer;display:grid;gap:2px}
-.hm .wk small{font:500 10px var(--f-mono);letter-spacing:0;color:var(--ink-3)}
-.hm .wk.sel{color:var(--ink)}
-.hm .wk.sel small{color:var(--ink-2)}
-.hm .ml{font-size:12.5px;color:var(--ink-2);display:flex;align-items:center;gap:7px}
-.cell{height:34px;border-radius:7px;background:var(--s3);position:relative;cursor:pointer;border:0;padding:0;transition:opacity .2s,transform .15s}
-.cell:hover{transform:scale(1.06)}
-/* With a selection, the other weeks step back instead of the selected ones getting borders. */
-.hm.has-sel .cell:not(.in),.hm.has-sel .wk:not(.sel){opacity:.28}
-.cell b{position:absolute;inset:0;display:grid;place-items:center;font:700 13px var(--f-num);color:var(--ink)}
-.hm-hint{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:12.5px;color:var(--ink-3);margin-top:12px}
-.tr-split{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:12px;align-items:start}
-.tr-diff{display:grid;gap:14px;position:sticky;top:calc(env(safe-area-inset-top, 0px) + 96px)}
-.diff{display:grid;gap:8px}
-.diff h3{margin:6px 0 0;font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
-.drow{display:grid;grid-template-columns:110px 1fr 58px;gap:10px;align-items:center;font-size:13.5px;color:var(--ink-2)}
-.dtrack{position:relative;height:14px}
-.dtrack::before{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--line-2)}
-.dtrack i{position:absolute;top:2px;height:10px;border-radius:3px}
-.dtrack i.up{left:50%;background:var(--c,var(--accent))}
-.dtrack i.down{right:50%;background:var(--ink-3);opacity:.6}
-.drow b{font:700 13px var(--f-num);text-align:right;font-variant-numeric:tabular-nums}
-.drow b.up{color:var(--ink)} .drow b.down{color:var(--ink-3)}
-.share{display:grid;grid-template-columns:110px 1fr 46px;gap:10px;align-items:center;font-size:13.5px;color:var(--ink-2)}
-.share span.tr{height:8px;border-radius:4px;background:var(--s3);overflow:hidden}
-.share span.tr i{display:block;height:100%;border-radius:4px}
-.share b{font:600 12.5px var(--f-num);text-align:right;color:var(--ink-3)}
-.tr-list{display:grid;gap:14px}
-#feed{display:grid;gap:20px}
-#diff{display:grid;gap:18px}
-.tr-list .th{display:flex;justify-content:space-between}
-.fweek{display:grid;gap:8px}
-.fweek h3{margin:0;font:700 13px var(--f-num);letter-spacing:.08em;color:var(--ink-2);display:flex;gap:10px;align-items:baseline}
+/* Trace: one neutral chart, one accent for what you selected. Mode is a label, not a color. */
+.tr-chart{display:grid;gap:18px;padding:22px clamp(16px,2.5vw,28px)}
+.tr-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px}
+.tr-sel{display:flex;gap:10px;align-items:baseline;font-size:13px;color:var(--ink-2)}
+.tr-clear{font:500 12px var(--f-mono);color:var(--ink-3);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.tr-clear:hover{color:var(--ink)}
+.tc{min-width:620px;display:grid;grid-template-columns:104px repeat(var(--n),minmax(0,1fr)) 44px;column-gap:6px;user-select:none;-webkit-user-select:none}
+.tc .bar{display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;height:132px;cursor:pointer;border-radius:6px;padding:0 10%}
+.tc .bar i{display:block;background:var(--line-2);border-radius:4px 4px 1px 1px;min-height:2px;transition:background .15s}
+.tc .bar b{font:600 12px var(--f-num);color:var(--ink-3);text-align:center;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.tc .bar:hover i{background:var(--ink-3)}
+.tc .bar.sel i{background:var(--accent)}
+.tc .bar.sel b{color:var(--ink)}
+.tc .wkl{font:600 12px var(--f-num);letter-spacing:.08em;color:var(--ink-3);text-align:center;padding:8px 0 12px;border-top:1px solid var(--line);cursor:pointer}
+.tc .wkl.sel{color:var(--ink)}
+.tc .axis{border-top:1px solid var(--line)}
+.tc .ml{font-size:13px;color:var(--ink-2);display:flex;align-items:center;height:30px;border-top:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.tc .dot-c{display:grid;place-items:center;height:30px;cursor:pointer;border-top:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.tc .dot-c i{display:block;border-radius:50%;background:var(--ink-3);opacity:.55}
+.tc .dot-c.sel i{background:var(--accent);opacity:1}
+.tc .tot{font:600 12.5px var(--f-num);color:var(--ink-2);text-align:right;display:flex;align-items:center;justify-content:flex-end;height:30px;font-variant-numeric:tabular-nums;border-top:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.tc .hd{font:500 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:flex-end;padding-bottom:6px}
+.tr-split{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:12px;align-items:start}
+.tr-diff{display:grid;gap:16px;position:sticky;top:calc(env(safe-area-inset-top, 0px) + 96px)}
+#diff{display:grid;gap:4px}
+.dl{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:baseline;padding:10px 0;border-top:1px solid var(--line);font-size:14px;color:var(--ink-2)}
+.dl:first-child{border-top:0}
+.dl b{font:700 15px var(--f-num);font-variant-numeric:tabular-nums}
+.dl b.up{color:var(--ink)} .dl b.down{color:var(--ink-3)}
+.dl small{display:block;font:500 11px var(--f-mono);color:var(--ink-3);margin-top:2px}
+.tr-note{font-size:13.5px;color:var(--ink-3);line-height:1.5;margin:0}
+.tr-list{display:grid;gap:16px}
+#feed{display:grid;gap:22px}
+.fweek{display:grid;gap:2px}
+.fweek h3{margin:0 0 6px;font:700 13px var(--f-num);letter-spacing:.08em;color:var(--ink);display:flex;gap:10px;align-items:baseline}
 .fweek h3 small{font:500 11px var(--f-mono);letter-spacing:0;color:var(--ink-3)}
-.feed{display:grid;gap:6px;margin:0;padding:0;list-style:none}
-.feed button{width:100%;text-align:left;background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;cursor:pointer;display:grid;grid-template-columns:4px 1fr auto;gap:12px;align-items:center}
-.feed button:hover{border-color:var(--line-2)}
-.feed .stripe{align-self:stretch;border-radius:2px}
-.feed .ft{font-size:14px;line-height:1.35}
+.feed{display:grid;margin:0;padding:0;list-style:none}
+.feed button{width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:10px 4px;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:baseline;border-radius:0}
+.feed li:first-child button{border-top:0}
+.feed button:hover .ft{text-decoration:underline;text-underline-offset:3px}
+.feed .ft{font-size:14px;line-height:1.4;color:var(--ink)}
 .feed .fm{font:500 11px var(--f-mono);color:var(--ink-3);margin-top:3px}
-.feed .star{color:var(--m-clarify);font-size:13px}
 @media (max-width:860px){ .tr-split{grid-template-columns:1fr} .tr-diff{position:static} }
 
 /* item overlay */
@@ -561,15 +561,15 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   <a class="sample-note" href="#/review" hidden>Example data, not yours. <b>Open Review →</b></a>
   <div class="vhead">
     <h1>How I deliver, <em>week by week</em></h1>
-    <p>Click or drag across weeks. What changed compares them with the other weeks.</p>
+    <p id="tr-lead"></p>
   </div>
-  <div class="panel">
-    <div class="hm-wrap"><div class="hm" id="hm"></div></div>
-    <div class="hm-hint"><span id="selinfo"></span><button class="chip" id="clearsel" hidden>clear selection</button></div>
+  <div class="panel tr-chart">
+    <div class="tr-head"><span class="lbl">Threads you kept, per week</span><span class="tr-sel"><span id="selinfo"></span><button class="tr-clear" id="clearsel" hidden>clear</button></span></div>
+    <div class="hm-wrap"><div class="tc" id="hm"></div></div>
   </div>
-  <div class="tr-split">
+  <div class="tr-split" id="tr-detail">
     <div class="panel tr-diff"><span class="lbl" id="diff-h"></span><div id="diff"></div></div>
-    <div class="panel tr-list"><div class="th"><span class="lbl">Threads</span><span class="lbl" id="feedn"></span></div><div id="feed"></div></div>
+    <div class="panel tr-list"><div class="tr-head"><span class="lbl" id="feedh">Threads</span></div><div id="feed"></div></div>
   </div>
 </section>
 
@@ -761,41 +761,49 @@ function renderRec(){
 /* TRACE */
 let drag = null;
 function renderTrace(){
-  const grid = {}; ITEMS.forEach(i=>{const k=modeOf(i)+i.w; grid[k]=(grid[k]||0)+1});
-  const perWeek = WEEKS.map((_,w)=>ITEMS.filter(i=>i.w===w).length);
-  let h = `<div></div>` + WEEKS.map((w,i)=>`<div class="wk ${sel.has(i)?"sel":""}" data-wk="${i}">${w}<small>${perWeek[i]}</small></div>`).join("");
-  Object.keys(MODES).forEach(m=>{
-    h += `<div class="ml"><i class="dot" style="background:${mc(m)}"></i>${MODES[m]}</div>`;
-    WEEKS.forEach((_,w)=>{ const n = grid[m+w]||0;
-      h += `<button class="cell ${sel.has(w)?"in":""}" data-wk="${w}" style="${n?`background:color-mix(in srgb,${mc(m)} ${Math.min(95,40+n*15)}%,var(--s3))`:""}" aria-label="${MODES[m]} ${WEEKS[w]}: ${n}">${n?`<b>${n}</b>`:""}</button>`; });
-  });
-  $("#hm").style.setProperty("--n", WEEKS.length);
-  $("#hm").innerHTML = h; $("#hm").classList.toggle("has-sel", sel.size > 0);
+  const N = WEEKS.length, modes = Object.keys(MODES);
+  const perWeek = WEEKS.map((_,w)=>ITEMS.filter(i=>i.w===w).length), maxW = Math.max(1, ...perWeek);
+  const count = (m, w) => ITEMS.filter(i=>modeOf(i)===m && i.w===w).length;
+  const tot = m => ITEMS.filter(i=>modeOf(i)===m).length;
+  // Busiest mode first, so the eye reads the matrix top-down by weight.
+  const order = modes.slice().sort((a,b)=>tot(b)-tot(a)), maxC = Math.max(1, ...order.flatMap(m=>WEEKS.map((_,w)=>count(m,w))));
+  const on = w => sel.has(w);
+  let h = `<span></span>` + WEEKS.map((w,i)=>`<div class="bar ${on(i)?"sel":""}" data-wk="${i}" title="${w}: ${perWeek[i]} threads"><b>${perWeek[i]}</b><i style="height:${perWeek[i]/maxW*100}px"></i></div>`).join("") + `<span></span>`;
+  h += `<span class="axis"></span>` + WEEKS.map((w,i)=>`<div class="wkl ${on(i)?"sel":""}" data-wk="${i}">${w}</div>`).join("") + `<span class="axis"></span>`;
+  h += `<span class="hd">Mode</span>${WEEKS.map(()=>"<span></span>").join("")}<span class="hd" style="justify-content:flex-end">Total</span>`;
+  for(const m of order){
+    h += `<div class="ml">${MODES[m]}</div>` + WEEKS.map((_,w)=>{ const n = count(m,w), d = n ? 6 + Math.sqrt(n/maxC)*14 : 0;
+      return `<div class="dot-c ${on(w)?"sel":""}" data-wk="${w}" title="${MODES[m]} · ${WEEKS[w]}: ${n}">${n?`<i style="width:${d}px;height:${d}px"></i>`:""}</div>`; }).join("") + `<div class="tot">${tot(m)}</div>`;
+  }
+  $("#hm").style.setProperty("--n", N); $("#hm").innerHTML = h;
   // The address keeps the selection, so reload and a shared link show the same weeks.
   if(!$("#v-trace").hidden) history.replaceState(null, "", `#/trace${sel.size ? `?w=${[...sel].sort((a,b)=>a-b).map(i=>WEEKS[i]).join(",")}` : ""}`);
-  const ws = [...sel].sort((a,b)=>a-b), any = ws.length > 0;
-  $("#selinfo").textContent = any ? `${ws.map(i=>WEEKS[i]).join(", ")} selected` : `All ${WEEKS.length} weeks. Click or drag across weeks to compare them.`;
+  const ws = [...sel].sort((a,b)=>a-b), any = ws.length > 0, span = !any ? "" : ws.length > 1 && ws.at(-1)-ws[0] === ws.length-1 ? `${WEEKS[ws[0]]}–${WEEKS[ws.at(-1)]}` : ws.map(i=>WEEKS[i]).join(", ");
+  const inSel = ITEMS.filter(i=>!any || on(i.w)), rest = ITEMS.filter(i=>any && !on(i.w));
+  const share = (xs, f, k) => xs.length ? xs.filter(i=>f(i)===k).length/xs.length : 0, pct = x => `${Math.round(x*100)}%`;
+  const top = order[0], busiest = perWeek.indexOf(maxW);
+  // The answer first, in words.
+  $("#tr-lead").innerHTML = ITEMS.length ? `<b>${MODES[top][0].toUpperCase()+MODES[top].slice(1)}</b> is ${pct(share(ITEMS, modeOf, top))} of the ${ITEMS.length} threads you kept. ${WEEKS[busiest]} was the busiest week, with ${maxW}.` : "No threads kept yet.";
+  $("#selinfo").textContent = any ? `${span} · ${inSel.length} threads` : "Click a week, or drag across weeks, to compare.";
   $("#clearsel").hidden = !any;
-  const inSel = ITEMS.filter(i=>!any || sel.has(i.w)), rest = ITEMS.filter(i=>any && !sel.has(i.w));
-  const share = (xs, f, k) => xs.length ? xs.filter(i=>f(i)===k).length/xs.length : 0;
-  // Without a selection: the mix. With one: what changed, biggest difference first, like BubbleUp.
-  const groups = [["Mode", Object.keys(MODES), modeOf, MODES, k=>mc(k)], ["Without you", Object.keys(WMS), i=>i.wm, WMS, ()=>"var(--accent)"]];
   if(!any){
-    $("#diff-h").textContent = "Mix";
-    $("#diff").innerHTML = groups.map(([t, keys, f, L, c])=>`<div class="diff"><h3>${t}</h3>${keys.map(k=>{ const a = share(inSel, f, k);
-      return `<div class="share"><span>${L[k]}</span><span class="tr"><i style="width:${a*100}%;background:${c(k)}"></i></span><b>${Math.round(a*100)}%</b></div>`; }).join("")}</div>`).join("");
+    $("#diff-h").textContent = "Where the time went";
+    $("#diff").innerHTML = order.map(m=>`<div class="dl"><span>${MODES[m]}</span><b class="up">${pct(share(ITEMS, modeOf, m))}</b></div>`).join("")
+      + `<p class="tr-note" style="margin-top:10px">Select weeks to see what was different about them.</p>`;
+  } else if(!rest.length){
+    $("#diff-h").textContent = "Compared with the other weeks"; $("#diff").innerHTML = `<p class="tr-note">Every week is selected, so there is nothing to compare with.</p>`;
   } else {
-    $("#diff-h").textContent = rest.length ? `What changed · ${ws.length > 1 ? `${WEEKS[ws[0]]}–${WEEKS[ws.at(-1)]}` : WEEKS[ws[0]]} vs the other weeks` : "All weeks selected: nothing to compare";
-    const rows = groups.map(([t, keys, f, L, c])=>[t, keys.map(k=>({k, L:L[k], c:c(k), d:Math.round((share(inSel,f,k)-share(rest,f,k))*100)})).filter(x=>x.d).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d))]);
-    const mx = Math.max(1, ...rows.flatMap(([,xs])=>xs.map(x=>Math.abs(x.d))));
-    $("#diff").innerHTML = rest.length ? rows.map(([t, xs])=>xs.length ? `<div class="diff"><h3>${t}</h3>${xs.map(x=>`<div class="drow"><span>${x.L}</span>
-      <span class="dtrack" style="--c:${x.c}"><i class="${x.d>0?"up":"down"}" style="width:${Math.abs(x.d)/mx*50}%"></i></span><b class="${x.d>0?"up":"down"}">${x.d>0?"+":"−"}${Math.abs(x.d)} pp</b></div>`).join("")}</div>` : "").join("") : "";
+    // The three biggest differences, mode and "without you" together, as plain lines.
+    const rows = [...modes.map(k=>({k:MODES[k], f:modeOf, v:k, g:"mode"})), ...Object.keys(WMS).map(k=>({k:WMS[k], f:i=>i.wm, v:k, g:"without you"}))]
+      .map(x=>({...x, a:share(inSel,x.f,x.v), b:share(rest,x.f,x.v)})).map(x=>({...x, d:Math.round((x.a-x.b)*100)})).filter(x=>x.d).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d)).slice(0,3);
+    $("#diff-h").textContent = `${span} compared with the other weeks`;
+    $("#diff").innerHTML = rows.length ? rows.map(x=>`<div class="dl"><span>${x.d>0?"More":"Less"} ${x.k}<small>${x.g} · ${pct(x.a)} here, ${pct(x.b)} in the other weeks</small></span><b class="${x.d>0?"up":"down"}">${x.d>0?"+":"−"}${Math.abs(x.d)} pp</b></div>`).join("")
+      : `<p class="tr-note">These weeks look like the others.</p>`;
   }
-  // Threads, newest week first, grouped by week.
-  $("#feedn").textContent = `${inSel.length} threads`;
+  $("#feedh").textContent = any ? `Threads in ${span}` : "All threads";
   $("#feed").innerHTML = [...new Set(inSel.map(i=>i.w))].sort((a,b)=>b-a).map(w=>{ const xs = inSel.filter(i=>i.w===w);
-    return `<div class="fweek"><h3>${WEEKS[w]}<small>${xs.length} thread${xs.length===1?"":"s"}</small></h3><ul class="feed">${xs.map(i=>`<li><button data-item="${esc(i.id)}"><span class="stripe" style="background:${mc(modeOf(i))}"></span>
-      <span><div class="ft">${esc(i.title)}</div><div class="fm">${MODES[modeOf(i)]}${i.wm?` · ${WMS[i.wm]}`:""}${i.s!=="none"&&PROJECTS[i.s]?` · ${esc(PROJECTS[i.s].name)}`:""}</div></span>${i.rec!=null?`<span class="star" title="Mentioned or praised">★</span>`:"<span></span>"}</button></li>`).join("")}</ul></div>`; }).join("");
+    return `<div class="fweek"><h3>${WEEKS[w]}<small>${xs.length} thread${xs.length===1?"":"s"}</small></h3><ul class="feed">${xs.map(i=>`<li><button data-item="${esc(i.id)}">
+      <span><div class="ft">${esc(i.title)}</div><div class="fm">${MODES[modeOf(i)]}${i.wm?` · ${WMS[i.wm]}`:""}${i.s!=="none"&&PROJECTS[i.s]?` · ${esc(PROJECTS[i.s].name)}`:""}</div></span><span></span></button></li>`).join("")}</ul></div>`; }).join("");
 }
 
 /* ITEM SHEET */
