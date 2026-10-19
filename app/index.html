@@ -508,9 +508,10 @@ function renderHome(){
     <p class="oneline">Your 8 weeks,<br>in ${PHASES.length+4} screens</p><span style="font-size:13px;opacity:.85">Wrapped style. Use ← → or tap the sides.</span>`;
 
   if(G){
-    G.from(".bento .tile",{y:14,opacity:0,duration:.5,stagger:.05,ease:"power2.out",clearProps:"all"});
+    // fromTo, not from: renderHome runs twice on load, and a second from() would start at half opacity and stay there.
+    G.fromTo(".bento .tile",{y:14,opacity:0},{y:0,opacity:1,duration:.5,stagger:.05,ease:"power2.out",clearProps:"all"});
     document.querySelectorAll("#rings .ring").forEach((c,i)=>G.fromTo(c,{attr:{"stroke-dashoffset":100}},{attr:{"stroke-dashoffset":100-c.dataset.v},duration:1.4,delay:.2+i*.15,ease:"power3.out"}));
-    G.from(".mb .tr i",{scaleX:0,duration:.9,stagger:.06,ease:"power3.out",delay:.3});
+    G.fromTo(".mb .tr i",{scaleX:0},{scaleX:1,duration:.9,stagger:.06,ease:"power3.out",delay:.3});
     countUp($("#v-home"));
   }
 }
