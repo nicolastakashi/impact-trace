@@ -2,6 +2,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Schibsted+Grotesk:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
+/* The artifact viewer added this reset; served locally, overlays with display:grid ignored [hidden]. */
+[hidden]{display:none!important}
 /* Layout: bento cockpit as home (rings + tiles), observability views for Trace and Item (heatmap + brush, flame graph), Wrapped-style story for the recap. Dark-first, glow as elevation. */
 :root{
   color-scheme: light;
@@ -274,30 +276,30 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 <div class="wrap">
 <header>
   <div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M1 8h3l2-5 4 10 2-5h3" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><b>Impact Trace</b></div>
-  <nav role="tablist" aria-label="Telas">
-    <button role="tab" id="t-home" data-v="home" aria-selected="true">Norte</button>
-    <button role="tab" id="t-proj" data-v="proj" aria-selected="false">Projetos</button>
+  <nav role="tablist" aria-label="Views">
+    <button role="tab" id="t-home" data-v="home" aria-selected="true">North</button>
+    <button role="tab" id="t-proj" data-v="proj" aria-selected="false">Projects</button>
     <button role="tab" id="t-trace" data-v="trace" aria-selected="false">Trace</button>
     <button role="tab" id="t-review" data-v="review" aria-selected="false">Review <span class="badge" id="badge"></span></button>
-    <button role="tab" id="t-refs" data-v="refs" aria-selected="false">Referências</button>
+    <button role="tab" id="t-refs" data-v="refs" aria-selected="false">References</button>
   </nav>
   <div class="hright">
-    <span class="proto" id="proto">Protótipo. Objetivos e probabilidades são exemplos.</span>
-    <button class="cmdk-btn" id="cmdk-open">Buscar <kbd>⌘</kbd><kbd>K</kbd></button>
+    <span class="proto" id="proto">Prototype. Goals and probabilities are examples.</span>
+    <button class="cmdk-btn" id="cmdk-open">Search <kbd>⌘</kbd><kbd>K</kbd></button>
   </div>
 </header>
 
 <!-- HOME -->
 <section class="view" id="v-home">
   <div class="vhead">
-    <h1 id="home-h">W35–W42 <em>·</em> 8 semanas</h1>
+    <h1 id="home-h">W35–W42 <em>·</em> 8 weeks</h1>
     <p id="home-p"></p>
   </div>
   <div class="bento">
     <div class="tile t-rings">
-      <div class="th"><span class="lbl">Para onde vai o trabalho</span><span class="ex">objetivos de exemplo</span></div>
+      <div class="th"><span class="lbl">Where the work goes</span><span class="ex">example goals</span></div>
       <div class="rings-wrap">
-        <svg class="rings" viewBox="0 0 240 240" role="img" aria-label="Parte dos itens que serve a cada objetivo" id="rings"></svg>
+        <svg class="rings" viewBox="0 0 240 240" role="img" aria-label="Share of items that serve each goal" id="rings"></svg>
         <ul class="glist" id="glist"></ul>
       </div>
     </div>
@@ -314,31 +316,31 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 <!-- PROJECTS -->
 <section class="view" id="v-proj" hidden>
   <div class="vhead">
-    <h1>Do PR ao <em>objetivo</em></h1>
-    <p>PR → issue → projeto → milestone vem do Linear, automático. Projeto → objetivo é a única ligação manual, feita uma vez por projeto. As initiatives do Linear são só "Running Projects", então não servem como OKR.</p>
+    <h1>From PR to <em>goal</em></h1>
+    <p>PR → issue → project → milestone comes from Linear, automatically. Project → goal is the only manual link, set once per project. Linear initiatives are only "Running Projects", so they do not work as OKRs.</p>
   </div>
   <div class="panel"><div class="hm-wrap"><div class="hm" id="phm" style="grid-template-columns:minmax(150px,230px) repeat(8,1fr)"></div></div>
-    <div class="hm-hint"><span>Issues seus fechados por semana, por projeto. Dados do Linear, 2026-10-18.</span></div></div>
+    <div class="hm-hint"><span>Your closed issues per week, per project. Linear data, 2026-10-18.</span></div></div>
   <div class="pgrid" id="pgrid"></div>
 </section>
 
 <!-- TRACE -->
 <section class="view" id="v-trace" hidden>
   <div class="vhead">
-    <h1>Como entrego, <em>semana a semana</em></h1>
-    <p>Clique em semanas ou arraste por elas para selecionar. O painel compara a seleção com o resto do período, como o BubbleUp do Honeycomb.</p>
+    <h1>How I deliver, <em>week by week</em></h1>
+    <p>Click weeks or drag across them to select. The panel compares the selection with the rest of the period, like Honeycomb BubbleUp.</p>
   </div>
   <div class="panel">
     <div class="hm-wrap"><div class="hm" id="hm"></div></div>
-    <div class="hm-hint"><span id="selinfo"></span><button class="chip" id="clearsel">limpar seleção</button></div>
+    <div class="hm-hint"><span id="selinfo"></span><button class="chip" id="clearsel">clear selection</button></div>
   </div>
   <div class="split">
-    <div class="panel" style="display:grid;gap:12px"><div class="th" style="display:flex;justify-content:space-between"><span class="lbl">Itens da seleção</span><span class="lbl" id="feedn"></span></div><ul class="feed" id="feed"></ul></div>
+    <div class="panel" style="display:grid;gap:12px"><div class="th" style="display:flex;justify-content:space-between"><span class="lbl">Items in selection</span><span class="lbl" id="feedn"></span></div><ul class="feed" id="feed"></ul></div>
     <div class="panel" style="display:grid;gap:16px">
-      <span class="lbl">Seleção vs resto</span>
+      <span class="lbl">Selection vs rest</span>
       <div class="bub" id="bub"></div>
-      <div style="display:flex;gap:14px;font-size:12px;color:var(--ink-3)"><span style="display:flex;gap:6px;align-items:center"><i class="dot" style="background:var(--accent)"></i>seleção</span><span style="display:flex;gap:6px;align-items:center"><i class="dot" style="background:var(--line-2)"></i>resto</span></div>
-      <span class="lbl">Alcance na seleção</span>
+      <div style="display:flex;gap:14px;font-size:12px;color:var(--ink-3)"><span style="display:flex;gap:6px;align-items:center"><i class="dot" style="background:var(--accent)"></i>selection</span><span style="display:flex;gap:6px;align-items:center"><i class="dot" style="background:var(--line-2)"></i>rest</span></div>
+      <span class="lbl">Reach in selection</span>
       <div class="bub" id="bub2"></div>
     </div>
   </div>
@@ -346,22 +348,22 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 
 <!-- REVIEW -->
 <section class="view" id="v-review" hidden>
-  <div class="vhead"><h1>Review <em>semanal</em></h1><p>O classificador sugere, e você confirma. A única pergunta que é sempre sua: sem você, isso teria acontecido?</p></div>
+  <div class="vhead"><h1>Weekly <em>review</em></h1><p>The classifier suggests, you confirm. One question is always yours: without you, would this have happened?</p></div>
   <div class="review">
     <div class="panel rcard" id="rcard"></div>
-    <div class="panel sec"><span class="lbl">Fila</span><ul class="queue" id="queue"></ul></div>
+    <div class="panel sec"><span class="lbl">Queue</span><ul class="queue" id="queue"></ul></div>
   </div>
 </section>
 
 <!-- REFS -->
 <section class="view" id="v-refs" hidden>
-  <div class="vhead"><h1>Por que <em>isso conta</em></h1><p>As fontes por trás de cada modo de entrega. As citações foram verificadas nas páginas originais em 2026-10-18. ⚠ marca uma fonte secundária.</p></div>
+  <div class="vhead"><h1>Why <em>this counts</em></h1><p>The sources behind each delivery mode. Quotes were checked against the original pages on 2026-10-18. ⚠ marks a secondary source.</p></div>
   <div class="refs" id="refs"></div>
 </section>
 </div>
 
-<div class="sheet" id="sheet" hidden><div class="sheet-in" id="sheet-in" role="dialog" aria-modal="true" aria-label="Detalhe do item"></div></div>
-<div class="cmdk" id="cmdk" hidden><div class="cmdk-in" role="dialog" aria-label="Buscar"><input id="cmdk-input" type="text" placeholder="Buscar itens, pessoas, telas…" autocomplete="off"><ul id="cmdk-list" role="listbox"></ul></div></div>
+<div class="sheet" id="sheet" hidden><div class="sheet-in" id="sheet-in" role="dialog" aria-modal="true" aria-label="Item detail"></div></div>
+<div class="cmdk" id="cmdk" hidden><div class="cmdk-in" role="dialog" aria-label="Search"><input id="cmdk-input" type="text" placeholder="Search items, people, views…" autocomplete="off"><ul id="cmdk-list" role="listbox"></ul></div></div>
 <div class="story" id="story" hidden></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
@@ -370,47 +372,47 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const G = (!RM && window.gsap) ? window.gsap : null;
 
-const MODES = {clarify:"clarificar", prevent:"evitar", solve:"resolver", build:"construir", elevate:"elevar", external:"externo"};
-const REACH = {team:"meu time", lateral:"lateral", up:"para cima", external:"indústria"};
+const MODES = {clarify:"clarify", prevent:"prevent", solve:"solve", build:"build", elevate:"elevate", external:"external"};
+const REACH = {team:"my team", lateral:"lateral", up:"upward", external:"industry"};
 const PILLAR = {big:"big-picture", exec:"execution", level:"leveling-up"};
 const WEEKS = ["W35","W36","W37","W38","W39","W40","W41","W42"];
 const REVIEWS = [28,19,22,27,17,27,15,10];
 
 const REFS = {
-  clarify:{title:"Clarificar", items:[
-    {q:"The highest-leverage work I do is to provide technical clarity to the organization", who:"Sean Goedecke, Staff Engineer no GitHub", url:"https://www.seangoedecke.com/clarity/"},
+  clarify:{title:"Clarify", items:[
+    {q:"The highest-leverage work I do is to provide technical clarity to the organization", who:"Sean Goedecke, Staff Engineer at GitHub", url:"https://www.seangoedecke.com/clarity/"},
     {q:"Illuminate and clarify", who:"Amazon, Principal Engineering Tenets", url:"https://www.amazon.jobs/content/en/teams/principal-engineering/tenets"},
     {q:"Where a Product Manager focuses on the 'What', the Tech Lead focuses on the 'How.'", who:"Pat Kua", url:"https://www.patkua.com/blog/the-definition-of-a-tech-lead/"}]},
-  prevent:{title:"Evitar o build errado", items:[
-    {q:"Often the most impactful things I do is convince someone not to write a new thing.", who:"Silvia Botros, Senior Principal na Twilio", url:"https://staffeng.com/stories/silvia-botros/"},
+  prevent:{title:"Prevent the wrong build", items:[
+    {q:"Often the most impactful things I do is convince someone not to write a new thing.", who:"Silvia Botros, Senior Principal at Twilio", url:"https://staffeng.com/stories/silvia-botros/"},
     {q:"A surprising number of projects are one small change away from succeeding", who:"Will Larson, Work on what matters", url:"https://staffeng.com/guides/work-on-what-matters/"}]},
-  solve:{title:"Resolver o que não tem dono", items:[
+  solve:{title:"Solve what has no owner", items:[
     {q:"The Solver digs deep into arbitrarily complex problems and finds an appropriate path forward.", who:"Will Larson, Staff archetypes", url:"https://staffeng.com/guides/staff-archetypes/"},
     {q:"at the senior levels, we are expected to identify problems that match business opportunities", who:"Camille Fournier", url:"https://www.elidedbranches.com/2023/07/the-next-larger-context.html"}]},
-  build:{title:"Construir com escopo de empresa", items:[
+  build:{title:"Build at company scope", items:[
     {q:"I own and deliver org/company-wide multi-year, multi-team goals", who:"Dropbox, IC6 Principal", url:"https://dropbox.github.io/dbx-career-framework/ic6_principal_software_engineer.html"},
-    {q:"Principal Engineers are hands-on and lead by example.", who:"Amazon, Exemplary practitioner", warn:"repost no Hacker News, não é a página oficial", url:"https://news.ycombinator.com/item?id=26004088"},
+    {q:"Principal Engineers are hands-on and lead by example.", who:"Amazon, Exemplary practitioner", warn:"Hacker News repost, not the official page", url:"https://news.ycombinator.com/item?id=26004088"},
     {q:"Solves technical problems of the highest scope, complexity, and ambiguity for their sub-department.", who:"GitLab, Principal Engineer", url:"https://handbook.gitlab.com/job-families/engineering/development/management/principal-engineer/"}]},
-  elevate:{title:"Elevar pessoas", items:[
+  elevate:{title:"Elevate people", items:[
     {q:"To sponsor someone is to feel on the hook to help get someone promoted.", who:"Lara Hogan", url:"https://larahogan.me/blog/what-sponsorship-looks-like/"},
     {q:"our job isn't to do the code, but to help others do it with growth and the long-term in mind.", who:"Silvia Botros", url:"https://staffeng.com/stories/silvia-botros/"},
     {q:"Who have you mentored and through what accomplishments?", who:"Will Larson, Promo packets", url:"https://lethain.com/promo-packets/"}]},
-  external:{title:"Presença na indústria", items:[
-    {q:"She is an approver for the OpenTelemetry Go SIG, wrote vendor exporters for Go and Python", who:"Liz Fong-Jones, candidatura ao OTel GC 2020", url:"https://github.com/open-telemetry/community/blob/main/elections/2020/governance-committee-candidates.md"},
+  external:{title:"Industry presence", items:[
+    {q:"She is an approver for the OpenTelemetry Go SIG, wrote vendor exporters for Go and Python", who:"Liz Fong-Jones, OTel GC 2020 candidacy", url:"https://github.com/open-telemetry/community/blob/main/elections/2020/governance-committee-candidates.md"},
     {q:"As a GC member, I actively mediate community conflicts.", who:"Juraci Paixão Kröhling", url:"https://grafana.com/blog/2024/08/16/behind-the-scenes-of-the-opentelemetry-governance-committee/"},
     {q:"Interact with customers and other external stakeholders as a consultant and spokesperson", who:"GitLab, Principal Engineer", url:"https://handbook.gitlab.com/job-families/engineering/development/management/principal-engineer/"}]},
   glue:{title:"Glue work", items:[
     {q:"Glue work is the difference between a project that succeeds and one that fails.", who:"Tanya Reilly, Being Glue", url:"https://noidea.dog/glue"},
     {q:"If you only do glue, you will only get better at glue.", who:"Tanya Reilly", url:"https://noidea.dog/glue"},
     {q:"You should do this kind of extra work for the projects you lead", who:"Sean Goedecke", url:"https://www.seangoedecke.com/glue-work-considered-harmful/"}]},
-  counterfactual:{title:"Sem mim, teria acontecido?", items:[
+  counterfactual:{title:"Without you, would it have happened?", items:[
     {q:"things that simply won't happen if you don't do them are your biggest opportunity to work on something that matters", who:"Will Larson", url:"https://staffeng.com/guides/work-on-what-matters/"},
     {q:"you won't get promoted if your company's leadership doesn't know who you are.", who:"Will Larson, Getting the title where you are", url:"https://staffeng.com/guides/getting-the-title-where-you-are/"}]},
-  scope:{title:"Escopo de Principal", items:[
+  scope:{title:"Principal scope", items:[
     {q:"While a senior engineer typically works across a team, a Staff or Principal engineer usually works across a larger organization.", who:"Gergely Orosz", url:"https://newsletter.pragmaticengineer.com/p/engineering-career-paths"},
     {q:"Principal Engineers and Senior Directors of Engineering primarily focus on the engineering output of multiple groups", who:"Mike McQuaid", url:"https://mikemcquaid.com/what-is-a-staff-plus-principal-engineer/"},
     {q:"I deliver results against a strategic company-level business objective", who:"Dropbox, IC6", url:"https://dropbox.github.io/dbx-career-framework/ic6_principal_software_engineer.html"}]},
-  tracking:{title:"Registrar o trabalho", items:[
+  tracking:{title:"Track the work", items:[
     {q:"So if your manager is going to effectively advocate for you, they need help.", who:"Julia Evans, Brag documents", url:"https://jvns.ca/blog/brag-documents/"},
     {q:"Engineers who know all their work have an easier way of saying no to new work", who:"Gergely Orosz, Work log", url:"https://blog.pragmaticengineer.com/work-log-template-for-software-engineers/"},
     {q:"can take on massive ambiguous cross-org projects and make them succeed despite the difficulty.", who:"Tanya Reilly, The Staff Engineer's Path", url:"https://noidea.dog/staff"}]},
@@ -441,7 +443,7 @@ function countUp(root){
 /* HOME */
 function renderHome(){
   const ups = ITEMS.filter(i=>i.reach==="up").length;
-  $("#home-p").innerHTML = `<b>${ITEMS.length}</b> itens, <b>${REC.length}</b> reconhecimentos públicos, <b>${ups}</b> itens que chegaram à liderança. Dados das notas Evidence.`;
+  $("#home-p").innerHTML = `<b>${ITEMS.length}</b> items, <b>${REC.length}</b> public recognitions, <b>${ups}</b> items that reached leadership. Data from the Evidence notes.`;
 
   // rings: share of items per goal
   const by = cnt(ITEMS, goalOf), n = ITEMS.length;
@@ -449,30 +451,30 @@ function renderHome(){
   $("#rings").innerHTML = GOALS.map((g,i)=>`
     <circle cx="120" cy="120" r="${R[i]}" fill="none" stroke="var(--s3)" stroke-width="16"/>
     <circle class="ring" data-v="${(by[g.id]||0)/n*100}" cx="120" cy="120" r="${R[i]}" fill="none" stroke="${g.color}" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="${100-(by[g.id]||0)/n*100}" transform="rotate(-90 120 120)" style="filter:drop-shadow(0 0 6px color-mix(in srgb,${g.color} 60%,transparent))"/>`).join("")
-    + `<text x="120" y="124" text-anchor="middle"><tspan data-count="${n-(by.null||0)}">${n-(by.null||0)}</tspan>/${n}</text><text class="sub" x="120" y="142" text-anchor="middle">COM OBJETIVO</text>`;
-  $("#glist").innerHTML = GOALS.map(g=>`<li><button data-goal="${g.id}"><i class="dot" style="background:${g.color};margin-top:5px"></i><span class="gt">${esc(g.title)}</span><span class="gp num">${Math.round((by[g.id]||0)/n*100)}%</span><span class="gs">${by[g.id]||0} itens · ${Object.values(PROJECTS).filter(P=>P.goal===g.id).length} projetos · ${ITEMS.filter(i=>goalOf(i)===g.id&&i.reach==="up").length} para cima</span></button></li>`).join("")
-    + `<li><button data-goal="none"><i class="dot" style="background:var(--line-2);margin-top:5px"></i><span class="gt" style="color:var(--ink-2)">Sem objetivo</span><span class="gp num" style="color:var(--ink-3)">${Math.round((by.null||0)/n*100)}%</span><span class="gs">pode ser normal, ou glue sem dono · <a class="ref" href="#" data-ref="glue">glue work</a></span></button></li>`;
+    + `<text x="120" y="124" text-anchor="middle"><tspan data-count="${n-(by.null||0)}">${n-(by.null||0)}</tspan>/${n}</text><text class="sub" x="120" y="142" text-anchor="middle">WITH A GOAL</text>`;
+  $("#glist").innerHTML = GOALS.map(g=>`<li><button data-goal="${g.id}"><i class="dot" style="background:${g.color};margin-top:5px"></i><span class="gt">${esc(g.title)}</span><span class="gp num">${Math.round((by[g.id]||0)/n*100)}%</span><span class="gs">${by[g.id]||0} items · ${Object.values(PROJECTS).filter(P=>P.goal===g.id).length} projects · ${ITEMS.filter(i=>goalOf(i)===g.id&&i.reach==="up").length} upward</span></button></li>`).join("")
+    + `<li><button data-goal="none"><i class="dot" style="background:var(--line-2);margin-top:5px"></i><span class="gt" style="color:var(--ink-2)">No goal</span><span class="gp num" style="color:var(--ink-3)">${Math.round((by.null||0)/n*100)}%</span><span class="gs">can be normal, or glue with no owner · <a class="ref" href="#" data-ref="glue">glue work</a></span></button></li>`;
 
   // one big thing (Oura)
   const big = ITEMS.find(i=>i.id===HIGHLIGHT.item), r = REC[big.rec];
-  $("#bigthing").innerHTML = `<div class="th"><span class="lbl">Destaque da semana · ${WEEKS[big.w]}</span><span class="chip" style="cursor:default"><i class="dot" style="background:${mc(modeOf(big))}"></i>${MODES[modeOf(big)]}</span></div>
+  $("#bigthing").innerHTML = `<div class="th"><span class="lbl">Highlight of the week · ${WEEKS[big.w]}</span><span class="chip" style="cursor:default"><i class="dot" style="background:${mc(modeOf(big))}"></i>${MODES[modeOf(big)]}</span></div>
     <p class="oneline">${esc(big.title)}</p>
     <p class="big-q">${esc(r.t)}</p>
     <span class="by">${esc(r.who)} · ${esc(r.where)} · ${HIGHLIGHT.when}</span>
-    <div style="margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><button class="chip" data-item="${big.id}">abrir evidência →</button><a class="ref" href="#" data-ref="solve">por que conta: resolver o que não tem dono</a></div>`;
+    <div style="margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><button class="chip" data-item="${big.id}">open evidence →</button><a class="ref" href="#" data-ref="solve">why it counts: solve what has no owner</a></div>`;
 
   // mix
   const m = cnt(ITEMS, modeOf), mx = Math.max(...Object.values(m));
-  $("#t-mix").innerHTML = `<div class="th"><span class="lbl">Como entrego</span><a class="ref" href="#" data-v="trace">trace →</a></div>
+  $("#t-mix").innerHTML = `<div class="th"><span class="lbl">How I deliver</span><a class="ref" href="#" data-v="trace">trace →</a></div>
     <div class="mixbars">${Object.keys(MODES).map(k=>`<div class="mb"><a class="ref" style="color:var(--ink-2);font-size:12.5px;font-family:var(--f-body)" href="#" data-ref="${k}">${MODES[k]}</a><span class="tr"><i style="width:${(m[k]||0)/mx*100}%;background:${mc(k)}"></i></span><span class="n">${m[k]||0}</span></div>`).join("")}</div>`;
 
   // reach graph
   const rc = cnt(ITEMS, i=>i.reach);
   const pos = {up:[130,22], lateral:[226,80], external:[34,80], team:[130,140]};
-  $("#t-reach").innerHTML = `<div class="th"><span class="lbl">Até onde chega</span><a class="ref" href="#" data-ref="scope">escopo →</a></div>
-    <svg viewBox="0 0 260 162" role="img" aria-label="Itens por alcance: ${Object.keys(REACH).map(k=>REACH[k]+" "+(rc[k]||0)).join(", ")}">
+  $("#t-reach").innerHTML = `<div class="th"><span class="lbl">How far it reaches</span><a class="ref" href="#" data-ref="scope">scope →</a></div>
+    <svg viewBox="0 0 260 162" role="img" aria-label="Items by reach: ${Object.keys(REACH).map(k=>REACH[k]+" "+(rc[k]||0)).join(", ")}">
       ${Object.keys(pos).map(k=>`<line class="edge" x1="130" y1="80" x2="${pos[k][0]}" y2="${pos[k][1]}" stroke="var(--accent)" stroke-opacity=".7" stroke-width="${1+(rc[k]||0)*.7}"/>`).join("")}
-      <circle cx="130" cy="80" r="17" fill="var(--accent)"/><text x="130" y="84" text-anchor="middle" fill="var(--accent-ink)" style="fill:var(--accent-ink)">EU</text>
+      <circle cx="130" cy="80" r="17" fill="var(--accent)"/><text x="130" y="84" text-anchor="middle" fill="var(--accent-ink)" style="fill:var(--accent-ink)">ME</text>
       ${Object.keys(pos).map(k=>`<circle cx="${pos[k][0]}" cy="${pos[k][1]}" r="${8+(rc[k]||0)*1.6}" fill="var(--s3)" stroke="var(--line-2)"/><text class="cn" x="${pos[k][0]}" y="${pos[k][1]+4.5}" text-anchor="middle">${rc[k]||0}</text>`).join("")}
       <text x="164" y="22">${REACH.up}</text><text x="226" y="112" text-anchor="middle">${REACH.lateral}</text><text x="34" y="112" text-anchor="middle">${REACH.external}</text><text x="164" y="150">${REACH.team}</text>
     </svg>`;
@@ -483,9 +485,9 @@ function renderHome(){
   const avg = REVIEWS.reduce((a,b)=>a+b)/REVIEWS.length;
   const X = i=>12+i*32, Y = v=>78-v/30*62;
   const pts = REVIEWS.map((v,i)=>`${X(i)},${Y(v)}`).join(" ");
-  $("#t-rev").innerHTML = `<div class="th"><span class="lbl">Reviews dados</span><a class="ref" href="#" data-ref="elevate">elevar →</a></div>
-    <div style="display:flex;align-items:baseline;gap:10px"><span class="statn num" data-count="${REVIEWS[7]}">${REVIEWS[7]}</span><span style="font-size:12.5px;color:var(--ink-3)">na W42 · seu normal é ${avg.toFixed(0)}</span></div>
-    <svg class="spark" viewBox="0 0 248 96" width="100%" role="img" aria-label="Reviews por semana: ${REVIEWS.join(", ")}">
+  $("#t-rev").innerHTML = `<div class="th"><span class="lbl">Reviews given</span><a class="ref" href="#" data-ref="elevate">elevate →</a></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="statn num" data-count="${REVIEWS[7]}">${REVIEWS[7]}</span><span style="font-size:12.5px;color:var(--ink-3)">in W42 · your normal is ${avg.toFixed(0)}</span></div>
+    <svg class="spark" viewBox="0 0 248 96" width="100%" role="img" aria-label="Reviews per week: ${REVIEWS.join(", ")}">
       <line x1="12" x2="236" y1="${Y(avg)}" y2="${Y(avg)}" stroke="var(--ink-3)" stroke-dasharray="3 4"/>
       <text x="236" y="${Y(avg)-5}" text-anchor="end">NORMAL ${avg.toFixed(0)}</text>
       <polygon points="12,78 ${pts} ${X(7)},78" fill="var(--accent)" fill-opacity=".16"/>
@@ -496,14 +498,14 @@ function renderHome(){
 
   // without me
   const done = ITEMS.filter(i=>answers[i.id]?.wm).length;
-  $("#t-wm").innerHTML = `<div class="th"><span class="lbl">Sem mim, teria acontecido?</span><span class="ref">só você responde</span></div>
+  $("#t-wm").innerHTML = `<div class="th"><span class="lbl">Without you, would it have happened?</span><span class="ref">only you can answer</span></div>
     <div style="display:flex;align-items:end;gap:20px;flex-wrap:wrap"><span class="statn num"><span data-count="${done}">${done}</span><small>/ ${ITEMS.length}</small></span>
     <div style="display:grid;gap:8px;flex:1;min-width:200px"><div class="prog">${ITEMS.map(i=>`<i class="${answers[i.id]?.wm?"d":""}"></i>`).join("")}</div>
-    <span class="keys"><span>abrir review →</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> responder</span><span><kbd>J</kbd><kbd>K</kbd> navegar</span></span></div></div>`;
+    <span class="keys"><span>open review →</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> answer</span><span><kbd>J</kbd><kbd>K</kbd> move</span></span></div></div>`;
 
   // recap
   $("#t-recap").innerHTML = `<div class="th"><span class="lbl">Recap · Q3 → Q4</span><span class="play" aria-hidden="true">▶</span></div>
-    <p class="oneline">Suas 8 semanas,<br>em ${PHASES.length+4} telas</p><span style="font-size:13px;opacity:.85">No estilo Wrapped. Use ← → ou toque nas laterais.</span>`;
+    <p class="oneline">Your 8 weeks,<br>in ${PHASES.length+4} screens</p><span style="font-size:13px;opacity:.85">Wrapped style. Use ← → or tap the sides.</span>`;
 
   if(G){
     G.from(".bento .tile",{y:14,opacity:0,duration:.5,stagger:.05,ease:"power2.out",clearProps:"all"});
@@ -514,7 +516,7 @@ function renderHome(){
 }
 function renderRec(){
   const r = REC[recI];
-  $("#t-rec").innerHTML = `<div class="th"><span class="lbl">★ ${REC.length} reconhecimentos</span><div class="rec-nav"><button data-rec="-1" aria-label="anterior">‹</button><button data-rec="1" aria-label="próximo">›</button></div></div>
+  $("#t-rec").innerHTML = `<div class="th"><span class="lbl">★ ${REC.length} recognitions</span><div class="rec-nav"><button data-rec="-1" aria-label="previous">‹</button><button data-rec="1" aria-label="next">›</button></div></div>
     <p style="margin:0;font-size:14px;line-height:1.45">“${esc(r.t)}”</p>
     <span class="by" style="margin-top:auto">${esc(r.who)}${r.role?` · ${esc(r.role)}`:""} · ${WEEKS[r.w]}</span>
     <div class="rec-dots">${REC.map((_,i)=>`<i class="${i===recI?"on":""}"></i>`).join("")}</div>`;
@@ -531,12 +533,12 @@ function renderProj(){
     const g = GOALS.find(x=>x.id===P.goal), its = ITEMS.filter(i=>i.s===k), tot = P.done ? P.done.reduce((a,b)=>a+b,0) : 0, pm = P.done ? Math.max(1,...P.done) : 1;
     return `<article class="panel pcard" id="proj-${k}">
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:start"><h3>${P.url?`<a href="${P.url}" target="_blank" rel="noopener">${esc(P.name)} ↗</a>`:esc(P.name)}</h3>
-        <span style="display:flex;gap:6px">${P.live?`<span class="pill done">ao vivo</span>`:""}<span class="pill ${P.status==="Completed"?"done":""}">${esc(P.status)}</span></span></div>
-      <div class="pmeta"><span>${g?`<i class="dot" style="background:${g.color}"></i> ${esc(g.short)} <span class="ex">exemplo</span>`:"sem objetivo"}</span>${P.lead?`<span>lead: ${esc(P.lead)}${P.lead==="Nicolas Takashi"?" (você)":""}</span>`:""}${P.done?`<span>${tot} issues seus fechados</span>`:""}${P.open?`<span class="${k==="none"?"warn":""}">${P.open} abertos</span>`:""}</div>
-      ${P.done?`<div class="pbars" aria-label="Issues fechados por semana: ${P.done.join(", ")}">${P.done.map(n=>`<i class="${n?"":"z"}" style="height:${n?Math.max(10,n/pm*100):6}%"></i>`).join("")}</div>`:""}
+        <span style="display:flex;gap:6px">${P.live?`<span class="pill done">live</span>`:""}<span class="pill ${P.status==="Completed"?"done":""}">${esc(P.status)}</span></span></div>
+      <div class="pmeta"><span>${g?`<i class="dot" style="background:${g.color}"></i> ${esc(g.short)} <span class="ex">example</span>`:"no goal"}</span>${P.lead?`<span>lead: ${esc(P.lead)}${P.lead==="Nicolas Takashi"?" (you)":""}</span>`:""}${P.done?`<span>${tot} of your issues closed</span>`:""}${P.open?`<span class="${k==="none"?"warn":""}">${P.open} open</span>`:""}</div>
+      ${P.done?`<div class="pbars" aria-label="Closed issues per week: ${P.done.join(", ")}">${P.done.map(n=>`<i class="${n?"":"z"}" style="height:${n?Math.max(10,n/pm*100):6}%"></i>`).join("")}</div>`:""}
       ${P.note?`<span class="pill ${k==="none"?"warn":""}" style="justify-self:start;letter-spacing:.02em;text-transform:none;font:500 12px var(--f-body)">${esc(P.note)}</span>`:""}
       ${P.ms.length?`<div class="sec"><span class="lbl">Milestones</span>${P.ms.map(m=>`<div class="msr"><span>${esc(m.name)}</span><span class="tr"><i style="width:${m.progress||0}%"></i></span><b>${m.progress==null?"—":m.progress+"%"}</b></div>`).join("")}</div>`:""}
-      ${its.length?`<div class="sec"><span class="lbl">Impacto ligado · ${its.length}</span><ul class="pitems">${its.map(i=>`<li><button data-item="${i.id}"><i class="dot" style="background:${mc(modeOf(i))}"></i><span>${esc(i.title)}</span><span class="ref">${WEEKS[i.w]}${i.rec!=null?" ★":""}</span></button></li>`).join("")}</ul></div>`:`<span class="ref">Nenhum item de impacto ligado ainda. Trabalho fechado sem história registrada.</span>`}
+      ${its.length?`<div class="sec"><span class="lbl">Linked impact · ${its.length}</span><ul class="pitems">${its.map(i=>`<li><button data-item="${i.id}"><i class="dot" style="background:${mc(modeOf(i))}"></i><span>${esc(i.title)}</span><span class="ref">${WEEKS[i.w]}${i.rec!=null?" ★":""}</span></button></li>`).join("")}</ul></div>`:`<span class="ref">No linked impact items yet. Closed work with no recorded story.</span>`}
     </article>`; }).join("");
 }
 
@@ -552,9 +554,9 @@ function renderTrace(){
   });
   $("#hm").innerHTML = h;
   const ws = [...sel].sort((a,b)=>a-b);
-  $("#selinfo").textContent = ws.length ? `Seleção: ${ws.map(i=>WEEKS[i]).join(", ")}` : "Nenhuma seleção. Mostrando as 8 semanas.";
+  $("#selinfo").textContent = ws.length ? `Selection: ${ws.map(i=>WEEKS[i]).join(", ")}` : "No selection. Showing all 8 weeks.";
   const inSel = ITEMS.filter(i=>!ws.length || sel.has(i.w)), rest = ITEMS.filter(i=>ws.length && !sel.has(i.w));
-  $("#feedn").textContent = inSel.length + " itens";
+  $("#feedn").textContent = inSel.length + " items";
   $("#feed").innerHTML = inSel.slice().reverse().map(i=>`<li><button data-item="${i.id}"><span class="stripe" style="background:${mc(modeOf(i))}"></span><span><div class="ft">${esc(i.title)}</div><div class="fm">${MODES[modeOf(i)]} · ${REACH[i.reach]}${i.rec!=null?" · ★":""}</div></span><span class="wk">${WEEKS[i.w]}</span></button></li>`).join("");
   const comp = (keys, f, labels) => keys.map(k=>{
     const a = inSel.filter(i=>f(i)===k).length/(inSel.length||1), b = rest.length ? rest.filter(i=>f(i)===k).length/rest.length : null;
@@ -572,18 +574,18 @@ function openItem(id){
   const ref = REFS[m].items[0];
   // flame: item → sources → links
   const srcs = cnt(it.links, l=>l[0]);
-  if(q) srcs[r?"Reconhecimento":"Slack"] = (srcs[r?"Reconhecimento":"Slack"]||0)+1;
+  if(q) srcs[r?"Recognition":"Slack"] = (srcs[r?"Recognition":"Slack"]||0)+1;
   const lv2 = Object.keys(srcs);
-  const flame = `<div class="flame" aria-label="Evidência do item, como flame graph">
+  const flame = `<div class="flame" aria-label="Item evidence, as a flame graph">
     <div class="lv"><span class="sp" style="background:${mc(m)}">${esc(it.id)} · ${MODES[m]}</span></div>
     ${lv2.length?`<div class="lv">${lv2.map(s=>`<span class="sp" style="flex:${srcs[s]};background:color-mix(in srgb,${mc(m)} 62%,var(--s3))">${s} · ${srcs[s]}</span>`).join("")}</div>
     <div class="lv">${lv2.map(s=>{ const ls = it.links.filter(l=>l[0]===s);
-      const extra = (s==="Reconhecimento"||(s==="Slack"&&q&&!r)) ? [`<span class="sp" style="flex:1;background:color-mix(in srgb,${mc(m)} 38%,var(--s3));color:var(--ink)">${s==="Reconhecimento"?"★ "+esc(r.who):"citação"}</span>`] : [];
+      const extra = (s==="Recognition"||(s==="Slack"&&q&&!r)) ? [`<span class="sp" style="flex:1;background:color-mix(in srgb,${mc(m)} 38%,var(--s3));color:var(--ink)">${s==="Recognition"?"★ "+esc(r.who):"quote"}</span>`] : [];
       return ls.map(l=>`<a class="sp" href="${l[2]}" target="_blank" rel="noopener" style="flex:1;background:color-mix(in srgb,${mc(m)} 38%,var(--s3));color:var(--ink)" title="${esc(l[1])}">${esc(l[1])} ↗</a>`).concat(extra).join(""); }).join("")}</div>`:""}
   </div>`;
-  $("#sheet-in").innerHTML = `<button class="x" id="x">fechar <kbd>esc</kbd></button>
-    <div class="crumbs" aria-label="Ligação do item">
-      ${g?`<b class="ex2" style="border-style:dashed"><i class="dot" style="background:${g.color}"></i> ${esc(g.short)}</b>`:`<b class="ex2">sem objetivo</b>`}<span class="sep">▸</span>
+  $("#sheet-in").innerHTML = `<button class="x" id="x">close <kbd>esc</kbd></button>
+    <div class="crumbs" aria-label="Item link chain">
+      ${g?`<b class="ex2" style="border-style:dashed"><i class="dot" style="background:${g.color}"></i> ${esc(g.short)}</b>`:`<b class="ex2">no goal</b>`}<span class="sep">▸</span>
       ${st.url?`<a href="${st.url}" target="_blank" rel="noopener">${esc(st.name)} ↗</a>`:`<b>${esc(st.name)}</b>`}
       ${it.ms?`<span class="sep">▸</span><b>${esc(it.ms)}</b>`:""}<span class="sep">▸</span><b>${it.id} · ${WEEKS[it.w]}</b>
     </div>
@@ -592,18 +594,18 @@ function openItem(id){
       <button class="chip" data-ref="${m}"><i class="dot" style="background:${mc(m)}"></i>${MODES[m]}</button>
       <button class="chip" data-ref="scope">${REACH[it.reach]}</button>
       <button class="chip" data-ref="tracking">${PILLAR[it.pillar]}</button>
-      <span class="chip" style="cursor:default">${g?`<i class="dot" style="background:${g.color}"></i>${esc(g.short)}`:"sem objetivo"}</span>
+      <span class="chip" style="cursor:default">${g?`<i class="dot" style="background:${g.color}"></i>${esc(g.short)}`:"no goal"}</span>
     </div>
-    <div class="sec"><span class="lbl">Evidência</span>${flame}</div>
+    <div class="sec"><span class="lbl">Evidence</span>${flame}</div>
     ${q?`<figure class="qblock"><p>“${esc(q.t)}”</p><figcaption class="by">${esc(q.who)}</figcaption></figure>`:""}
     <div class="two">
-      <div class="why"><span class="lbl">Por que isso conta · ${MODES[m]}</span><p>“${esc(ref.q)}”</p><a class="ref" href="${ref.url}" target="_blank" rel="noopener">${esc(ref.who)} ↗</a><a class="ref" href="#" data-ref="${m}">todas as fontes →</a></div>
-      <div class="sec"><span class="lbl">Sem mim, teria acontecido?</span><div class="wm" style="display:grid;gap:6px">${wmBtns(it)}</div><a class="ref" href="#" data-ref="counterfactual">por que essa pergunta →</a></div>
+      <div class="why"><span class="lbl">Why this counts · ${MODES[m]}</span><p>“${esc(ref.q)}”</p><a class="ref" href="${ref.url}" target="_blank" rel="noopener">${esc(ref.who)} ↗</a><a class="ref" href="#" data-ref="${m}">all sources →</a></div>
+      <div class="sec"><span class="lbl">Without you, would it have happened?</span><div class="wm" style="display:grid;gap:6px">${wmBtns(it)}</div><a class="ref" href="#" data-ref="counterfactual">why this question →</a></div>
     </div>`;
   $("#sheet").hidden = false; $("#x").focus();
   if(G){ G.from("#sheet-in",{y:40,opacity:0,duration:.35,ease:"power3.out",clearProps:"all"}); G.from("#sheet-in .flame .sp",{scaleX:0,duration:.5,stagger:.04,ease:"power2.out",clearProps:"transform"}); }
 }
-const WM = [["wouldnt","não aconteceria"],["slower","mais devagar"],["same","igual"]];
+const WM = [["wouldnt","wouldn't happen"],["slower","slower"],["same","same"]];
 const wmBtns = it => WM.map(([k,l],i)=>`<button class="opt" data-wm="${k}" data-id="${it.id}" aria-pressed="${answers[it.id]?.wm===k}"><kbd>${i+1}</kbd>${l}</button>`).join("");
 
 /* REVIEW */
@@ -613,17 +615,17 @@ function renderReview(){
   const it = ITEMS[cur], m = modeOf(it), st = PROJECTS[it.s], r = it.rec!=null ? REC[it.rec] : null, q = it.quote || (r && {t:r.t, who:`${r.who} · ${r.where}`});
   $("#rcard").innerHTML = `
     <div class="prog">${ITEMS.map((i,ix)=>`<i class="${answers[i.id]?.wm?"d":ix===cur?"c":""}"></i>`).join("")}</div>
-    <div class="sec"><span class="lbl">${esc(st.name)} · ${WEEKS[it.w]} · ${ITEMS.length-left}/${ITEMS.length} respondidos</span><h2>${esc(it.title)}</h2></div>
+    <div class="sec"><span class="lbl">${esc(st.name)} · ${WEEKS[it.w]} · ${ITEMS.length-left}/${ITEMS.length} answered</span><h2>${esc(it.title)}</h2></div>
     ${q?`<figure class="qblock" style="margin:0"><p>“${esc(q.t)}”</p><figcaption class="by">${esc(q.who)}</figcaption></figure>`:""}
     <div class="two">
-      <div class="sec"><span class="lbl">Modo · sugestão simulada</span>
+      <div class="sec"><span class="lbl">Mode · simulated suggestion</span>
         ${Object.entries(it.p).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="prob"><span>${MODES[k]}</span><span class="tr"><i style="width:${v*100}%;background:${mc(k)}"></i></span><span class="v">${v.toFixed(2)}</span></div>`).join("")}
         <div class="chips" style="margin-top:4px">${Object.keys(MODES).map(k=>`<button class="chip" data-mode="${k}" aria-pressed="${m===k}" style="${m===k?`border-color:${mc(k)};box-shadow:0 0 12px -4px ${mc(k)}`:""}"><i class="dot" style="background:${mc(k)}"></i>${MODES[k]}</button>`).join("")}</div>
       </div>
-      <div class="sec"><span class="lbl">Sem mim, teria acontecido?</span><div style="display:grid;gap:6px">${wmBtns(it)}</div>
-        <span class="lbl" style="margin-top:6px">Alcance · calculado pelo mapa de pessoas</span><span>${REACH[it.reach]}</span></div>
+      <div class="sec"><span class="lbl">Without you, would it have happened?</span><div style="display:grid;gap:6px">${wmBtns(it)}</div>
+        <span class="lbl" style="margin-top:6px">Reach · computed from the people map</span><span>${REACH[it.reach]}</span></div>
     </div>
-    <div class="keys"><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> responder e avançar</span><span><kbd>J</kbd><kbd>K</kbd> navegar</span><span><kbd>O</kbd> abrir evidência</span><span><kbd>⌘</kbd><kbd>K</kbd> buscar</span></div>`;
+    <div class="keys"><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> answer and advance</span><span><kbd>J</kbd><kbd>K</kbd> move</span><span><kbd>O</kbd> open evidence</span><span><kbd>⌘</kbd><kbd>K</kbd> search</span></div>`;
   $("#queue").innerHTML = ITEMS.map((i,ix)=>`<li><button data-q="${ix}" aria-current="${ix===cur}"><i class="dot" style="background:${mc(modeOf(i))}"></i><span>${esc(i.title)}</span><span class="ok">${answers[i.id]?.wm?"✓":""}</span></button></li>`).join("");
 }
 
@@ -639,25 +641,25 @@ let sI = 0;
 const ph = (a,b)=>ITEMS.filter(i=>i.w>=a&&i.w<=b);
 const PHASE_BG = ["linear-gradient(160deg,#2a1406,#ff7a45)","linear-gradient(160deg,#ff7a45,#c8326a)","linear-gradient(160deg,#2a2406,#c9a400 70%,#ffe37a)","linear-gradient(160deg,#0d1a2a,#5b47d6 60%,#b3a1ff)","linear-gradient(160deg,#5b47d6,#ff4d52)"];
 const SLIDES = [
-  {bg:"linear-gradient(160deg,#16161d,#3a0d12 60%,#ff4d52)", html:()=>`<span class="k">W35 – W42 · 2026</span><span class="huge num">8</span><p class="h">semanas de trabalho, com rastro</p>`},
-  {bg:"linear-gradient(160deg,#2a0b1a,#ff4f8f)", html:()=>`<span class="k">No total</span><span class="huge num">${ITEMS.length}</span><p class="h">itens com evidência. ${REC.length} reconhecimentos públicos.</p>`},
+  {bg:"linear-gradient(160deg,#16161d,#3a0d12 60%,#ff4d52)", html:()=>`<span class="k">W35 – W42 · 2026</span><span class="huge num">8</span><p class="h">weeks of work, with a trace</p>`},
+  {bg:"linear-gradient(160deg,#2a0b1a,#ff4f8f)", html:()=>`<span class="k">In total</span><span class="huge num">${ITEMS.length}</span><p class="h">items with evidence. ${REC.length} public recognitions.</p>`},
   ...PHASES.map((p,n)=>({bg:PHASE_BG[n%PHASE_BG.length], html:()=>p.rec!=null
     ? `<span class="k">${esc(p.k)}</span><p class="q">“${esc(REC[p.rec].t)}”</p><span class="by">${esc(REC[p.rec].who)}${REC[p.rec].role?" · "+esc(REC[p.rec].role):""}</span>`
     : `<span class="k">${esc(p.k)}</span><p class="h">${esc(p.h)}</p><div class="rowx">${ph(p.from,p.to).map(i=>`<span class="pill">${esc(i.title)}</span>`).join("")}</div>`})),
   {bg:"linear-gradient(160deg,#08230f,#12854a 60%,#7dffa8)", html:()=>{ const m = cnt(ITEMS, modeOf), mx = Math.max(...Object.values(m));
-    return `<span class="k">Como você entregou</span><div class="bars2">${Object.keys(MODES).map(k=>`<div><span>${MODES[k]}</span><span class="t"><i style="width:${(m[k]||0)/mx*100}%"></i></span><span>${m[k]||0}</span></div>`).join("")}</div>`}},
+    return `<span class="k">How you delivered</span><div class="bars2">${Object.keys(MODES).map(k=>`<div><span>${MODES[k]}</span><span class="t"><i style="width:${(m[k]||0)/mx*100}%"></i></span><span>${m[k]||0}</span></div>`).join("")}</div>`}},
   {bg:"linear-gradient(160deg,#16161d,#2c2c38)", html:()=>{ const d = ITEMS.filter(i=>answers[i.id]?.wm).length;
-    return `<span class="k">A pergunta que falta</span><p class="h">Sem você, quais destes teriam acontecido?</p><p class="by" style="font-size:15px">${d} de ${ITEMS.length} respondidos. Só você sabe a resposta.</p><div class="rowx"><button class="pill" data-story-go="review" style="cursor:pointer;color:#fff">Abrir review →</button></div>`}},
+    return `<span class="k">The open question</span><p class="h">Without you, which of these would have happened?</p><p class="by" style="font-size:15px">${d} of ${ITEMS.length} answered. Only you know the answer.</p><div class="rowx"><button class="pill" data-story-go="review" style="cursor:pointer;color:#fff">Open review →</button></div>`}},
 ];
 function openStory(){ sI = 0; $("#story").hidden = false; drawStory(); }
 function drawStory(){
   const s = SLIDES[sI];
   $("#story").innerHTML = `<div class="bg" style="background:${s.bg}"></div>
     <div class="bars">${SLIDES.map((_,i)=>`<i class="${i<sI?"done":""}"><b ${i===sI?'id="curbar"':""}></b></i>`).join("")}</div>
-    <button class="close" id="story-x">fechar · esc</button>
-    <button class="tap l" data-step="-1" aria-label="anterior"></button><button class="tap r" data-step="1" aria-label="próximo"></button>
+    <button class="close" id="story-x">close · esc</button>
+    <button class="tap l" data-step="-1" aria-label="previous"></button><button class="tap r" data-step="1" aria-label="next"></button>
     <div class="slide" id="slide">${s.html()}</div>
-    <div class="hint">← → ou toque nas laterais · ${sI+1}/${SLIDES.length}</div>`;
+    <div class="hint">← → or tap the sides · ${sI+1}/${SLIDES.length}</div>`;
   const bar = $("#curbar");
   if(G){
     G.from("#slide > *",{y:30,opacity:0,duration:.6,stagger:.08,ease:"power3.out",clearProps:"all"});
@@ -670,17 +672,17 @@ function step(d){ sI = Math.max(0, Math.min(SLIDES.length-1, sI+d)); drawStory()
 
 /* CMDK */
 let cmdSel = 0, cmdRes = [];
-const VIEWS = [["home","Norte"],["proj","Projetos"],["trace","Trace"],["review","Review"],["refs","Referências"]];
+const VIEWS = [["home","North"],["proj","Projects"],["trace","Trace"],["review","Review"],["refs","References"]];
 function openCmd(){ $("#cmdk").hidden = false; $("#cmdk-input").value=""; filterCmd(); $("#cmdk-input").focus(); }
 function filterCmd(){
   const q = $("#cmdk-input").value.toLowerCase();
-  cmdRes = [...VIEWS.map(([v,l])=>({t:"tela", label:"Ir para "+l, v})), {t:"recap", label:"Abrir recap (Wrapped)", story:1},
+  cmdRes = [...VIEWS.map(([v,l])=>({t:"view", label:"Go to "+l, v})), {t:"recap", label:"Open recap (Wrapped)", story:1},
     ...ITEMS.map(i=>({t:WEEKS[i.w], label:i.title, item:i.id, m:modeOf(i), hay:(i.title+" "+PROJECTS[i.s].name+" "+(i.quote?.who||"")+" "+(i.rec!=null?REC[i.rec].who:"")).toLowerCase()}))]
     .filter(r=>!q || (r.hay||r.label.toLowerCase()).includes(q)).slice(0,12);
   cmdSel = 0; drawCmd();
 }
 function drawCmd(){
-  $("#cmdk-list").innerHTML = cmdRes.map((r,i)=>`<li><button role="option" data-cmd="${i}" aria-selected="${i===cmdSel}"><i class="dot" style="background:${r.m?mc(r.m):"var(--line-2)"}"></i><span>${esc(r.label)}</span><span class="k">${esc(r.t)}</span></button></li>`).join("") || `<li style="padding:14px;color:var(--ink-3)">Nada encontrado. Tente o nome de uma pessoa ou de um stream.</li>`;
+  $("#cmdk-list").innerHTML = cmdRes.map((r,i)=>`<li><button role="option" data-cmd="${i}" aria-selected="${i===cmdSel}"><i class="dot" style="background:${r.m?mc(r.m):"var(--line-2)"}"></i><span>${esc(r.label)}</span><span class="k">${esc(r.t)}</span></button></li>`).join("") || `<li style="padding:14px;color:var(--ink-3)">Nothing found. Try a person or a stream name.</li>`;
 }
 function runCmd(i){ const r = cmdRes[i]; if(!r) return; $("#cmdk").hidden = true; if(r.v) show(r.v); else if(r.story) openStory(); else openItem(r.item); }
 
@@ -760,7 +762,7 @@ async function hydrate(){
     if(a.ms.length) P.ms = a.ms.map(m=>({name:m.name, progress:m.progress}));
   }
   Object.assign(PROJECTS.none, {done:api.none.done, open:api.none.open, live:true});
-  $("#proto").textContent = `Projetos ao vivo do SQLite · ${api.collected_at?.slice(0,16).replace("T"," ") ?? "sem coleta"}. Objetivos e probabilidades são exemplos.`;
+  $("#proto").textContent = `Live projects from SQLite · ${api.collected_at?.slice(0,16).replace("T"," ") ?? "not collected"}. Goals and probabilities are examples.`;
   renderAll(); renderHome();
 }
 renderRefs(); renderHome(); renderAll(); hydrate();

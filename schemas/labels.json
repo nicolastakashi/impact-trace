@@ -7,10 +7,11 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["key", "title", "mode", "pillar", "evidence"],
+        "required": ["key", "title", "summary", "mode", "pillar", "evidence"],
         "properties": {
           "key": { "type": "string" },
           "title": { "type": "string" },
+          "summary": { "type": "string" },
           "mode": { "enum": ["clarify", "prevent", "solve", "build", "elevate", "external"] },
           "pillar": { "enum": ["big", "exec", "level"] },
           "evidence": { "type": "array", "items": { "type": "string" } }
