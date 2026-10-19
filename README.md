@@ -43,8 +43,9 @@ login and connectors are; both read and write the same `data/`.
 docker compose up -d --build   # http://127.0.0.1:4317, rebuild after code changes
 ```
 
-Collect on a schedule (macOS, launchd): weekdays at 18:00. Monday closes last week,
-weekend included; the other days collect this week so far.
+Collect on a schedule (macOS, launchd): weekdays at 18:00. Each run first closes every ended
+week that has no feedback yet, weekend included: usually last week on a Monday, but also a
+Monday the Mac slept through or a run that failed. After Monday it also collects this week so far.
 
 ```bash
 ./schedule.sh install    # or: remove. Logs in data/logs/
