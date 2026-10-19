@@ -97,3 +97,15 @@ test("labels follow a thread when its first event changes", () => {
   const l = labelsOf(db, { key: "2026-W42:calendar:e", events: [{ id: "calendar:e" }, { id: "github:x/y#1" }] });
   expect(l.map((r) => [r.field, r.source, r.value])).toEqual([["title", "claude", "New"], ["without_me", "human", "slower"]]);
 });
+
+test("a deleted project leaves its threads with no project, even from Linear", () => {
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  db.query("INSERT INTO projects (id, name, updated_at) VALUES ('P1', 'Old', 'now')").run();
+  const ev = db.query("INSERT INTO events (id, source, kind, week, title, project_id, payload, run_id) VALUES (?, 'x', ?, '2026-W42', ?, ?, '{}', 'r')");
+  ev.run("linear:A-1", "issue_completed", "a", "P1");
+  ev.run("github:x/y#1", "pr_merged", "b", null);
+  db.query("INSERT INTO links VALUES ('github:x/y#1', 'linear:A-1', 'mentions')").run();
+  db.query("INSERT INTO project_deletions VALUES ('P1', 'now')").run();
+  expect(reviewThreads(db, "2026-W42")[0].projects).toEqual([]);
+});
