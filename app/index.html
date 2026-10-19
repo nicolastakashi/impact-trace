@@ -728,7 +728,7 @@ function step(d){ sI = Math.max(0, Math.min(SLIDES.length-1, sI+d)); drawStory()
 
 /* CMDK */
 let cmdSel = 0, cmdRes = [];
-const VIEWS = [["home","North"],["proj","Projects"],["projects","Projects"],["trace","Trace"],["review","Review"],["refs","References"]];
+const VIEWS = [["home","North"],["projects","Projects"],["trace","Trace"],["review","Review"],["refs","References"]];
 function openCmd(){ $("#cmdk").hidden = false; $("#cmdk-input").value=""; filterCmd(); $("#cmdk-input").focus(); }
 function filterCmd(){
   const q = $("#cmdk-input").value.toLowerCase();
