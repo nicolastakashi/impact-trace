@@ -225,6 +225,8 @@ function north() {
   return [js("WEEKS", weeks.map((w) => w.slice(5))), js("REVIEWS", reviews), js("PERIOD", `${weeks[0]} – ${weeks.at(-1)}`),
     js("GOALS", top.map((id, i) => ({ id, short: P[id].name, title: P[id].name, color: COLORS[i] }))),
     js("PROJECTS", P), js("REC", rec), js("ITEMS", items), js("HIGHLIGHT", { item: big.id, when: big.rec != null ? rec[big.rec].when : "" }),
+    // Feedback, newest week first: what the code verified, never the raw Claude output.
+    js("FEEDBACK", (db.query("SELECT output FROM feedback ORDER BY week DESC").all() as any[]).map((r) => JSON.parse(r.output))),
     // One story screen per week: its threads, then its first praise.
     js("PHASES", weeks.flatMap((wk, w) => { const r = rec.findIndex((x) => x.w === w);
       return items.some((i) => i.w === w) ? [{ k: wk.slice(5), h: `${items.filter((i) => i.w === w).length} threads kept`, from: w, to: w }, ...(r >= 0 ? [{ k: wk.slice(5), rec: r }] : [])] : []; })),

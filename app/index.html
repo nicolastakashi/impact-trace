@@ -243,6 +243,71 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
   .evl li{grid-template-columns:70px minmax(0,1fr)} .evl .k{display:none}
 }
 
+/* Feedback: one action in focus (this week's experiment), the evidence one click away.
+   Color map: accent = the weak pattern (its phrases, its counts), ink = the stronger rewrite,
+   dashed + pulse = next week's count, not measured yet, --m-build = what to keep doing. */
+.fb{display:grid;gap:14px}
+.fb-weeks{display:flex;flex-wrap:wrap;gap:6px}
+.fb-weeks button{border:1px solid var(--line);background:var(--s1);border-radius:999px;padding:5px 12px;font:600 12px var(--f-num);letter-spacing:.08em;color:var(--ink-3);cursor:pointer}
+.fb-weeks button[aria-pressed="true"]{color:var(--ink);border-color:var(--ink-3)}
+.fb-prev{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;padding:14px 18px;border:1px dashed var(--line-2);border-radius:14px;font-size:14px;color:var(--ink-2)}
+.fb-prev .n{font:600 14px var(--f-mono);color:var(--ink)}
+.fb-try{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px 40px;padding:28px clamp(18px,3vw,34px);position:relative;overflow:hidden}
+.fb-try::before{content:"";position:absolute;inset:-40% -20% auto 45%;height:160%;background:radial-gradient(closest-side,color-mix(in srgb,var(--accent) 13%,transparent),transparent);pointer-events:none}
+.fb-try > *{position:relative}
+.fb-do{margin:12px 0 16px;font:600 clamp(21px,2.3vw,29px)/1.28 var(--f-body);letter-spacing:-.01em;text-wrap:balance}
+.fb-tag{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:13px;color:var(--ink-3)}
+.fb-mk{display:flex;flex-wrap:wrap;gap:5px}
+.fb-mk code{font:500 11.5px var(--f-mono);padding:3px 7px;border-radius:6px;background:color-mix(in srgb,var(--accent) 12%,var(--s3));color:var(--ink)}
+.fb-chart{display:grid;gap:8px;align-content:end}
+.fb-chart .cap{font-size:13px;color:var(--ink-2)}
+.fb-chart .cap b{font:800 34px/1 var(--f-num);color:var(--ink);margin-right:6px;font-variant-numeric:tabular-nums}
+.fb-bars,.fb-ax{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:6px}
+.fb-bars{align-items:end;height:112px}
+.fb-bars .b{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%}
+.fb-bars .b i{display:block;width:100%;height:calc(var(--h) * 84px + 3px);border-radius:4px 4px 2px 2px;background:color-mix(in srgb,var(--accent) 45%,var(--s3));transform-origin:bottom}
+.fb-bars .b.now i{background:var(--accent);box-shadow:0 0 18px -4px var(--accent)}
+.fb-bars .b em{font:600 12px var(--f-num);font-style:normal;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.fb-bars .b.next i{height:84px;background:none;border:1.5px dashed var(--line-2);animation:fb-pulse 2.4s ease-in-out infinite}
+.fb-bars .b.next em{color:var(--ink-2)}
+@keyframes fb-pulse{50%{opacity:.45}}
+.fb-ax{font:500 10.5px var(--f-mono);color:var(--ink-3);text-align:center}
+.fb-ax .next{color:var(--ink)}
+.fb-main{display:grid;grid-template-columns:300px minmax(0,1fr);gap:12px;align-items:start}
+.fb-pats{display:grid;gap:6px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 84px)}
+.fb-pats .lbl{padding:4px 2px 6px}
+.fb-pat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;text-align:left;padding:13px 15px;border:1px solid var(--line);border-radius:14px;background:var(--s1);cursor:pointer;color:var(--ink-2);transition:border-color .2s,background .2s}
+.fb-pat:hover{border-color:var(--line-2)}
+.fb-pat b{font-weight:600;color:var(--ink);font-size:14px;line-height:1.35}
+.fb-pat small{grid-column:1;font:500 11.5px var(--f-mono);color:var(--ink-3)}
+.fb-pat .spk{grid-row:1 / span 2;grid-column:2}
+.fb-pat[aria-pressed="true"]{border-color:var(--ink-3);background:var(--s2);box-shadow:var(--shadow)}
+.fb-pat.keep .dotk{width:8px;height:8px;border-radius:50%;background:var(--m-build);grid-row:1 / span 2;grid-column:2}
+.spk{display:flex;gap:2px;align-items:end;height:24px}
+.spk i{width:5px;height:calc(var(--h) * 21px + 2px);border-radius:1.5px;background:color-mix(in srgb,var(--accent) 70%,var(--s3))}
+.fb-focus{display:grid;gap:16px;padding:24px clamp(16px,2.6vw,30px)}
+.fb-focus h2{margin:0;font:800 clamp(24px,2.6vw,34px)/1.02 var(--f-num);text-transform:uppercase;text-wrap:balance}
+.fb-why{margin:0;font-size:15px;line-height:1.6;color:var(--ink-2);max-width:62ch}
+.rws{display:grid;gap:10px}
+.rw{display:grid;gap:12px;padding:16px 18px;border-radius:14px;background:var(--s2);border:1px solid var(--line)}
+.rw-h{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;font:500 11.5px var(--f-mono);color:var(--ink-3)}
+.rw-h a{margin-left:auto}
+.rw-was{margin:0;font-size:15.5px;line-height:1.55;color:var(--ink-2)}
+.rw-was mark{color:var(--ink);padding:0 2px;border-radius:2px;background:linear-gradient(color-mix(in srgb,var(--accent) 38%,transparent),color-mix(in srgb,var(--accent) 38%,transparent)) no-repeat 0 100% / 0% 45%;transition:background-size .55s cubic-bezier(.16,1,.3,1)}
+.rw.on .rw-was mark{background-size:100% 45%}
+.rw-now{display:grid;gap:4px;padding-top:12px;border-top:1px dashed var(--line-2)}
+.rw-now span{font:500 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.rw-now p{margin:0;font-size:15.5px;line-height:1.55;color:var(--ink);font-weight:500}
+.rw.keep{border-color:color-mix(in srgb,var(--m-build) 35%,var(--line))}
+.fb-trust{margin:0;font-size:12.5px;line-height:1.55;color:var(--ink-3);max-width:80ch}
+.t-full{grid-column:1 / -1}
+.t-fb{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 24px;align-items:center;text-align:left;cursor:pointer;min-height:0}
+.t-fb .do{margin:0;font:600 17px/1.35 var(--f-body);color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.t-fb .spk{height:34px}
+.t-fb .spk i{width:8px;height:calc(var(--h) * 30px + 2px)}
+@media (max-width:860px){ .fb-try,.fb-main{grid-template-columns:minmax(0,1fr)} .fb-pats{position:static} }
+@media (prefers-reduced-motion:reduce){ .rw-was mark{background-size:100% 45%} }
+
 /* item overlay */
 .sheet{position:fixed;inset:0;z-index:40;display:grid;place-items:end center;background:color-mix(in srgb,#000 55%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px))}
 .sheet-in{width:min(880px,100%);max-height:calc(100% - 8px);overflow-y:auto;background:var(--s1);border:1px solid var(--line-2);border-radius:22px;padding:24px;display:grid;gap:18px;box-shadow:0 40px 80px -30px rgba(0,0,0,.6)}
@@ -590,6 +655,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
     <button role="tab" id="t-home" data-v="home" aria-selected="true">North</button>
     <button role="tab" id="t-projects" data-v="projects" aria-selected="false">Projects</button>
     <button role="tab" id="t-trace" data-v="trace" aria-selected="false">Trace <span class="ex sample-tag" hidden>example</span></button>
+    <button role="tab" id="t-feedback" data-v="feedback" aria-selected="false">Feedback <span class="ex sample-tag" hidden>example</span></button>
     <button role="tab" id="t-review" data-v="review" aria-selected="false">Review <span class="badge" id="badge"></span></button>
     <button role="tab" id="t-refs" data-v="refs" aria-selected="false">References</button>
   </nav>
@@ -607,6 +673,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
     <p id="home-p"></p>
   </div>
   <div class="bento">
+    <button class="tile t-full t-fb" id="t-fb" data-v="feedback" hidden></button>
     <div class="tile t-rings">
       <div class="th"><span class="lbl">Where the work goes</span></div>
       <div class="rings-wrap">
@@ -644,6 +711,13 @@ nav .ex{font-size:8.5px;padding:2px 4px}
     </div>
     <aside class="panel sb" id="sb" aria-live="polite"></aside>
   </div>
+</section>
+
+<!-- FEEDBACK: how you show up, from your own messages -->
+<section class="view" id="v-feedback" hidden>
+  <a class="sample-note" href="#/setup" hidden>Example feedback, not yours. Yours comes with your first collection.</a>
+  <div class="vhead"><h1>How I <em>show up</em></h1><p id="fb-lead"></p></div>
+  <div class="fb" id="fb"></div>
 </section>
 
 <!-- PROJECTS: Linear projects and your own topics, across weeks -->
@@ -760,6 +834,7 @@ function countUp(root){
 
 /* HOME */
 function renderHome(){
+  renderFbTile();
   const ups = ITEMS.filter(i=>i.wm==="wouldnt").length;
   $("#home-h").innerHTML = `${esc(WEEKS[0])}–${esc(WEEKS[LAST])} <em>·</em> ${WEEKS.length} weeks`;
   $("#home-p").innerHTML = `<b>${ITEMS.length}</b> threads you kept, <b>${REC.length}</b> mentions and praise, <b>${ups}</b> that would not have happened without you.`;
@@ -1048,6 +1123,87 @@ function openItem(id){
 }
 const WM = [["wouldnt","wouldn't happen"],["slower","slower"],["same","same"]];
 
+/* FEEDBACK: how you show up, from your own messages. The experiment first, then each pattern with your words and a stronger version. */
+const FB = typeof FEEDBACK === "undefined" ? [] : FEEDBACK;
+let fbW = 0, fbP = 0;
+const wk = w => w.slice(5);
+const nextWeek = w => `W${String(+w.slice(6) + 1).padStart(2, "0")}`; // ponytail: W53 and New Year are not handled
+const spark = t => { const mx = Math.max(1, ...t); return `<span class="spk" aria-hidden="true">${t.map(n => `<i style="--h:${n/mx}"></i>`).join("")}</span>`; };
+// Wrap the pattern's phrases in <mark>, so you see which words carry it.
+function markQ(text, markers){
+  if(!markers?.length) return esc(text);
+  const re = new RegExp(markers.map(m => m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "gi");
+  let out = "", i = 0;
+  for(const m of text.matchAll(re)){ out += esc(text.slice(i, m.index)) + `<mark>${esc(m[0])}</mark>`; i = m.index + m[0].length; }
+  return out + esc(text.slice(i));
+}
+const when = e => `${e.channel} · ${wk(e.week)}${e.at ? ` · ${fmtWhen(Date.parse(e.at))}` : ""}`;
+
+function renderFeedback(){
+  const f = FB[fbW];
+  if(!f){ $("#fb-lead").textContent = ""; $("#fb").innerHTML = `<div class="panel empty">Your first feedback comes with the next collection, on Monday at 18:00. Claude reads the Slack messages you wrote that week and the 7 before it.</div>`; return; }
+  const total = f.messages.reduce((a, b) => a + b, 0), e = f.experiment, items = [...f.patterns, ...(f.strength ? [{...f.strength, keep:true}] : [])];
+  fbP = Math.min(fbP, items.length - 1);
+  $("#fb-lead").textContent = `From ${total} Slack messages you wrote, ${wk(f.weeks[0])} to ${wk(f.weeks.at(-1))}. Every quote below is one of them.`;
+  const p = f.previous;
+  const prev = p && p.do ? `<div class="fb-prev"><span class="lbl">Last experiment · ${wk(p.week)}</span><span>${esc(p.do)}</span>
+    ${p.before != null && p.after != null ? `<span class="n">${p.before} → ${p.after}</span>` : ""}${f.last_experiment ? `<span>${esc(f.last_experiment)}</span>` : ""}</div>` : "";
+  const t = e?.trend, n = t ? t.length + 1 : 0, mx = t ? Math.max(1, ...t) : 1;
+  const chart = t ? `<div class="fb-chart"><span class="cap"><b>${t.reduce((a, b) => a + b, 0)}</b>messages with these phrases in 8 weeks, ${t.at(-1)} in ${wk(f.week)}</span>
+      <div class="fb-bars" style="--n:${n}">${t.map((c, k) => `<div class="b${k === t.length - 1 ? " now" : ""}"><em>${c}</em><i style="--h:${c/mx}"></i></div>`).join("")}<div class="b next" title="Measured after the next collection"><em>?</em><i></i></div></div>
+      <div class="fb-ax" style="--n:${n}">${f.weeks.map(w => `<span>${wk(w)}</span>`).join("")}<span class="next">${nextWeek(f.week)}</span></div></div>` : "";
+  const it = items[fbP];
+  $("#fb").innerHTML = `
+    ${FB.length > 1 ? `<div class="fb-weeks" role="group" aria-label="Feedback week">${FB.map((x, k) => `<button data-fbw="${k}" aria-pressed="${k === fbW}">${wk(x.week)}</button>`).join("")}</div>` : ""}
+    ${prev}
+    ${e ? `<div class="panel fb-try"><div><span class="lbl">Try this week</span><p class="fb-do">${esc(e.do)}</p>
+        <div class="fb-tag"><span>Measured by</span><span class="fb-mk">${e.markers.map(m => `<code>${esc(m)}</code>`).join("")}</span></div></div>${chart}</div>` : ""}
+    <div class="fb-main">
+      <div class="fb-pats" role="group" aria-label="Patterns"><span class="lbl">What Claude saw</span>${items.map((x, k) => x.keep
+        ? `<button class="fb-pat keep" data-fbp="${k}" aria-pressed="${k === fbP}"><b>${esc(x.name)}</b><small>keep doing</small><i class="dotk" aria-hidden="true"></i></button>`
+        : `<button class="fb-pat" data-fbp="${k}" aria-pressed="${k === fbP}"><b>${esc(x.name)}</b><small>${x.trend.reduce((a, b) => a + b, 0)} messages in 8 weeks</small>${spark(x.trend)}</button>`).join("")}</div>
+      <div class="panel fb-focus" id="fb-focus">${focus(it)}</div>
+    </div>
+    <p class="fb-trust">Claude reads only the Slack messages you wrote: not code, meetings or what others say. The code drops any quote it cannot find in your messages, and makes every count.</p>`;
+  animFocus(true);
+}
+function focus(it){
+  if(!it) return `<p class="fb-why">No pattern stood out in these weeks.</p>`;
+  return `<span class="lbl">${it.keep ? "Keep doing" : "Pattern"}</span><h2>${esc(it.name)}</h2><p class="fb-why">${esc(it.why)}</p>
+    <div class="rws">${it.evidence.map(x => `<article class="rw${it.keep ? " keep" : ""}">
+      <div class="rw-h"><span>${esc(when(x))}</span>${x.url ? `<a class="ref" href="${esc(x.url)}" target="_blank" rel="noopener">open in Slack ↗</a>` : ""}</div>
+      <p class="rw-was">“${markQ(x.quote, it.markers)}”</p>
+      ${x.instead ? `<div class="rw-now"><span>Say it like this</span><p>${esc(x.instead)}</p></div>` : ""}</article>`).join("")}</div>`;
+}
+function animFocus(all){
+  const cards = [...document.querySelectorAll("#fb-focus .rw")];
+  // Diagnosis, then the fix: the weak words get marked, then the stronger version appears.
+  if(!G){ cards.forEach(c => c.classList.add("on")); return; }
+  if(all){ G.from("#fb .fb-bars .b:not(.next) i", {scaleY:0, duration:.7, ease:"expo.out", stagger:.05, clearProps:"transform"});
+    G.from("#fb .fb-do", {opacity:0, y:10, filter:"blur(6px)", duration:.6, ease:"power3.out", clearProps:"all"}); }
+  G.from("#fb-focus > .lbl, #fb-focus > h2, #fb-focus > .fb-why", {opacity:0, y:8, filter:"blur(6px)", duration:.45, ease:"power3.out", stagger:.04, clearProps:"all"});
+  cards.forEach((c, k) => {
+    G.from(c, {opacity:0, y:12, duration:.45, ease:"power3.out", delay:.12 + k*.1, clearProps:"all", onStart:() => setTimeout(() => c.classList.add("on"), 200)});
+    const now = c.querySelector(".rw-now"); if(now) G.from(now, {opacity:0, x:-8, filter:"blur(4px)", duration:.5, ease:"power3.out", delay:.75 + k*.1, clearProps:"all"});
+  });
+}
+function renderFbTile(){
+  const f = FB[0], e = f?.experiment, el = $("#t-fb");
+  el.hidden = !e;
+  if(!e) return;
+  el.innerHTML = `<div style="display:grid;gap:8px;min-width:0"><span class="lbl">Try this week · feedback</span><p class="do">${esc(e.do)}</p></div>
+    <div style="display:grid;gap:6px;justify-items:end">${e.trend ? spark(e.trend) : ""}<span class="ref">${e.trend ? `${e.trend.at(-1)} in ${wk(f.week)} · ` : ""}open →</span></div>`;
+}
+$("#v-feedback").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.fbw != null){ fbW = +b.dataset.fbw; fbP = 0; fbUrl(); renderFeedback(); }
+  else if(b.dataset.fbp != null){ fbP = +b.dataset.fbp; fbUrl();
+    document.querySelectorAll("#fb .fb-pat").forEach(x => x.setAttribute("aria-pressed", x === b));
+    const items = [...FB[fbW].patterns, ...(FB[fbW].strength ? [{...FB[fbW].strength, keep:true}] : [])];
+    $("#fb-focus").innerHTML = focus(items[fbP]); animFocus(false); }
+});
+const fbUrl = () => history.replaceState(null, "", `#/feedback?w=${FB[fbW] ? wk(FB[fbW].week) : ""}&p=${fbP}`);
+
 /* SETUP: tools, who you are, first week. The form starts filled from gh and git. */
 const SU = (() => {
 const LEVELS = ["Software Engineer","Senior Engineer","Staff Engineer","Senior Staff Engineer","Principal Engineer","Distinguished Engineer"];
@@ -1147,7 +1303,7 @@ function step(d){ sI = Math.max(0, Math.min(SLIDES.length-1, sI+d)); drawStory()
 
 /* CMDK */
 let cmdSel = 0, cmdRes = [];
-const VIEWS = [["home","North"],["projects","Projects"],["project","Project"],["trace","Trace"],["review","Review"],["refs","References"],["setup","Setup"]];
+const VIEWS = [["home","North"],["projects","Projects"],["project","Project"],["trace","Trace"],["feedback","Feedback"],["review","Review"],["refs","References"],["setup","Setup"]];
 function openCmd(){ $("#cmdk").hidden = false; $("#cmdk-input").value=""; filterCmd(); $("#cmdk-input").focus(); }
 function filterCmd(){
   const q = $("#cmdk-input").value.toLowerCase();
@@ -1181,6 +1337,7 @@ function route(){
   if(v === "project") PV.open(p.get("id"));
   if(v === "refs") renderRefs(p.get("k"));
   if(v === "setup") SU.open();
+  if(v === "feedback"){ fbW = Math.max(0, FB.findIndex(f => wk(f.week) === p.get("w"))); fbP = +p.get("p") || 0; renderFeedback(); }
   if(v === "trace"){ sel = new Set((p.get("w") ?? "").split(",").map(w => WEEKS.indexOf(w)).filter(i => i >= 0)); spanSel = p.get("s"); renderTrace(); }
 }
 function show(v){ if(location.hash.split("?")[0] !== "#/"+v) history.pushState(null, "", "#/"+v); route(); }
