@@ -935,7 +935,7 @@ function render(){
       <button class="gbtn" id="gopen" aria-haspopup="listbox" aria-expanded="false" title="Change group (P)">${t.projects.length ? t.projects.map(p => esc(p.name) + (p.by === "claude" ? ` <span class="ai" title="Claude placed this thread here">Claude</span>` : "")).join(", ") : "no group"} ▾</button>
       ${t.projects.some(p => p.by === "claude") ? `<button class="undo" id="unassign">wrong group ✕</button>` : ""}
       ${group && group.id !== from ? `<a class="crumb" href="#/groups?g=${encodeURIComponent(group.id)}">across weeks →</a>` : ""}
-      <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}" title="Not impact: routine work, skip it (0)"><kbd>0</kbd>not impact${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button>
+      <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}" title="Not your impact: routine, noise, or someone else's work (0)"><kbd>0</kbd>discard${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button>
       <div class="gpop" id="gpop" hidden><input id="gq" placeholder="Find a group, or type a new one" autocomplete="off" aria-label="Group"><ul id="gl-list" role="listbox"></ul></div></div>
     <div class="r-sec">
       <input class="r-title" id="rv-title" value="${esc(d.title)}" aria-label="Thread title">
