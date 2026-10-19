@@ -408,7 +408,13 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .checks .ok{color:var(--m-build)} .checks .no{color:var(--accent)} .checks .unk{color:var(--ink-3)}
   form{display:grid;gap:14px}
   label{display:grid;gap:6px;font-size:14px;color:var(--ink)}
-  label small{color:var(--ink-3);font-size:12.5px}
+  label small,legend small{display:block;color:var(--ink-3);font-size:12.5px;margin-top:6px}
+  fieldset.orgs{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  fieldset.orgs legend{font-size:14px;color:var(--ink);padding:0;margin-bottom:8px}
+  .chip-ck{display:inline-flex;align-items:center;gap:6px;font:500 12.5px var(--f-mono);color:var(--ink-2);background:var(--s2);border:1px solid var(--line);border-radius:999px;padding:5px 10px;cursor:pointer}
+  .chip-ck:has(input:checked){color:var(--ink);border-color:var(--accent);background:var(--s3)}
+  .chip-ck input{accent-color:var(--accent);margin:0}
+  fieldset.orgs #su-orgs{flex-basis:100%;margin-top:4px}
   input{font:500 15px var(--f-body);color:var(--ink);background:var(--s2);border:1px solid var(--line-2);border-radius:10px;padding:9px 12px;max-width:420px}
   input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .save{justify-self:start;font:600 14px var(--f-body);color:var(--bg);background:var(--accent);border:0;border-radius:10px;padding:9px 16px;cursor:pointer}
@@ -504,7 +510,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 
 <!-- HOME -->
 <section class="view" id="v-home">
-  <a class="sample-note" href="#/setup" hidden>Example data, not yours. North and Trace come from a hand-made file. <b>Set up yours →</b></a>
+  <a class="sample-note" href="#/review" hidden>Example data, not yours: North and Trace do not read your collection yet. <b>Your weeks are in Review →</b></a>
   <div class="vhead">
     <h1 id="home-h">W35–W42 <em>·</em> 8 weeks</h1>
     <p id="home-p"></p>
@@ -529,7 +535,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 
 <!-- TRACE -->
 <section class="view" id="v-trace" hidden>
-  <a class="sample-note" href="#/setup" hidden>Example data, not yours. <b>Set up yours →</b></a>
+  <a class="sample-note" href="#/review" hidden>Example data, not yours. <b>Your weeks are in Review →</b></a>
   <div class="vhead">
     <h1>How I deliver, <em>week by week</em></h1>
     <p>Click weeks or drag across them to select. The panel compares the selection with the rest of the period, like Honeycomb BubbleUp.</p>
@@ -829,7 +835,9 @@ function render(){
       <form id="su-form">
         <label for="su-name">Full name<small>As people write it in Slack. Finds the messages that mention you.</small><input id="su-name" name="name" value="${v("name")}" autocomplete="name" required></label>
         <label for="su-gh">GitHub login<input id="su-gh" name="github" value="${v("github")}" required></label>
-        <label for="su-orgs">Your company's GitHub orgs<small>Comma-separated. Review comments come from these. Repos under your own login count as side projects.</small><input id="su-orgs" name="orgs" value="${esc((c.orgs ?? g.orgs).join(", "))}"></label>
+        <fieldset class="orgs"><legend>Your company's GitHub orgs<small>Pick only your employer's. Review comments come from these; open source counts on its own.</small></legend>
+          ${[...new Set([...(c.orgs ?? []), ...g.orgs])].map(o => `<label class="chip-ck"><input type="checkbox" name="org" value="${esc(o)}" ${(c.orgs ?? []).includes(o) ? "checked" : ""}>${esc(o)}</label>`).join("")}
+          <input id="su-orgs" name="more" placeholder="Other orgs, comma-separated" aria-label="Other orgs"></fieldset>
         <label for="su-level">Level<small>Claude judges each thread against it.</small><input id="su-level" name="level" list="su-levels" value="${v("level")}" placeholder="Senior Engineer" required></label>
         <datalist id="su-levels">${LEVELS.map(l => `<option value="${l}">`).join("")}</datalist>
         ${err ? `<span class="err" role="alert">${esc(err)}</span>` : ""}
@@ -840,7 +848,7 @@ function render(){
 }
 $("#v-setup").addEventListener("submit", async e => {
   e.preventDefault(); const f = new FormData(e.target);
-  const body = {name: f.get("name"), github: f.get("github"), level: f.get("level"), orgs: String(f.get("orgs")).split(",").map(x => x.trim()).filter(Boolean)};
+  const body = {name: f.get("name"), github: f.get("github"), level: f.get("level"), orgs: [...new Set([...f.getAll("org"), ...String(f.get("more")).split(",").map(x => x.trim()).filter(Boolean)])]};
   const r = await fetch("/api/setup", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
   err = r.ok ? "" : await r.text();
   if(r.ok){ s.config = body; const t = $("#toast"); t.textContent = "Saved"; t.hidden = false; setTimeout(() => t.hidden = true, 1800); }
