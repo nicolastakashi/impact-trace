@@ -196,7 +196,9 @@ function north() {
       if (l.find((r) => r.field === "discard" && r.source === "human")?.value !== "no") continue;
       const it: any = { id: t.key, w, s: t.projects[0]?.id ?? "none", title: v("title") ?? t.events[0].title, summary: v("summary"),
         mode: v("mode"), pillar: v("pillar"), wm: v("without_me"),
-        links: t.events.filter((e) => e.url).map((e) => [SRC[e.id.split(":")[0]] ?? "Other", e.title ?? e.kind, e.url]) };
+        links: t.events.filter((e) => e.url).map((e) => [SRC[e.id.split(":")[0]] ?? "Other", e.title ?? e.kind, e.url]),
+        // Span events for Trace: [kind, when or null, title, url]. Review comments and open issues have no time.
+        ev: t.events.map((e) => [e.kind, (meta.get(e.id) as any)?.occurred_at || null, e.title ?? "", e.url ?? null]) };
       // Praise others wrote: a Slack mention in a thread you kept, or a review comment marked praise.
       for (const e of t.events) {
         const m = meta.get(e.id) as any, p = JSON.parse(m.payload), text = p.text ?? p.body ?? "";
