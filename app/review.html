@@ -70,6 +70,9 @@ header .back{margin-left:auto;font:500 12px var(--f-mono);color:var(--ink-2)}
 .prog i{flex:1;height:4px;border-radius:2px;background:var(--s3)}
 .prog i.d{background:var(--m-build)}
 .prog i.c{background:var(--accent)}
+.lbl .ai{font:500 10px var(--f-mono);letter-spacing:.06em;color:var(--ink-3);border:1px solid var(--line-2);border-radius:5px;padding:0 4px}
+.undo{margin-left:8px;font:500 11px var(--f-mono);letter-spacing:.04em;text-transform:none;color:var(--ink-2);background:none;border:1px dashed var(--line-2);border-radius:6px;padding:1px 6px;cursor:pointer}
+.undo:hover{color:var(--ink);border-color:var(--ink-2)}
 .title{width:100%;font:700 30px/1.15 var(--f-num);letter-spacing:.01em;color:var(--ink);background:transparent;border:0;border-bottom:1px dashed var(--line-2);padding:2px 0 6px}
 .title:focus{outline:0;border-bottom-color:var(--accent)}
 .summary{width:100%;max-width:72ch;font:400 16px/1.55 var(--f-body);color:var(--ink-2);background:transparent;border:0;border-radius:8px;padding:6px 8px;margin:-6px -8px 0;resize:none;field-sizing:content;min-height:2lh}
@@ -174,7 +177,8 @@ function render(){
   const kinds = Object.entries(t.events.reduce((a,e) => (a[e.kind]=(a[e.kind]||0)+1, a), {})).map(([k,n]) => `${n} ${KIND[k]??k}`).join(" · ");
   $("#card").innerHTML = `
     <div class="prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.without_me==="discard"?"x":x.human.without_me?"d":i===cur?"c":""}"></i>`).join("")}</div>
-    <div class="sec"><span class="lbl">${esc(data.week)}${t.projects?.length?` · ${t.projects.map(esc).join(", ")}`:""} · ${kinds}</span>
+    <div class="sec"><span class="lbl">${esc(data.week)}${t.projects.length?` · ${t.projects.map(p => esc(p.name) + (p.by === "claude" ? ` <span class="ai" title="Claude placed this thread in the project">Claude</span>` : "")).join(", ")}`:""} · ${kinds}
+        ${t.projects.some(p => p.by === "claude") ? `<button class="undo" id="unassign">wrong project ✕</button>` : ""}</span>
       <input class="title" id="title" value="${esc(d.title)}" aria-label="Thread title">
       <textarea class="summary" id="summary" rows="2" aria-label="Summary of what you did" placeholder="No summary yet">${esc(d.summary)}</textarea></div>
     <div class="sec"><span class="lbl">Evidence</span><ul class="events">${t.events.map(e => `<li class="${ev.has(e.id)?"ev":""}">
@@ -218,12 +222,21 @@ async function save(wm){
   go(next >= 0 ? next : cur);
 }
 
+// The thread splits back into its parts, so reload the week and stay near the same place.
+async function unassign(){
+  const t = data.threads[cur], at = cur;
+  const r = await fetch("/api/unassign", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({week: data.week, key: t.key})});
+  if(!r.ok){ toast(`Not undone: ${await r.text()}`); return; }
+  draft = {}; await load(data.week); go(at); toast("Project removed");
+}
+
 document.addEventListener("click", e => {
   const b = e.target.closest("button"); if(!b) return;
   if(b.dataset.i) go(+b.dataset.i);
   else if(b.dataset.mode) set("mode", b.dataset.mode);
   else if(b.dataset.pillar) set("pillar", b.dataset.pillar);
   else if(b.dataset.wm) save(b.dataset.wm);
+  else if(b.id === "unassign") unassign();
 });
 document.addEventListener("input", e => { if(e.target.id === "title" || e.target.id === "summary") pick(data.threads[cur])[e.target.id] = e.target.value; });
 document.addEventListener("keydown", e => {

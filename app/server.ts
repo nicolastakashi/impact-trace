@@ -63,6 +63,19 @@ function decide(body: any) {
   return Response.json({ ok: true });
 }
 
+// You undo Claude's project for one thread: its events go back to no project.
+function unassign(body: any) {
+  const t = WEEK.test(body?.week) && reviewThreads(db, body.week).find((x) => x.key === body.key);
+  if (!t) return new Response("Unknown thread for that week", { status: 400 });
+  const put = db.query(`INSERT INTO assignments (event_id, project_id, source, at)
+    SELECT event_id, NULL, 'human', ? FROM assignments a JOIN events e ON e.id = a.event_id
+    WHERE a.event_id = ? AND a.source = 'claude' AND e.project_id IS NULL
+    ON CONFLICT DO UPDATE SET project_id = NULL, at = excluded.at`);
+  const at = new Date().toISOString();
+  db.transaction(() => { for (const e of t.events) put.run(at, e.id); })();
+  return Response.json({ ok: true });
+}
+
 const server = Bun.serve({
   port: 4317,
   // Your Dash0 data and a write endpoint: never reachable from the network.
@@ -76,7 +89,9 @@ const server = Bun.serve({
       return WEEK.test(week ?? "") ? Response.json(review(week)) : Response.json({ week: null, weeks: [], threads: [] });
     }
     // A JSON content type forces a CORS preflight, so other sites cannot post here.
-    if (url.pathname === "/api/labels" && req.method === "POST" && req.headers.get("content-type") === "application/json") return decide(await req.json().catch(() => null));
+    const json = req.method === "POST" && req.headers.get("content-type") === "application/json";
+    if (url.pathname === "/api/labels" && json) return decide(await req.json().catch(() => null));
+    if (url.pathname === "/api/unassign" && json) return unassign(await req.json().catch(() => null));
     if (url.pathname === "/data.js") return new Response(Bun.file(existsSync(local) ? local : sample), { headers: { "content-type": "text/javascript" } });
     if (url.pathname === "/api/projects") {
       const weeks = (url.searchParams.get("weeks") ?? "").split(",").filter((w) => /^\d{4}-W\d{2}$/.test(w));
