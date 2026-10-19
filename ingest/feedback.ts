@@ -33,6 +33,29 @@ function previous(db: Database, week: string, weeks: string[], msgs: Msg[]) {
     before: t ? t[weeks.indexOf(row.week)] ?? null : null, after: t ? t.at(-1) : null };
 }
 
+// ISO week of a date, e.g. 2026-W42. The Thursday of its week decides the year.
+export function isoWeek(d: Date) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate() + 3 - (d.getDay() + 6) % 7));
+  const y = t.getUTCFullYear(), jan4 = new Date(Date.UTC(y, 0, 4));
+  const w = 1 + Math.round(((t.getTime() - jan4.getTime()) / 864e5 - 3 + (jan4.getUTCDay() + 6) % 7) / 7);
+  return `${y}-W${String(w).padStart(2, "0")}`;
+}
+// Mondays of the ended weeks that still have no feedback, oldest first. A week gets feedback only
+// after it ends, so a Monday the Mac slept through, or a run that failed, shows up here the next day,
+// even when a later week went fine. Weeks before your first feedback were collected before feedback
+// existed: with none yet, only last week counts. At most 8 weeks back, the feedback window.
+export function pendingMondays(today: Date, have: string[]) {
+  const first = [...have].sort()[0], out: string[] = [];
+  for (let k = 1; k <= 8; k++) {
+    const m = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (today.getDay() + 6) % 7 - 7 * k), w = isoWeek(m);
+    if (first ? w < first : k > 1) break;
+    if (!have.includes(w)) out.unshift(`${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, "0")}-${String(m.getDate()).padStart(2, "0")}`);
+  }
+  return out;
+}
+export const countMessages = (db: Database, week: string) =>
+  (db.query("SELECT count(*) n FROM events WHERE kind = 'slack_message' AND week = ?").get(week) as any).n as number;
+
 export function emit(db: Database, week: string) {
   const weeks = window8(db, week), msgs = messages(db, weeks), me = config();
   const worked = new Set<string>();
@@ -63,6 +86,14 @@ if (import.meta.main) {
   const [cmd, week, file] = process.argv.slice(2);
   const db = open();
   if (cmd === "emit") console.log(JSON.stringify(emit(db, week)));
+  else if (cmd === "pending") console.log(pendingMondays(new Date(), (db.query("SELECT week FROM feedback").all() as any[]).map((r) => r.week)).join("\n"));
+  else if (cmd === "count") console.log(countMessages(db, week));
+  else if (cmd === "empty") {
+    // No messages from you that week, so nothing to judge: the row still marks the week as closed.
+    db.query("INSERT OR REPLACE INTO feedback VALUES (?, ?, NULL, NULL, 0, ?)").run(week,
+      JSON.stringify(verify(db, week, { patterns: [], strength: null, experiment: null, last_experiment: null })), new Date().toISOString());
+    console.log({ week, empty: true });
+  }
   else if (cmd === "save") {
     const run = JSON.parse(readFileSync(file, "utf8")), out = run.structured_output;
     if (run.is_error || !out || out.week !== week) throw new Error(`feedback ${week}: no usable output`);
@@ -72,5 +103,5 @@ if (import.meta.main) {
       prompt_version = excluded.prompt_version, cost_usd = excluded.cost_usd, at = excluded.at`)
       .run(week, JSON.stringify(v), Object.keys(run.modelUsage ?? {})[0] ?? null, version, run.total_cost_usd ?? null, new Date().toISOString());
     console.log({ patterns: v.patterns.length, quotes_dropped: v.dropped, experiment: !!v.experiment?.trend });
-  } else throw new Error("usage: bun ingest/feedback.ts emit|save <week> [file]");
+  } else throw new Error("usage: bun ingest/feedback.ts emit|save|count|empty <week> [file] | pending");
 }

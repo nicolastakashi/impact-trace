@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
 import { migrate } from "./ingest";
-import { verify } from "./feedback";
+import { isoWeek, pendingMondays, verify } from "./feedback";
 
 test("feedback keeps only quotes found in your messages and counts markers itself", () => {
   const db = new Database(":memory:", { strict: true });
@@ -26,4 +26,22 @@ test("feedback keeps only quotes found in your messages and counts markers itsel
   expect(v.experiment?.trend).toEqual([1, 2]);
   expect(v.strength).toBeNull();
   expect(v.dropped).toBe(2);
+});
+
+test("pending lists every ended week without feedback, so a missed Monday is closed later", () => {
+  const tue = new Date(2026, 9, 27); // Tuesday of W44
+  expect(isoWeek(new Date(2026, 9, 19))).toBe("2026-W43");
+  expect(isoWeek(new Date(2027, 0, 1))).toBe("2026-W53");
+  // Monday slept through: Tuesday closes W43.
+  expect(pendingMondays(tue, ["2026-W42"])).toEqual(["2026-10-19"]);
+  expect(pendingMondays(tue, ["2026-W42", "2026-W43"])).toEqual([]);
+  // Two weeks off: both close, oldest first.
+  expect(pendingMondays(new Date(2026, 10, 9), ["2026-W43"])).toEqual(["2026-10-26", "2026-11-02"]);
+  // W44 failed, W45 went fine: W44 is still pending.
+  expect(pendingMondays(new Date(2026, 10, 10), ["2026-W43", "2026-W45"])).toEqual(["2026-10-26"]);
+  // No feedback yet: only last week.
+  expect(pendingMondays(tue, [])).toEqual(["2026-10-19"]);
+  // Across New Year, and never more than 8 weeks back.
+  expect(pendingMondays(new Date(2027, 0, 5), ["2026-W52"])).toEqual(["2026-12-28"]);
+  expect(pendingMondays(new Date(2027, 0, 5), ["2025-W01"])).toHaveLength(8);
 });
