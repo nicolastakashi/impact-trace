@@ -67,7 +67,6 @@ nav .badge{font:700 11px var(--f-num);background:var(--accent);color:var(--accen
 .hright{margin-left:auto;display:flex;align-items:center;gap:12px}
 .cmdk-btn{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--s1);border-radius:10px;padding:6px 8px 6px 12px;color:var(--ink-3);cursor:pointer;font-size:13px}
 .cmdk-btn:hover{border-color:var(--line-2);color:var(--ink-2)}
-.proto{font:500 10.5px/1.3 var(--f-mono);color:var(--ink-3);max-width:28ch}
 
 section.view{padding-top:26px;display:grid;gap:22px}
 .vhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:10px 24px}
@@ -247,7 +246,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .r-events li.ev{background:color-mix(in srgb,var(--accent) 7%,transparent)}
   .r-events .k{font:500 11px var(--f-mono);color:var(--ink-3);padding-top:2px}
   .r-events .ev-x{min-width:0;overflow-wrap:anywhere}
-  .r-events .ev-x small{display:block;color:var(--ink-3);font-size:12.5px;margin-top:2px}
+  .r-events .ev-x small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;color:var(--ink-3);font-size:12.5px;margin-top:2px}
 
   .r-chips{display:flex;flex-wrap:wrap;gap:8px}
   .r-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 10px 7px 7px;background:var(--s2);border:1px solid var(--line);border-radius:10px;cursor:pointer;font:400 13.5px var(--f-body);color:var(--ink)}
@@ -279,7 +278,10 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .grp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(520px,100%),1fr));gap:12px;align-items:start}
   .grp{background:var(--s1);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px clamp(14px,2.5vw,22px);display:grid;gap:14px;scroll-margin-top:96px}
   .grp.on{border-color:var(--accent);box-shadow:var(--glow)}
-  .gh{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px}
+  .gh{all:unset;cursor:pointer;display:flex;align-items:baseline;gap:8px 14px}
+  .gh:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:6px}
+  .gh .todo{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+  .gh .chev{margin-left:auto;color:var(--ink-3)}
   .gh h2{font:800 22px/1.02 var(--f-num);text-transform:uppercase;margin:0;text-wrap:balance}
   .strip{display:grid;grid-template-columns:repeat(var(--n),minmax(26px,1fr));gap:4px}
   .strip i{display:grid;place-items:center;height:26px;border-radius:6px;background:var(--s3);font:500 11px var(--f-mono);font-style:normal;color:var(--ink-3);font-variant-numeric:tabular-nums}
@@ -368,7 +370,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 .story .hint{position:absolute;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font:500 11px var(--f-mono);opacity:.7;z-index:2}
 
 @media (max-width:980px){ .bento{grid-template-columns:repeat(2,minmax(0,1fr))} .split{grid-template-columns:1fr} }
-@media (max-width:620px){ .bento{grid-template-columns:1fr} .t-rings,.t-big,.t-wide{grid-column:auto;grid-row:auto} .rings-wrap{grid-template-columns:1fr} .rings{max-width:200px;justify-self:center} .two{grid-template-columns:1fr} .proto{display:none} }
+@media (max-width:620px){ .bento{grid-template-columns:1fr} .t-rings,.t-big,.t-wide{grid-column:auto;grid-row:auto} .rings-wrap{grid-template-columns:1fr} .rings{max-width:200px;justify-self:center} .two{grid-template-columns:1fr} }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
 </style>
 
@@ -384,7 +386,6 @@ nav .ex{font-size:8.5px;padding:2px 4px}
     <button role="tab" id="t-refs" data-v="refs" aria-selected="false">References</button>
   </nav>
   <div class="hright">
-    <span class="proto" id="proto">Prototype. Goals and probabilities are examples.</span>
     <button class="cmdk-btn" id="cmdk-open">Search <kbd>⌘</kbd><kbd>K</kbd></button>
   </div>
 </header>
@@ -460,7 +461,6 @@ nav .ex{font-size:8.5px;padding:2px 4px}
       <label class="stat"><span class="lbl">Week</span><select id="rv-week" aria-label="Week"></select></label>
       <label class="stat"><span class="lbl">Show</span><select id="rv-show" aria-label="Show"><option value="pending">Pending</option><option value="all">All</option></select></label>
       <div class="stat"><span class="lbl">Decided</span><b id="rv-done">–</b></div>
-      <div class="stat"><span class="lbl">Claude matches you · mode</span><b id="rv-agree">–</b></div>
     </div></div>
   <div class="rv-grid">
     <ul class="r-queue" id="rv-queue" aria-label="Threads of the week"></ul>
@@ -853,7 +853,6 @@ async function hydrate(){
     if(a.ms.length) P.ms = a.ms.map(m=>({name:m.name, progress:m.progress}));
   }
   Object.assign(PROJECTS.none, {done:api.none.done, open:api.none.open, live:true});
-  $("#proto").textContent = `Live projects from SQLite · ${api.collected_at?.slice(0,16).replace("T"," ") ?? "not collected"}. Goals and probabilities are examples.`;
   renderAll(); renderHome();
 }
 /* PENDING: your undecided threads per week, for the nav badge and the home tile. */
@@ -876,7 +875,7 @@ const KIND = {pr_merged:"PR merged", pr_open:"PR open", issue_completed:"issue d
   meeting:"meeting", doc_created:"doc created", doc_edited:"doc edited"};
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const post = (url, body) => fetch(url, {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
-let data = null, cur = 0, draft = {}, from = null;
+let data = null, cur = 0, draft = {}, from = null, all = false, keys = false;
 
 async function load(week){
   data = await (await fetch("/api/review" + (week ? `?week=${week}` : ""))).json();
@@ -901,13 +900,10 @@ function pick(t){
 
 function stats(){
   const decided = data.threads.filter(t => t.human.without_me);
-  // A discarded thread has no mode to agree on.
-  const both = decided.filter(t => t.claude.mode && t.human.without_me !== "discard");
   data.pending[data.week] = data.threads.length - decided.length;
   PENDING = {...data.pending}; renderWm();
   $("#rv-week").innerHTML = data.weeks.map(w => `<option value="${w}" ${w===data.week?"selected":""}>${w} · ${data.pending[w] ? `${data.pending[w]} left` : "done"}</option>`).join("");
   $("#rv-done").textContent = `${decided.length}/${data.threads.length}`;
-  $("#rv-agree").textContent = both.length ? `${both.filter(t => t.claude.mode === t.human.mode).length}/${both.length}` : "–";
 }
 
 function render(){
@@ -922,31 +918,33 @@ function render(){
   // The address follows the open thread, so reload and back keep your place.
   if(!$("#v-review").hidden) history.replaceState(null, "", `#/review?week=${data.week}&key=${encodeURIComponent(t.key)}${from ? `&from=${encodeURIComponent(from)}` : ""}`);
   const back = from && data.groups.find(g => g.id === from), group = t.projects[0];
-  const kinds = Object.entries(t.events.reduce((a,e) => (a[e.kind]=(a[e.kind]||0)+1, a), {})).map(([k,n]) => `${n} ${KIND[k]??k}`).join(" · ");
+  // Claude's evidence first; only three until you ask for the rest.
+  const evs = [...t.events].sort((a, b) => ev.has(b.id) - ev.has(a.id)), few = all ? evs : evs.slice(0, 3);
   $("#rv-card").innerHTML = `
     <div class="r-prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.without_me==="discard"?"g":x.human.without_me?"d":i===cur?"c":""}"></i>`).join("")}</div>
     ${back || group ? `<div class="crumb">${back ? `<a href="#/groups?g=${encodeURIComponent(back.id)}">← back to ${esc(back.name)}</a>` : ""}${group && group.id !== from ? `<a href="#/groups?g=${encodeURIComponent(group.id)}">${esc(group.name)} across weeks →</a>` : ""}</div>` : ""}
-    <div class="r-sec"><div class="gwrap"><span class="lbl">${esc(data.week)} · ${kinds}</span>
+    <div class="r-sec"><div class="gwrap">
         <button class="gbtn" id="gopen" aria-haspopup="listbox" aria-expanded="false"><kbd>P</kbd>${t.projects.length ? t.projects.map(p => esc(p.name) + (p.by === "claude" ? ` <span class="ai" title="Claude placed this thread here">Claude</span>` : p.by === "channel" ? ` <span class="ai" title="From a dedicated Slack channel">channel</span>` : "")).join(", ") : "no group"} ▾</button>
         ${t.projects.some(p => p.by === "claude") ? `<button class="undo" id="unassign">wrong group ✕</button>` : ""}
         <div class="gpop" id="gpop" hidden><input id="gq" placeholder="Find a group, or type a new one" autocomplete="off" aria-label="Group"><ul id="gl-list" role="listbox"></ul></div></div>
       <input class="r-title" id="rv-title" value="${esc(d.title)}" aria-label="Thread title">
       <textarea class="r-summary" id="rv-summary" rows="2" aria-label="Summary of what you did" placeholder="No summary yet">${esc(d.summary)}</textarea></div>
-    <div class="r-sec"><span class="lbl">Evidence</span><ul class="r-events">${t.events.map(e => `<li class="${ev.has(e.id)?"ev":""}">
+    <div class="r-sec"><span class="lbl">Evidence · ${evs.length}${evs.length > 3 ? ` <button class="undo" id="all">${all ? "show less" : "show all"}</button>` : ""}</span><ul class="r-events">${few.map(e => `<li class="${ev.has(e.id)?"ev":""}">
       <span class="k">${KIND[e.kind]??e.kind}</span>
       <span class="ev-x">${e.url?`<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title ?? e.id)} ↗</a>`:esc(e.title ?? e.id)}
       ${e.author && e.kind!=="pr_merged" && e.kind!=="pr_open" ? ` <span class="lbl">${esc(e.author)}</span>`:""}
       ${e.text?`<small>${esc(e.text)}</small>`:""}</span></li>`).join("")}</ul></div>
     <div class="r-two">
       <div class="r-sec"><span class="lbl">Mode</span><div class="r-chips">${Object.keys(MODES).map((k,i) => chip("mode", k, MODES[k], MODE_KEYS[i], d, t, mc(k))).join("")}</div></div>
-      <div class="r-sec"><span class="lbl">Pillar · Reilly</span><div class="r-chips">${Object.keys(PILLAR).map((k,i) => chip("pillar", k, PILLAR[k], PILLAR_KEYS[i], d, t)).join("")}</div></div>
+      <div class="r-sec"><span class="lbl">Pillar</span><div class="r-chips">${Object.keys(PILLAR).map((k,i) => chip("pillar", k, PILLAR[k], PILLAR_KEYS[i], d, t)).join("")}</div></div>
     </div>
-    <div class="r-sec"><span class="lbl">Without you, would it have happened? · saves and moves on</span>
+    <div class="r-sec"><span class="lbl">Without you?</span>
       <div class="r-wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}</div>
-      <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}"><kbd>0</kbd>Discard · not impact${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button></div>
-    <div class="r-keys"><span><kbd>A</kbd>–<kbd>H</kbd> mode</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> pillar</span>
+      <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}"><kbd>0</kbd>Discard${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button></div>
+    <div class="r-keys" ${keys ? "" : "hidden"}><span><kbd>A</kbd>–<kbd>H</kbd> mode</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> pillar</span>
       <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> without you, save</span><span><kbd>0</kbd> discard</span><span><kbd>⇧0</kbd> discard all routine</span><span><kbd>J</kbd><kbd>K</kbd> move</span>
-      <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>O</kbd> open evidence</span><span><kbd>P</kbd> group</span></div>`;
+      <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>O</kbd> open evidence</span><span><kbd>P</kbd> group</span><span><kbd>?</kbd> hide</span></div>
+    ${keys ? "" : `<button class="undo" id="keys" style="justify-self:start"><kbd>?</kbd> shortcuts</button>`}`;
   $("#rv-queue [aria-current=true]")?.scrollIntoView({block:"nearest"});
 }
 
@@ -957,7 +955,7 @@ function chip(field, k, label, key, d, t, color){
 }
 
 function set(field, v){ pick(data.threads[cur])[field] = v; render(); }
-function go(i){ cur = Math.min(Math.max(i,0), data.threads.length-1); render(); }
+function go(i){ cur = Math.min(Math.max(i,0), data.threads.length-1); all = false; render(); }
 // J/K step over threads the filter hides.
 function step(dir){ for(let i = cur + dir; i >= 0 && i < data.threads.length; i += dir) if(shown(i)) return go(i); }
 function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
@@ -1037,6 +1035,8 @@ $("#v-review").addEventListener("click", e => {
   else if(b.dataset.wm) decide(b.dataset.wm);
   else if(b.id === "unassign") unassign();
   else if(b.id === "discard-all") discardAll();
+  else if(b.id === "all"){ all = !all; render(); }
+  else if(b.id === "keys"){ keys = true; render(); }
   else if(b.id === "gopen") $("#gpop").hidden ? gOpen() : gClose();
   else if(b.dataset.g) gChoose(+b.dataset.g);
 });
@@ -1069,6 +1069,7 @@ document.addEventListener("keydown", e => {
   else if(k === "t"){ $("#rv-title").focus(); $("#rv-title").select(); }
   else if(k === "e"){ const s = $("#rv-summary"); s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
   else if(k === "p") gOpen();
+  else if(e.key === "?"){ keys = !keys; render(); }
   else if(k === "o"){ const a = $(".r-events li.ev a") ?? $(".r-events a"); if(a) window.open(a.href, "_blank", "noopener"); }
   else return;
   e.preventDefault();
@@ -1080,8 +1081,9 @@ return {open};
 const GV = (() => {
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 let data = null, filter = "all", focus = null;
+const opened = new Set();
 async function open(g){
-  focus = g;
+  focus = g; if(g) opened.add(g);
   // Always fresh: decisions made in review change the ticks here.
   data = await (await fetch("/api/groups")).json();
   render();
@@ -1095,17 +1097,19 @@ function render(){
   const n = data.weeks.length;
   $("#grp-list").innerHTML = gs.map(g => { const todo = Object.values(g.weeks).flat().filter(t => !t.decided).length;
     return `<section class="grp ${g.id === focus ? "on" : ""}" data-gid="${esc(g.id)}" aria-label="${esc(g.name)}">
-    <div class="gh"><h2>${esc(g.name)}</h2><span class="ai">${g.kind === "topic" ? "topic" : "linear"}</span>
-      <span class="lbl">${g.total} thread${g.total === 1 ? "" : "s"} · ${Object.keys(g.weeks).length} of ${n} weeks${todo ? ` · ${todo} to review` : ""}</span></div>
+    <button class="gh" data-toggle="${esc(g.id)}" aria-expanded="${opened.has(g.id)}"><h2>${esc(g.name)}</h2>${todo ? `<span class="todo">${todo} to review</span>` : ""}<span class="chev">${opened.has(g.id) ? "▴" : "▾"}</span></button>
     <div class="strip" style="--n:${n}">${data.weeks.map(w => { const c = (g.weeks[w] ?? []).length;
       return `<i class="${c ? "on" : ""}" style="--v:${c / max}" title="${w}: ${c}">${c || ""}</i>`; }).join("")}${data.weeks.map(w => `<span>${w.slice(5)}</span>`).join("")}</div>
-    <div class="weeks">${data.weeks.filter(w => g.weeks[w]).map(w => `<div class="wk"><span class="lbl">${w.slice(5)}</span><ul>
+    <div class="weeks" ${opened.has(g.id) ? "" : "hidden"}>${data.weeks.filter(w => g.weeks[w]).map(w => `<div class="wk"><span class="lbl">${w.slice(5)}</span><ul>
       ${g.weeks[w].map(t => `<li><a href="#/review?week=${w}&key=${encodeURIComponent(t.key)}&from=${encodeURIComponent(g.id)}"><b>${esc(t.title ?? "Untitled")}</b><span class="n">${t.events}</span>${t.decided ? `<span class="ok" title="You decided this">✓</span>` : `<span class="todo">to review</span>`}
-        ${t.summary ? `<small>${esc(t.summary)}</small>` : ""}</a></li>`).join("")}</ul></div>`).join("")
+</a></li>`).join("")}</ul></div>`).join("")
       || `<span class="lbl">No threads yet. Pick this group for a thread in review with P.</span>`}</div></section>`; }).join("")
     || `<div class="empty">No groups yet. In review, press P on a thread to put it in a group or create one.</div>`;
 }
-$("#v-groups").addEventListener("click", e => { const b = e.target.closest("[data-f]"); if(!b) return;
+$("#v-groups").addEventListener("click", e => {
+  const tg = e.target.closest("[data-toggle]");
+  if(tg){ const id = tg.dataset.toggle; opened.has(id) ? opened.delete(id) : opened.add(id); return render(); }
+  const b = e.target.closest("[data-f]"); if(!b) return;
   filter = b.dataset.f; document.querySelectorAll("#v-groups [data-f]").forEach(x => x.setAttribute("aria-pressed", x === b)); render(); });
 return {open};
 })();
