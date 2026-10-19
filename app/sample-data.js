@@ -1,4 +1,5 @@
 // Fictional example data, so the app works without a local collection.
+const SAMPLE = true;
 // Real data lives in data/prototype-data.js, which is git-ignored.
 const GOALS = [
   {id:"o1", short:"Self-serve", title:"Customers manage their whole setup as code", color:"var(--m-solve)"},

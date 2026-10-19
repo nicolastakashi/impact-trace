@@ -1,6 +1,6 @@
 # impact-trace
 
-Weekly impact tracking for a Principal Engineer.
+Weekly impact tracking for engineers.
 
 Claude Code collects the facts from GitHub, Linear, Slack, Calendar and Docs through
 CLIs and MCPs. Code here only validates them, stores them in SQLite, and shows them.
@@ -14,8 +14,8 @@ claude -p (skills) ━▶ data/raw/<week>/*.json ━▶ ingest ━▶ data/impac
 ## Use
 
 ```bash
+bun app/server.ts        # first run opens the setup page: tools, who you are, first week
 ./run.sh 2026-10-12      # collect and ingest the week of that Monday (default: this week)
-bun app/server.ts        # http://localhost:4317
 bun test                 # ingest self-check
 ```
 

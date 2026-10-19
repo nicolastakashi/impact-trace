@@ -394,6 +394,29 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 .crumbs a:hover{border-color:var(--accent)}
 .ex2{border-style:dashed}
 
+/* setup */
+.sample-note{display:block;font-size:13.5px;color:var(--ink-2);background:var(--s2);border:1px dashed var(--line-2);border-radius:12px;padding:10px 14px;text-decoration:none}
+.sample-note b{color:var(--accent);font-weight:600}
+#v-setup{
+  .steps{list-style:none;margin:0;padding:0;display:grid;gap:14px;max-width:760px;counter-reset:s}
+  .steps > li{counter-increment:s;background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:20px clamp(16px,3vw,26px);display:grid;gap:14px;box-shadow:var(--shadow)}
+  .steps h2{margin:0;font:800 22px/1 var(--f-num);text-transform:uppercase;display:flex;gap:12px;align-items:center}
+  .steps h2::before{content:counter(s);display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--s3);font:600 13px var(--f-mono);color:var(--ink-2)}
+  .steps li.done h2::before{content:"✓";background:color-mix(in srgb,var(--m-build) 30%,var(--s3));color:var(--ink)}
+  .checks{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:14px;color:var(--ink-2)}
+  .checks li{display:flex;gap:10px;align-items:baseline}
+  .checks .ok{color:var(--m-build)} .checks .no{color:var(--accent)} .checks .unk{color:var(--ink-3)}
+  form{display:grid;gap:14px}
+  label{display:grid;gap:6px;font-size:14px;color:var(--ink)}
+  label small{color:var(--ink-3);font-size:12.5px}
+  input{font:500 15px var(--f-body);color:var(--ink);background:var(--s2);border:1px solid var(--line-2);border-radius:10px;padding:9px 12px;max-width:420px}
+  input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .save{justify-self:start;font:600 14px var(--f-body);color:var(--bg);background:var(--accent);border:0;border-radius:10px;padding:9px 16px;cursor:pointer}
+  .err{color:var(--accent);font-size:13.5px}
+  pre{margin:0;font:500 13px var(--f-mono);background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;overflow-x:auto}
+  p{margin:0;color:var(--ink-2);font-size:14px;line-height:1.5}
+}
+
 /* refs */
 /* One topic in focus; the others are one click away, in a list on the left. */
 .refs{display:grid;grid-template-columns:230px 1fr;gap:18px;align-items:start}
@@ -481,6 +504,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 
 <!-- HOME -->
 <section class="view" id="v-home">
+  <a class="sample-note" href="#/setup" hidden>Example data, not yours. North and Trace come from a hand-made file. <b>Set up yours →</b></a>
   <div class="vhead">
     <h1 id="home-h">W35–W42 <em>·</em> 8 weeks</h1>
     <p id="home-p"></p>
@@ -505,6 +529,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 
 <!-- TRACE -->
 <section class="view" id="v-trace" hidden>
+  <a class="sample-note" href="#/setup" hidden>Example data, not yours. <b>Set up yours →</b></a>
   <div class="vhead">
     <h1>How I deliver, <em>week by week</em></h1>
     <p>Click weeks or drag across them to select. The panel compares the selection with the rest of the period, like Honeycomb BubbleUp.</p>
@@ -548,6 +573,12 @@ nav .ex{font-size:8.5px;padding:2px 4px}
     <ul class="r-queue" id="rv-queue" aria-label="Threads of the week"></ul>
     <main class="r-card" id="rv-card"><div class="empty">Loading threads…</div></main>
   </div>
+</section>
+
+<!-- SETUP -->
+<section class="view" id="v-setup" hidden>
+  <div class="vhead"><h1>Set <em>up</em></h1><p>Three steps. Everything stays on this machine.</p></div>
+  <ol class="steps" id="su"><li class="empty">Checking your tools…</li></ol>
 </section>
 
 <!-- REFS -->
@@ -604,7 +635,7 @@ const REFS = {
   counterfactual:{title:"Without you, would it have happened?", d:"The question you answer for each thread in review: would this have happened without you?", ex:["Wouldn't happen", "Slower", "Same"], items:[
     {q:"things that simply won't happen if you don't do them are your biggest opportunity to work on something that matters", who:"Will Larson", url:"https://staffeng.com/guides/work-on-what-matters/"},
     {q:"you won't get promoted if your company's leadership doesn't know who you are.", who:"Will Larson, Getting the title where you are", url:"https://staffeng.com/guides/getting-the-title-where-you-are/"}]},
-  scope:{title:"Principal scope", d:"Principal work reaches past one team: several groups, or a company goal.", ex:["Across teams", "Org-wide", "Company goal"], items:[
+  scope:{title:"Scope", d:"Scope grows with level: your team, then several teams, then a company goal.", ex:["Your team", "Across teams", "Company goal"], items:[
     {q:"While a senior engineer typically works across a team, a Staff or Principal engineer usually works across a larger organization.", who:"Gergely Orosz", url:"https://newsletter.pragmaticengineer.com/p/engineering-career-paths"},
     {q:"Principal Engineers and Senior Directors of Engineering primarily focus on the engineering output of multiple groups", who:"Mike McQuaid", url:"https://mikemcquaid.com/what-is-a-staff-plus-principal-engineer/"},
     {q:"I deliver results against a strategic company-level business objective", who:"Dropbox, IC6", url:"https://dropbox.github.io/dbx-career-framework/ic6_principal_software_engineer.html"}]},
@@ -780,6 +811,44 @@ function openItem(id){
 const WM = [["wouldnt","wouldn't happen"],["slower","slower"],["same","same"]];
 const wmBtns = it => WM.map(([k,l],i)=>`<button class="opt" data-wm="${k}" data-id="${it.id}" aria-pressed="${answers[it.id]?.wm===k}"><kbd>${i+1}</kbd>${l}</button>`).join("");
 
+/* SETUP: tools, who you are, first week. The form starts filled from gh and git. */
+const SU = (() => {
+const LEVELS = ["Software Engineer","Senior Engineer","Staff Engineer","Senior Staff Engineer","Principal Engineer","Distinguished Engineer"];
+let s = null, err = "";
+async function open(){ s = await (await fetch("/api/setup?guess=1")).json(); render(); }
+function render(){
+  const c = s.config ?? {}, g = s.guess, v = (k) => esc(c[k] ?? g[k] ?? "");
+  const mark = (ok) => ok ? `<span class="ok">✓</span>` : `<span class="no">✕</span>`;
+  $("#su").innerHTML = `
+    <li class="${s.checks.gh && s.checks.claude ? "done" : ""}"><h2>Tools</h2>
+      <ul class="checks">
+        <li>${mark(s.checks.claude)} Claude Code ${s.checks.claude ? "" : "· install it, then reload"}</li>
+        <li>${mark(s.checks.gh)} GitHub CLI, logged in ${s.checks.gh ? "" : "· run <code>gh auth login</code>, then reload"}</li>
+        <li><span class="unk">?</span> In Claude, connect Linear, Slack, Google Calendar and Google Drive. This page cannot check them.</li></ul></li>
+    <li class="${s.config ? "done" : ""}"><h2>About you</h2>
+      <form id="su-form">
+        <label for="su-name">Full name<small>As people write it in Slack. Finds the messages that mention you.</small><input id="su-name" name="name" value="${v("name")}" autocomplete="name" required></label>
+        <label for="su-gh">GitHub login<input id="su-gh" name="github" value="${v("github")}" required></label>
+        <label for="su-orgs">Your company's GitHub orgs<small>Comma-separated. Review comments come from these. Repos under your own login count as side projects.</small><input id="su-orgs" name="orgs" value="${esc((c.orgs ?? g.orgs).join(", "))}"></label>
+        <label for="su-level">Level<small>Claude judges each thread against it.</small><input id="su-level" name="level" list="su-levels" value="${v("level")}" placeholder="Senior Engineer" required></label>
+        <datalist id="su-levels">${LEVELS.map(l => `<option value="${l}">`).join("")}</datalist>
+        ${err ? `<span class="err" role="alert">${esc(err)}</span>` : ""}
+        <button class="save">${s.config ? "Save changes" : "Save"}</button></form></li>
+    <li><h2>Your first week</h2>
+      <p>In a terminal, in this folder:</p><pre>./run.sh</pre>
+      <p>It collects this week. Then <a href="#/review">review it</a>: Claude suggests, you decide.</p></li>`;
+}
+$("#v-setup").addEventListener("submit", async e => {
+  e.preventDefault(); const f = new FormData(e.target);
+  const body = {name: f.get("name"), github: f.get("github"), level: f.get("level"), orgs: String(f.get("orgs")).split(",").map(x => x.trim()).filter(Boolean)};
+  const r = await fetch("/api/setup", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
+  err = r.ok ? "" : await r.text();
+  if(r.ok){ s.config = body; const t = $("#toast"); t.textContent = "Saved"; t.hidden = false; setTimeout(() => t.hidden = true, 1800); }
+  render();
+});
+return {open};
+})();
+
 /* REFS */
 function renderRefs(k){
   if(!REFS[k]) k = "clarify";
@@ -831,7 +900,7 @@ function step(d){ sI = Math.max(0, Math.min(SLIDES.length-1, sI+d)); drawStory()
 
 /* CMDK */
 let cmdSel = 0, cmdRes = [];
-const VIEWS = [["home","North"],["projects","Projects"],["project","Project"],["trace","Trace"],["review","Review"],["refs","References"]];
+const VIEWS = [["home","North"],["projects","Projects"],["project","Project"],["trace","Trace"],["review","Review"],["refs","References"],["setup","Setup"]];
 function openCmd(){ $("#cmdk").hidden = false; $("#cmdk-input").value=""; filterCmd(); $("#cmdk-input").focus(); }
 function filterCmd(){
   const q = $("#cmdk-input").value.toLowerCase();
@@ -863,6 +932,7 @@ function route(){
   if(v === "projects") p.get("p") ? (history.replaceState(null, "", `#/project?id=${encodeURIComponent(p.get("p"))}`), route()) : GV.open();
   if(v === "project") PV.open(p.get("id"));
   if(v === "refs") renderRefs(p.get("k"));
+  if(v === "setup") SU.open();
 }
 function show(v){ if(location.hash.split("?")[0] !== "#/"+v) history.pushState(null, "", "#/"+v); route(); }
 addEventListener("hashchange", route);
@@ -1325,4 +1395,7 @@ return {open};
 })();
 
 renderAll(); route(); loadPending(); hydrate();
+if(typeof SAMPLE !== "undefined") document.querySelectorAll(".sample-note").forEach(x => x.hidden = false);
+// First run: nobody to collect for yet, so start at setup.
+fetch("/api/setup").then(r => r.json()).then(s => { if(!s.config && !location.hash.startsWith("#/setup")) show("setup"); }).catch(() => {});
 </script>
