@@ -611,7 +611,6 @@ const wmBtns = it => WM.map(([k,l],i)=>`<button class="opt" data-wm="${k}" data-
 /* REVIEW */
 function renderReview(){
   const left = ITEMS.filter(i=>!answers[i.id]?.wm).length;
-  $("#badge").textContent = left; $("#badge").hidden = !left;
   const it = ITEMS[cur], m = modeOf(it), st = PROJECTS[it.s], r = it.rec!=null ? REC[it.rec] : null, q = it.quote || (r && {t:r.t, who:`${r.who} · ${r.where}`});
   $("#rcard").innerHTML = `
     <div class="prog">${ITEMS.map((i,ix)=>`<i class="${answers[i.id]?.wm?"d":ix===cur?"c":""}"></i>`).join("")}</div>
@@ -688,12 +687,15 @@ function runCmd(i){ const r = cmdRes[i]; if(!r) return; $("#cmdk").hidden = true
 
 /* NAV */
 function show(v){
+  if(v==="review"){ location.href = "/review"; return; }
   document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.v===v));
   document.querySelectorAll("section.view").forEach(s=>s.hidden = s.id!=="v-"+v);
   $("#sheet").hidden = true; window.scrollTo(0,0);
   if(v==="home") renderHome();
   if(G && v!=="home") G.from(`#v-${v} .panel, #v-${v} .refc, #v-${v} .pcard`,{y:12,opacity:0,duration:.4,stagger:.04,clearProps:"all"});
 }
+// The badge counts your real pending threads, not the prototype's examples.
+fetch("/api/pending").then(r => r.ok ? r.json() : {}).then(p => { const n = Object.values(p).reduce((a,b) => a+b, 0); $("#badge").textContent = n; $("#badge").hidden = !n; }).catch(() => $("#badge").hidden = true);
 function renderAll(){ renderTrace(); renderReview(); renderProj(); }
 
 document.addEventListener("click", e=>{
