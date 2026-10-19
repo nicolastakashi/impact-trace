@@ -7,13 +7,14 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["key", "title", "summary", "mode", "pillar", "evidence"],
+        "required": ["key", "title", "summary", "mode", "pillar", "routine", "evidence"],
         "properties": {
           "key": { "type": "string" },
           "title": { "type": "string" },
           "summary": { "type": "string" },
           "mode": { "enum": ["clarify", "prevent", "solve", "build", "elevate", "external"] },
           "pillar": { "enum": ["big", "exec", "level"] },
+          "routine": { "type": "boolean" },
           "evidence": { "type": "array", "items": { "type": "string" } }
         }
       }

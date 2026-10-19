@@ -4,8 +4,8 @@ description: Suggest impact labels for one week of Nicolas's work threads, as JS
 argument-hint: "<YYYY-WNN>"
 ---
 
-The input is a JSON list of work threads for week `$ARGUMENTS`. Each thread has a `key`
-and its `events`: PRs, issues, Slack messages, meetings and docs, with short text.
+The input is JSON for week `$ARGUMENTS`: `threads`, the work threads to label, and
+`examples`, titles of threads Nicolas already judged. Each thread has a `key` and its `events`: PRs, issues, Slack messages, meetings and docs, with short text.
 `projects` lists the Linear projects the thread belongs to, when known.
 Nicolas is a Principal Engineer. Label each thread once, using only what the events show.
 
@@ -30,6 +30,10 @@ No praise, no judgment of impact. For a mention, say what the other person says 
 - `big`: big-picture thinking. Direction and strategy across teams.
 - `exec`: project execution. Getting a hard thing done.
 - `level`: leveling up others.
+
+`routine`: true when the thread is not worth recording as impact, the way Nicolas judged
+`examples.routine` (access requests, small talk, a lone reply, a small PR with no wider
+effect). False when it is like `examples.kept`. When unsure, false: he reviews it anyway.
 
 `evidence`: the event ids that support `mode`. One to three.
 
