@@ -97,6 +97,11 @@ header .back{margin-left:auto;font:500 12px var(--f-mono);color:var(--ink-2)}
 .wm button:hover{border-color:var(--ink-2)}
 .wm button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
 .wm button[aria-pressed="true"] kbd{color:var(--ink);}
+.discard{justify-self:start;display:inline-flex;align-items:center;gap:8px;padding:7px 10px 7px 7px;background:none;border:1px dashed var(--line-2);border-radius:10px;cursor:pointer;font-size:13px;color:var(--ink-2)}
+.discard:hover{color:var(--ink);border-color:var(--ink-2)}
+.discard[aria-pressed="true"]{border-style:solid;border-color:var(--ink-2);color:var(--ink);background:var(--s3)}
+.queue .gone .t{text-decoration:line-through;color:var(--ink-3)}
+.prog i.x{background:var(--line-2)}
 
 .keys{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12.5px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:14px}
 .keys span{display:inline-flex;align-items:center;gap:4px}
@@ -149,7 +154,8 @@ function pick(t){
 
 function stats(){
   const decided = data.threads.filter(t => t.human.without_me);
-  const both = decided.filter(t => t.claude.mode);
+  // A discarded thread has no mode to agree on.
+  const both = decided.filter(t => t.claude.mode && t.human.without_me !== "discard");
   $("#done").textContent = `${decided.length}/${data.threads.length}`;
   $("#agree").textContent = both.length ? `${both.filter(t => t.claude.mode === t.human.mode).length}/${both.length}` : "–";
 }
@@ -157,14 +163,14 @@ function stats(){
 function render(){
   stats();
   const ts = data.threads;
-  $("#queue").innerHTML = ts.map((t,i) => { const d = pick(t); return `<li><button data-i="${i}" aria-current="${i===cur}">
+  $("#queue").innerHTML = ts.map((t,i) => { const d = pick(t); return `<li><button data-i="${i}" aria-current="${i===cur}" class="${t.human.without_me==="discard"?"gone":""}">
     <i class="dot" style="background:${mc(d.mode)}"></i><span class="t">${esc(d.title)}</span>
-    <span class="n ${t.human.without_me?"done":""}">${t.human.without_me?"✓":t.events.length}</span></button></li>`; }).join("");
+    <span class="n ${t.human.without_me?"done":""}">${t.human.without_me==="discard"?"✕":t.human.without_me?"✓":t.events.length}</span></button></li>`; }).join("");
   if(!ts.length){ $("#card").innerHTML = `<div class="empty">Nenhuma thread com sugestão ainda. Rode <code>./run.sh</code> para coletar e sugerir labels da semana.</div>`; return; }
   const t = ts[cur], d = pick(t), ev = new Set(JSON.parse(t.claude.evidence ?? "[]"));
   const kinds = Object.entries(t.events.reduce((a,e) => (a[e.kind]=(a[e.kind]||0)+1, a), {})).map(([k,n]) => `${n} ${KIND[k]??k}`).join(" · ");
   $("#card").innerHTML = `
-    <div class="prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.without_me?"d":i===cur?"c":""}"></i>`).join("")}</div>
+    <div class="prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.without_me==="discard"?"x":x.human.without_me?"d":i===cur?"c":""}"></i>`).join("")}</div>
     <div class="sec"><span class="lbl">${esc(data.week)} · ${kinds}</span>
       <input class="title" id="title" value="${esc(d.title)}" aria-label="Título da thread"></div>
     <div class="sec"><span class="lbl">Evidência</span><ul class="events">${t.events.map(e => `<li class="${ev.has(e.id)?"ev":""}">
@@ -177,9 +183,10 @@ function render(){
       <div class="sec"><span class="lbl">Pilar · Reilly</span><div class="chips">${Object.keys(PILLAR).map((k,i) => chip("pillar", k, PILLAR[k], PILLAR_KEYS[i], d, t)).join("")}</div></div>
     </div>
     <div class="sec"><span class="lbl">Sem mim, teria acontecido? · salva e avança</span>
-      <div class="wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}</div></div>
+      <div class="wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}</div>
+      <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}"><kbd>0</kbd>Descartar · não é impacto</button></div>
     <div class="keys"><span><kbd>A</kbd>–<kbd>H</kbd> modo</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> pilar</span>
-      <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> sem mim, salva</span><span><kbd>J</kbd><kbd>K</kbd> navegar</span>
+      <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> sem mim, salva</span><span><kbd>0</kbd> descartar</span><span><kbd>J</kbd><kbd>K</kbd> navegar</span>
       <span><kbd>T</kbd> editar título</span><span><kbd>O</kbd> abrir evidência</span></div>`;
   $("#queue [aria-current=true]")?.scrollIntoView({block:"nearest"});
 }
@@ -197,11 +204,11 @@ function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = f
 async function save(wm){
   const t = data.threads[cur], d = pick(t);
   d.title = $("#title").value.trim() || d.title;
-  const labels = {title: d.title, mode: d.mode, pillar: d.pillar, without_me: wm};
+  const labels = wm === "discard" ? {without_me: wm} : {title: d.title, mode: d.mode, pillar: d.pillar, without_me: wm};
   const r = await fetch("/api/labels", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({week: data.week, key: t.key, labels})});
   if(!r.ok){ toast(`Não salvou: ${await r.text()}`); return; }
   Object.assign(t.human, labels);
-  toast("Salvo");
+  toast(wm === "discard" ? "Descartado" : "Salvo");
   const next = data.threads.findIndex((x,i) => i > cur && !x.human.without_me);
   go(next >= 0 ? next : cur);
 }
@@ -221,6 +228,7 @@ document.addEventListener("keydown", e => {
   if(MODE_KEYS.includes(k)) set("mode", Object.keys(MODES)[MODE_KEYS.indexOf(k)]);
   else if(PILLAR_KEYS.includes(k)) set("pillar", Object.keys(PILLAR)[PILLAR_KEYS.indexOf(k)]);
   else if(["1","2","3"].includes(k)) save(WM[+k-1][0]);
+  else if(k === "0") save("discard");
   else if(k === "j") go(cur+1);
   else if(k === "k") go(cur-1);
   else if(k === "t"){ e.preventDefault(); $("#title").focus(); $("#title").select(); }
