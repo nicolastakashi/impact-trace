@@ -1,6 +1,9 @@
 // Fictional example data, so the app works without a local collection.
 const SAMPLE = true;
-// Real data lives in data/prototype-data.js, which is git-ignored.
+// The server builds the real version from the threads you keep in review.
+const WEEKS = ["W35","W36","W37","W38","W39","W40","W41","W42"];
+const REVIEWS = [28,19,22,27,17,27,15,10];
+const PERIOD = "2026-W35 – 2026-W42";
 const GOALS = [
   {id:"o1", short:"Self-serve", title:"Customers manage their whole setup as code", color:"var(--m-solve)"},
   {id:"o2", short:"Trusted alerts", title:"Alerts customers trust", color:"var(--m-clarify)"},
@@ -23,20 +26,20 @@ const REC = [
   {w:7, who:"Riley", role:"peer", where:"#kudos", t:"Worked through the whole offsite to unblock a key customer."},
 ];
 const ITEMS = [
-  {id:"2026-W35-i01", w:0, s:"up", title:"Three upstream PRs in one week", mode:"external", pillar:"big", reach:"external", links:[], p:{external:.9,build:.1}},
-  {id:"2026-W37-i01", w:2, s:"runners", title:"Private runners v0 shipped, shown to a customer the next day", mode:"build", pillar:"exec", reach:"up", rec:0, links:[], p:{build:.85,solve:.15}},
-  {id:"2026-W37-i02", w:2, s:"silences", ms:"Maintenance windows", title:"Challenged the maintenance-window model in review; the decision was reopened", mode:"clarify", pillar:"big", reach:"lateral",
-   quote:{t:"A window should be its own asset that creates and aggregates silences.", who:"Example, design review"}, links:[], p:{clarify:.8,prevent:.2}},
-  {id:"2026-W39-i01", w:4, s:"none", title:"Release animation in the in-app changelog", mode:"build", pillar:"exec", reach:"lateral", rec:1, links:[], p:{build:.9,clarify:.1}},
-  {id:"2026-W40-i01", w:5, s:"none", title:"The memory spike was not what the team assumed", mode:"prevent", pillar:"big", reach:"team",
-   quote:{t:"A series cap is not the right tool here. The problem is fat labels.", who:"Example, Slack"}, links:[], p:{prevent:.6,clarify:.4}},
-  {id:"2026-W40-i02", w:5, s:"none", title:"Told a new teammate to push back on anything over-engineered", mode:"elevate", pillar:"level", reach:"team",
-   quote:{t:"Feel free to push back on whatever you see as overengineered.", who:"Example, Slack"}, links:[], p:{elevate:.9,clarify:.1}},
-  {id:"2026-W40-i03", w:5, s:"access", title:"Finished work on rules that had stalled for months", mode:"build", pillar:"exec", reach:"team", rec:2, links:[], p:{build:.8,solve:.2}},
-  {id:"2026-W41-i01", w:6, s:"exports", title:"Opened the exports project: channel, design and tickets on day one", mode:"solve", pillar:"big", reach:"up", rec:3, links:[], p:{solve:.6,clarify:.4}},
-  {id:"2026-W41-i02", w:6, s:"runners", title:"Review on the operator, praised by a principal on another team", mode:"clarify", pillar:"level", reach:"lateral", rec:4, links:[], p:{clarify:.5,elevate:.5}},
-  {id:"2026-W42-i01", w:7, s:"exports", ms:"Safe delete", title:"Exports API released before a customer escalation", mode:"solve", pillar:"exec", reach:"up", rec:5, links:[], p:{solve:.8,build:.2}},
-  {id:"2026-W42-i02", w:7, s:"up", title:"Conference talk on metric contracts", mode:"external", pillar:"big", reach:"external", links:[], p:{external:.95,clarify:.05}},
+  {id:"2026-W35-i01", w:0, s:"up", title:"Three upstream PRs in one week", mode:"external", pillar:"big", wm:"wouldnt", links:[], ev:[["pr_open", "2026-08-24T10:12:00", "otel-collector: add exemplar support to the spanmetrics connector", null], ["pr_open", "2026-08-25T15:40:00", "prometheus: fix staleness markers on remote write retry", null], ["review_comment", null, "Maintainer review on the spanmetrics PR", null], ["pr_merged", "2026-08-27T11:05:00", "otel-collector: add exemplar support to the spanmetrics connector", null], ["pr_merged", "2026-08-28T16:20:00", "prometheus: fix staleness markers on remote write retry", null]], p:{external:.9,build:.1}},
+  {id:"2026-W37-i01", w:2, s:"runners", title:"Private runners v0 shipped, shown to a customer the next day", mode:"build", pillar:"exec", wm:"wouldnt", rec:0, links:[], ev:[["issue_completed", "2026-09-07T09:40:00", "Runner registers with a one-time token", null], ["pr_merged", "2026-09-07T17:10:00", "feat(runners): register with a one-time token", null], ["slack_message", "2026-09-08T11:02:00", "#team-runners", null], ["pr_merged", "2026-09-09T14:33:00", "feat(runners): run checks from a private network", null], ["meeting", "2026-09-10T15:00:00", "Private runners demo with the customer", null], ["issue_completed", "2026-09-10T16:48:00", "Private runners v0", null]], p:{build:.85,solve:.15}},
+  {id:"2026-W37-i02", w:2, s:"silences", ms:"Maintenance windows", title:"Challenged the maintenance-window model in review; the decision was reopened", mode:"clarify", pillar:"big", wm:"slower",
+   quote:{t:"A window should be its own asset that creates and aggregates silences.", who:"Example, design review"}, links:[], ev:[["review_comment", null, "Design review: maintenance windows", null], ["doc_edited", "2026-09-09T10:15:00", "Maintenance windows: design", null], ["slack_message", "2026-09-09T13:30:00", "#team-alerting", null], ["meeting", "2026-09-11T14:00:00", "Maintenance windows: decision review", null]], p:{clarify:.8,prevent:.2}},
+  {id:"2026-W39-i01", w:4, s:"none", title:"Release animation in the in-app changelog", mode:"build", pillar:"exec", wm:"slower", rec:1, links:[], ev:[["pr_open", "2026-09-22T10:05:00", "feat(ui): release animation in the changelog", null], ["pr_merged", "2026-09-23T16:42:00", "feat(ui): release animation in the changelog", null]], p:{build:.9,clarify:.1}},
+  {id:"2026-W40-i01", w:5, s:"none", title:"The memory spike was not what the team assumed", mode:"prevent", pillar:"big", wm:"same",
+   quote:{t:"A series cap is not the right tool here. The problem is fat labels.", who:"Example, Slack"}, links:[], ev:[["slack_mention", "2026-09-29T09:12:00", "#incident-memory", null], ["slack_message", "2026-09-29T09:58:00", "#incident-memory", null], ["doc_created", "2026-09-29T15:30:00", "Memory spike: what we found", null], ["pr_merged", "2026-09-30T11:20:00", "fix(ingest): bound the label cache", null]], p:{prevent:.6,clarify:.4}},
+  {id:"2026-W40-i02", w:5, s:"none", title:"Told a new teammate to push back on anything over-engineered", mode:"elevate", pillar:"level", wm:"same",
+   quote:{t:"Feel free to push back on whatever you see as overengineered.", who:"Example, Slack"}, links:[], ev:[["slack_message", "2026-10-01T16:05:00", "DM", null]], p:{elevate:.9,clarify:.1}},
+  {id:"2026-W40-i03", w:5, s:"access", title:"Finished work on rules that had stalled for months", mode:"build", pillar:"exec", wm:"same", rec:2, links:[], ev:[["pr_merged", "2026-09-28T13:00:00", "feat(rules): evaluate rules per tenant", null], ["issue_completed", "2026-09-29T10:30:00", "Rules evaluate per tenant", null], ["pr_merged", "2026-10-01T12:15:00", "feat(rules): migrate stalled rules", null], ["issue_completed", "2026-10-02T17:40:00", "Stalled rules migrated", null]], p:{build:.8,solve:.2}},
+  {id:"2026-W41-i01", w:6, s:"exports", title:"Opened the exports project: channel, design and tickets on day one", mode:"solve", pillar:"big", wm:"wouldnt", rec:3, links:[], ev:[["slack_message", "2026-10-05T09:20:00", "#project-exports", null], ["doc_created", "2026-10-05T11:00:00", "Exports API: design", null], ["issue_open", null, "Exports: DELETE endpoint", null], ["issue_open", null, "Exports: Terraform resource", null], ["meeting", "2026-10-06T14:00:00", "Exports kickoff", null]], p:{solve:.6,clarify:.4}},
+  {id:"2026-W41-i02", w:6, s:"runners", title:"Review on the operator, praised by a principal on another team", mode:"clarify", pillar:"level", wm:"slower", rec:4, links:[], ev:[["pr_merged", "2026-10-07T10:44:00", "operator: reconcile dashboards on resync", null], ["slack_mention", "2026-10-07T18:02:00", "#engineering", null]], p:{clarify:.5,elevate:.5}},
+  {id:"2026-W42-i01", w:7, s:"exports", ms:"Safe delete", title:"Exports API released before a customer escalation", mode:"solve", pillar:"exec", wm:"wouldnt", rec:5, links:[], ev:[["pr_merged", "2026-10-12T10:30:00", "feat(exports): soft delete behind a flag", null], ["pr_merged", "2026-10-13T15:12:00", "feat(exports): restore keeps the origin", null], ["issue_completed", "2026-10-14T09:50:00", "Exports API GA", null], ["slack_mention", "2026-10-14T13:05:00", "#customer-escalations", null]], p:{solve:.8,build:.2}},
+  {id:"2026-W42-i02", w:7, s:"up", title:"Conference talk on metric contracts", mode:"external", pillar:"big", wm:"wouldnt", links:[], ev:[["doc_created", "2026-10-13T09:00:00", "Talk: metric contracts", null], ["meeting", "2026-10-16T11:00:00", "Conference talk on metric contracts", null]], p:{external:.95,clarify:.05}},
 ];
 const HIGHLIGHT = {item:"2026-W42-i01", when:"2026-10-16"};
 const PHASES = [

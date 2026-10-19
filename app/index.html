@@ -113,9 +113,6 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .mb .tr i{display:block;height:100%;border-radius:4px;transform-origin:left}
 .mb .n{font:700 14px var(--f-num);text-align:right;color:var(--ink)}
 
-.reach svg{width:100%;height:auto}
-.reach text{font:600 11px var(--f-num);letter-spacing:.1em;text-transform:uppercase;fill:var(--ink-2)}
-.reach .cn{fill:var(--ink);font:800 13px var(--f-num)}
 .edge{stroke-dasharray:3 7;animation:flow 1.6s linear infinite}
 @keyframes flow{to{stroke-dashoffset:-20}}
 
@@ -133,31 +130,118 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 
 /* trace */
 .panel{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
-.hm-wrap{overflow-x:auto}
-.hm{min-width:640px;display:grid;grid-template-columns:96px repeat(8,1fr);gap:4px;user-select:none;-webkit-user-select:none}
-.hm .wk{font:600 12px var(--f-num);letter-spacing:.1em;color:var(--ink-3);text-align:center;padding:6px 0;border-radius:6px;cursor:pointer}
-.hm .wk.sel{color:var(--accent-ink);background:var(--accent)}
-.hm .ml{font-size:12.5px;color:var(--ink-2);display:flex;align-items:center;gap:7px}
-.cell{height:34px;border-radius:7px;background:var(--s3);position:relative;cursor:pointer;border:0;padding:0;transition:transform .15s}
-.cell:hover{transform:scale(1.06)}
-.cell.in{outline:1.5px solid var(--accent);outline-offset:1px}
-.cell b{position:absolute;inset:0;display:grid;place-items:center;font:700 13px var(--f-num);color:var(--ink)}
-.hm-hint{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:12.5px;color:var(--ink-3);margin-top:12px}
-.split{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;align-items:start}
-.bub{display:grid;gap:9px}
-.bub .row{display:grid;grid-template-columns:78px 1fr 64px;gap:10px;align-items:center;font-size:12.5px;color:var(--ink-2)}
-.bub .pair{display:grid;gap:3px}
-.bub .pair i{display:block;height:6px;border-radius:3px}
-.bub .pair i.b{background:var(--line-2)}
-.bub .d{font:700 13px var(--f-num);text-align:right}
-.up{color:var(--m-build)} .down{color:var(--ink-3)}
-.feed{display:grid;gap:8px;margin:0;padding:0;list-style:none}
-.feed button{width:100%;text-align:left;background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;display:grid;grid-template-columns:4px 1fr auto;gap:12px;align-items:center}
-.feed button:hover{border-color:var(--line-2)}
-.feed .stripe{align-self:stretch;border-radius:2px}
-.feed .ft{font-size:14px;line-height:1.35}
-.feed .fm{font:500 11px var(--f-mono);color:var(--ink-3);margin-top:3px}
-.feed .wk{font:700 14px var(--f-num);color:var(--ink-3)}
+/* Trace: your weeks as Dash0 traces. Explorer heatmap on top (start day × duration, drag to brush weeks),
+   waterfall below (a week is a trace, a kept thread is a span), span sidebar on the right.
+   Color map: mode = service color (--m-*), heatmap = accent ramp (mode color when filtered),
+   selection = ink outline, critical path ("without you it wouldn't happen") = ink ring, span events = ticks. */
+.tx{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;padding:20px clamp(16px,2.5vw,26px)}
+.tx-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 16px}
+.tx-sel{font-size:13px;color:var(--ink-2)}
+.tx-sel small{color:var(--ink-3);font-size:12px;margin-left:8px}
+.tx-scroll{overflow-x:auto;padding:6px 2px 2px}
+.hmap{--n:56;display:grid;grid-template-columns:64px repeat(var(--n),minmax(9px,1fr));grid-template-rows:repeat(4,22px) auto;gap:3px 2px;min-width:760px;user-select:none;-webkit-user-select:none;touch-action:none;cursor:crosshair}
+.hm-c{position:relative;z-index:1;border-radius:3px;background:var(--s2);transition:opacity .2s}
+.hm-c.we{background:color-mix(in srgb,var(--s2) 45%,transparent)}
+.hm-c[data-n]{background:color-mix(in srgb,var(--c) var(--v),var(--s3));box-shadow:0 0 14px -5px var(--c)}
+.hmap .hm-c:not(.in){opacity:.5}
+.hmap .hm-c.in[data-n]{box-shadow:0 0 16px -3px var(--c)}
+.hm-c.ping{opacity:1;outline:2px solid var(--ink);outline-offset:1px;z-index:2}
+.hm-band{grid-row:1 / span 4;z-index:0;margin:-5px -2px;border-radius:7px;background:color-mix(in srgb,var(--ink) 5%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 34%,transparent)}
+.hm-y{grid-column:1;font:500 11px var(--f-mono);color:var(--ink-3);display:flex;align-items:center}
+.hm-x{grid-row:5;display:flex;gap:6px;align-items:baseline;padding:9px 0 0 2px;background:none;border:0;text-align:left;cursor:pointer;font:600 12px var(--f-num);letter-spacing:.08em;color:var(--ink-3);white-space:nowrap}
+.hm-x small{font:500 10.5px var(--f-mono);letter-spacing:0}
+.hm-x:hover,.hm-x.in{color:var(--ink)}
+.tx-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 18px}
+.svc{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.svc button{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--s2);border-radius:999px;padding:5px 11px 5px 10px;font-size:12.5px;color:var(--ink-2);cursor:pointer;transition:opacity .2s,border-color .2s,background .2s}
+.svc button b{font:600 11.5px var(--f-mono);color:var(--ink-3)}
+.svc button:hover{color:var(--ink);border-color:var(--line-2)}
+.svc button[aria-pressed="true"]{color:var(--ink);border-color:var(--c,var(--ink));background:color-mix(in srgb,var(--c,var(--ink)) 14%,var(--s2))}
+.svc.f button[data-mf][aria-pressed="false"]{opacity:.45}
+.svc-sep{width:1px;height:18px;background:var(--line);margin:0 4px}
+.tx-scale{display:flex;align-items:center;gap:8px;font:500 11px var(--f-mono);color:var(--ink-3)}
+.tx-scale i{width:72px;height:8px;border-radius:4px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 25%,var(--s3)),var(--c))}
+.sw{display:inline-block;flex:none;width:14px;height:6px;border-radius:2px;background:var(--c)}
+.sw.crit{background:none;box-shadow:inset 0 0 0 1.5px var(--ink)}
+
+.tv{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:12px;align-items:start}
+.wf{padding:0;overflow:hidden}
+.wf-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px;padding:18px 20px 14px}
+.wf-head h2{margin:6px 0 0;font:800 28px/1 var(--f-num);text-transform:uppercase;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+.wf-head h2 small{font:500 12px var(--f-mono);color:var(--ink-3);text-transform:none}
+.wf-ctl{display:flex;gap:6px}
+.wf-ctl button{border:1px solid var(--line);background:var(--s2);border-radius:8px;padding:6px 10px;font:500 12px var(--f-mono);color:var(--ink-2);cursor:pointer}
+.wf-ctl button:hover{color:var(--ink);border-color:var(--line-2)}
+.wf-body{--lc:clamp(220px,38%,380px);position:relative}
+.wf-grid,.wf-phl{position:absolute;top:0;bottom:0;left:var(--lc);right:0;pointer-events:none}
+.wf-grid{background:linear-gradient(90deg,transparent calc(500%/7),color-mix(in srgb,var(--ink) 3%,transparent) 0),repeating-linear-gradient(90deg,var(--line) 0 1px,transparent 1px calc(100%/7))}
+.wf-phl{z-index:3}
+.wf-ph{position:absolute;top:0;bottom:0;left:0;width:2px;margin-left:-1px;background:var(--ink);box-shadow:0 0 16px 2px color-mix(in srgb,var(--ink) 40%,transparent);opacity:0}
+.wf-axis,.wr{position:relative;z-index:1;display:grid;grid-template-columns:var(--lc) minmax(0,1fr)}
+.wf-axis{height:30px;align-items:center;border-block:1px solid var(--line);background:color-mix(in srgb,var(--s2) 70%,transparent)}
+.wf-axis .lbl{padding-left:20px}
+.wf-axis .wt{position:relative;height:100%}
+.wf-axis .wt span{position:absolute;top:0;bottom:0;display:flex;align-items:center;padding-left:7px;font:500 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.wr{min-height:34px;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.wr .wn{display:flex;align-items:center;gap:10px;min-width:0;padding:7px 14px 7px 20px;background:none;border:0;text-align:left;cursor:pointer;font-size:13.5px;color:var(--ink-2)}
+.wr .wt{position:relative;min-height:32px}
+.wn .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wn .du{font:500 11.5px var(--f-mono);color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.wn .chev{width:10px;color:var(--ink-3);font-size:11px}
+.wn .wd{flex:1;font:500 11.5px var(--f-mono);color:var(--ink-3)}
+.wr.root{min-height:38px;background:color-mix(in srgb,var(--s2) 65%,transparent)}
+.wr.root .wn{color:var(--ink);font:700 14px var(--f-num);letter-spacing:.06em}
+.wr.sp .wn{padding-left:42px}
+.wr.sp:hover{background:color-mix(in srgb,var(--ink) 4%,transparent)}
+.wr.sp:hover .wn,.wr.sp.on .wn{color:var(--ink)}
+.wr.sp.on{background:color-mix(in srgb,var(--c) 11%,transparent)}
+.wr.sp.dim{opacity:.4}
+.wr.none{display:block;padding:12px 20px 12px 42px;font-size:13px;color:var(--ink-3)}
+.bar{position:absolute;top:50%;height:14px;margin-top:-7px;min-width:8px;border-radius:4px;background:color-mix(in srgb,var(--c) 88%,transparent);transform-origin:left center;box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 45%,transparent),0 0 18px -6px var(--c)}
+.bar.crit{box-shadow:0 0 0 1.5px var(--ink),0 0 18px -4px var(--c)}
+.bar.ghost{background:none;box-shadow:none;border:1px dashed var(--line-2)}
+.evt{position:absolute;top:3px;bottom:3px;width:2px;margin-left:-1px;border-radius:1px;background:color-mix(in srgb,var(--ground) 72%,transparent)}
+.rbar{position:absolute;top:50%;height:2px;margin-top:-1px;border-radius:1px;background:var(--line-2);transform-origin:left center}
+.rtick{position:absolute;top:50%;width:3px;height:12px;margin:-6px 0 0 -1.5px;border-radius:2px;background:var(--c)}
+
+.sb{position:sticky;top:calc(env(safe-area-inset-top,0px) + 84px);max-height:calc(100vh - 104px);overflow-y:auto;display:grid;gap:14px;align-content:start}
+.sb h3{margin:0;font:600 18px/1.3 var(--f-body);text-wrap:balance}
+.sb-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sb-mode{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2)}
+.sb-big{display:flex;align-items:baseline;gap:10px}
+.sb-big b{font:800 56px/1 var(--f-num);font-variant-numeric:tabular-nums}
+.sb-big span{color:var(--ink-2);font-size:14px}
+.mixbar{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden}
+.mixbar i{background:var(--c);transform-origin:left center}
+.sb-modes{list-style:none;margin:0;padding:0;display:grid}
+.sb-modes li{display:grid;grid-template-columns:auto 1fr auto 64px;gap:10px;align-items:center;padding:7px 0;font-size:13.5px;border-top:1px solid var(--line)}
+.sb-modes li:first-child{border-top:0}
+.sb-modes b{font:600 13px var(--f-mono)}
+.sb-modes small{font:500 11.5px var(--f-mono);color:var(--ink-3);text-align:right}
+.sb-note{margin:0;font-size:12.5px;color:var(--ink-3);line-height:1.5}
+.sb-kv{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:baseline;padding-top:12px;border-top:1px solid var(--line);font-size:13.5px}
+.sb-kv span{font:500 12px var(--f-mono);color:var(--ink-3)}
+.sb-kv button{background:none;border:0;padding:0;text-align:left;cursor:pointer;color:var(--ink);text-decoration:underline;text-decoration-color:var(--ink-3);text-underline-offset:3px}
+.sb-dur{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sb-dur b{font:600 28px/1 var(--f-mono)}
+.sb-dur span{font-size:13px;color:var(--ink-3)}
+.attrs{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;margin:0;font-size:13px}
+.attrs dt{font:500 12px var(--f-mono);color:var(--ink-3)}
+.attrs dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.sb-sum{margin:0;font-size:14px;line-height:1.55;color:var(--ink-2)}
+.evl{list-style:none;margin:0;padding:0;display:grid;max-height:320px;overflow-y:auto}
+.evl li{display:grid;grid-template-columns:78px 104px minmax(0,1fr);gap:8px;padding:7px 0;border-top:1px solid var(--line);font-size:12.5px;align-items:baseline}
+.evl time,.evl .k{font:500 11.5px var(--f-mono);color:var(--ink-3)}
+.evl .k{color:var(--ink-2)}
+.evl a,.evl .t{color:var(--ink);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.evl a:hover{text-decoration:underline}
+#v-trace > *{min-width:0}
+@media (max-width:980px){ .tv{grid-template-columns:minmax(0,1fr)} .sb{position:static;max-height:none} }
+@media (max-width:640px){
+  .wf-body{--lc:0px} .wr,.wf-axis{grid-template-columns:minmax(0,1fr)} .wf-axis .lbl{display:none}
+  .wr .wn,.wr.sp .wn{padding-left:16px} .wr.sp .wt{min-height:24px}
+  .evl li{grid-template-columns:70px minmax(0,1fr)} .evl .k{display:none}
+}
 
 /* item overlay */
 .sheet{position:fixed;inset:0;z-index:40;display:grid;place-items:end center;background:color-mix(in srgb,#000 55%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px))}
@@ -505,7 +589,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   <nav role="tablist" aria-label="Views">
     <button role="tab" id="t-home" data-v="home" aria-selected="true">North</button>
     <button role="tab" id="t-projects" data-v="projects" aria-selected="false">Projects</button>
-    <button role="tab" id="t-trace" data-v="trace" aria-selected="false">Trace <span class="ex">example</span></button>
+    <button role="tab" id="t-trace" data-v="trace" aria-selected="false">Trace <span class="ex sample-tag" hidden>example</span></button>
     <button role="tab" id="t-review" data-v="review" aria-selected="false">Review <span class="badge" id="badge"></span></button>
     <button role="tab" id="t-refs" data-v="refs" aria-selected="false">References</button>
   </nav>
@@ -517,14 +601,14 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 
 <!-- HOME -->
 <section class="view" id="v-home">
-  <a class="sample-note" href="#/review" hidden>Example data, not yours: North and Trace do not read your collection yet. <b>Your weeks are in Review →</b></a>
+  <a class="sample-note" href="#/review" hidden>Example data, not yours. North and Trace show your weeks once you keep a thread in review. <b>Open Review →</b></a>
   <div class="vhead">
-    <h1 id="home-h">W35–W42 <em>·</em> 8 weeks</h1>
+    <h1 id="home-h"></h1>
     <p id="home-p"></p>
   </div>
   <div class="bento">
     <div class="tile t-rings">
-      <div class="th"><span class="lbl">Where the work goes</span><span class="ex">example goals</span></div>
+      <div class="th"><span class="lbl">Where the work goes</span></div>
       <div class="rings-wrap">
         <svg class="rings" viewBox="0 0 240 240" role="img" aria-label="Share of items that serve each goal" id="rings"></svg>
         <ul class="glist" id="glist"></ul>
@@ -532,7 +616,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
     </div>
     <div class="tile t-big" id="bigthing"></div>
     <div class="tile" id="t-mix"></div>
-    <div class="tile reach" id="t-reach"></div>
+    <div class="tile" id="t-without"></div>
     <div class="tile" id="t-rec"></div>
     <div class="tile" id="t-rev"></div>
     <button class="tile t-wide" id="t-wm" data-v="review"></button>
@@ -542,24 +626,23 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 
 <!-- TRACE -->
 <section class="view" id="v-trace" hidden>
-  <a class="sample-note" href="#/review" hidden>Example data, not yours. <b>Your weeks are in Review →</b></a>
+  <a class="sample-note" href="#/review" hidden>Example data, not yours. <b>Open Review →</b></a>
   <div class="vhead">
     <h1>How I deliver, <em>week by week</em></h1>
-    <p>Click weeks or drag across them to select. The panel compares the selection with the rest of the period, like Honeycomb BubbleUp.</p>
+    <p id="tr-lead"></p>
   </div>
-  <div class="panel">
-    <div class="hm-wrap"><div class="hm" id="hm"></div></div>
-    <div class="hm-hint"><span id="selinfo"></span><button class="chip" id="clearsel">clear selection</button></div>
+  <div class="panel tx">
+    <div class="tx-head"><span class="lbl">Explorer · when each thread started, and how long it ran</span><span class="tx-sel" id="selinfo"></span></div>
+    <div class="tx-scroll"><div class="hmap" id="hm"></div></div>
+    <div class="tx-foot"><div class="svc" id="svc" role="group" aria-label="Filter spans"></div><span class="tx-scale" id="hm-scale"></span></div>
   </div>
-  <div class="split">
-    <div class="panel" style="display:grid;gap:12px"><div class="th" style="display:flex;justify-content:space-between"><span class="lbl">Items in selection</span><span class="lbl" id="feedn"></span></div><ul class="feed" id="feed"></ul></div>
-    <div class="panel" style="display:grid;gap:16px">
-      <span class="lbl">Selection vs rest</span>
-      <div class="bub" id="bub"></div>
-      <div style="display:flex;gap:14px;font-size:12px;color:var(--ink-3)"><span style="display:flex;gap:6px;align-items:center"><i class="dot" style="background:var(--accent)"></i>selection</span><span style="display:flex;gap:6px;align-items:center"><i class="dot" style="background:var(--line-2)"></i>rest</span></div>
-      <span class="lbl">Reach in selection</span>
-      <div class="bub" id="bub2"></div>
+  <div class="tv">
+    <div class="panel wf">
+      <div class="wf-head" id="wf-head"></div>
+      <div class="wf-body"><div class="wf-grid"></div><div class="wf-phl"><i class="wf-ph" id="wf-ph"></i></div>
+        <div class="wf-axis" id="wf-axis"></div><div id="wf"></div></div>
     </div>
+    <aside class="panel sb" id="sb" aria-live="polite"></aside>
   </div>
 </section>
 
@@ -613,10 +696,7 @@ const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const G = (!RM && window.gsap) ? window.gsap : null;
 
 const MODES = {clarify:"clarify", prevent:"prevent", solve:"solve", build:"build", elevate:"elevate", external:"external"};
-const REACH = {team:"my team", lateral:"lateral", up:"upward", external:"industry"};
 const PILLAR = {big:"big-picture", exec:"execution", level:"leveling-up"};
-const WEEKS = ["W35","W36","W37","W38","W39","W40","W41","W42"];
-const REVIEWS = [28,19,22,27,17,27,15,10];
 
 const REFS = {
   clarify:{title:"Clarify", d:"Made a fuzzy problem clear.", ex:["Proposals", "Decision docs", "Framing", "Scoping"], items:[
@@ -658,19 +738,17 @@ const REFS = {
     {q:"can take on massive ambiguous cross-org projects and make them succeed despite the difficulty.", who:"Tanya Reilly, The Staff Engineer's Path", url:"https://noidea.dog/staff"}]},
 };
 
-/* GOALS, PROJECTS, REC, ITEMS, HIGHLIGHT and PHASES come from /data.js */
-
-/* state */
-let answers = {};
-try{ answers = JSON.parse(localStorage.getItem("it-answers")||"{}") }catch(e){}
-const save = () => { try{ localStorage.setItem("it-answers", JSON.stringify(answers)) }catch(e){} };
-const modeOf = it => answers[it.id]?.mode || it.mode;
+/* WEEKS, REVIEWS, PERIOD, GOALS, PROJECTS, REC, ITEMS, HIGHLIGHT and PHASES come from /data.js:
+   built by the server from the threads you kept in review, or the fictional sample before that. */
+const WMS = {wouldnt:"wouldn't happen", slower:"slower", same:"same"};
+const LAST = WEEKS.length - 1;
+const modeOf = it => it.mode;
 const goalOf = it => PROJECTS[it.s].goal;
 const mc = m => `var(--m-${m})`;
 const esc = s => String(s).replace(/[&<>"]/g, ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
 const $ = s => document.querySelector(s);
 const cnt = (arr, f) => arr.reduce((o,x)=>{const k=f(x); o[k]=(o[k]||0)+1; return o},{});
-let sel = new Set(), cur = 0, recI = REC.length-1;
+let sel = new Set(), cur = 0, recI = Math.max(0, REC.length-1);
 
 function countUp(root){
   if(!G) return;
@@ -682,8 +760,9 @@ function countUp(root){
 
 /* HOME */
 function renderHome(){
-  const ups = ITEMS.filter(i=>i.reach==="up").length;
-  $("#home-p").innerHTML = `<b>${ITEMS.length}</b> items, <b>${REC.length}</b> public recognitions, <b>${ups}</b> items that reached leadership. Data from the Evidence notes.`;
+  const ups = ITEMS.filter(i=>i.wm==="wouldnt").length;
+  $("#home-h").innerHTML = `${esc(WEEKS[0])}–${esc(WEEKS[LAST])} <em>·</em> ${WEEKS.length} weeks`;
+  $("#home-p").innerHTML = `<b>${ITEMS.length}</b> threads you kept, <b>${REC.length}</b> mentions and praise, <b>${ups}</b> that would not have happened without you.`;
 
   // rings: share of items per goal
   const by = cnt(ITEMS, goalOf), n = ITEMS.length;
@@ -691,56 +770,49 @@ function renderHome(){
   $("#rings").innerHTML = GOALS.map((g,i)=>`
     <circle cx="120" cy="120" r="${R[i]}" fill="none" stroke="var(--s3)" stroke-width="16"/>
     <circle class="ring" data-v="${(by[g.id]||0)/n*100}" cx="120" cy="120" r="${R[i]}" fill="none" stroke="${g.color}" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="${100-(by[g.id]||0)/n*100}" transform="rotate(-90 120 120)" style="filter:drop-shadow(0 0 6px color-mix(in srgb,${g.color} 60%,transparent))"/>`).join("")
-    + `<text x="120" y="124" text-anchor="middle"><tspan data-count="${n-(by.null||0)}">${n-(by.null||0)}</tspan>/${n}</text><text class="sub" x="120" y="142" text-anchor="middle">WITH A GOAL</text>`;
-  $("#glist").innerHTML = GOALS.map(g=>`<li><button data-goal="${g.id}"><i class="dot" style="background:${g.color};margin-top:5px"></i><span class="gt">${esc(g.title)}</span><span class="gp num">${Math.round((by[g.id]||0)/n*100)}%</span><span class="gs">${by[g.id]||0} items · ${Object.values(PROJECTS).filter(P=>P.goal===g.id).length} projects · ${ITEMS.filter(i=>goalOf(i)===g.id&&i.reach==="up").length} upward</span></button></li>`).join("")
-    + `<li><button data-goal="none"><i class="dot" style="background:var(--line-2);margin-top:5px"></i><span class="gt" style="color:var(--ink-2)">No goal</span><span class="gp num" style="color:var(--ink-3)">${Math.round((by.null||0)/n*100)}%</span><span class="gs">can be normal, or glue with no owner · <a class="ref" href="#" data-ref="glue">glue work</a></span></button></li>`;
+    + `<text x="120" y="124" text-anchor="middle"><tspan data-count="${n-(by.null||0)}">${n-(by.null||0)}</tspan>/${n}</text><text class="sub" x="120" y="142" text-anchor="middle">IN THE TOP ${GOALS.length}</text>`;
+  $("#glist").innerHTML = GOALS.map(g=>`<li><button data-goal="${g.id}"><i class="dot" style="background:${g.color};margin-top:5px"></i><span class="gt">${esc(g.title)}</span><span class="gp num">${Math.round((by[g.id]||0)/n*100)}%</span><span class="gs">${by[g.id]||0} items · ${ITEMS.filter(i=>goalOf(i)===g.id&&i.wm==="wouldnt").length} wouldn't happen without you</span></button></li>`).join("")
+    + `<li><button data-goal="none"><i class="dot" style="background:var(--line-2);margin-top:5px"></i><span class="gt" style="color:var(--ink-2)">Everything else</span><span class="gp num" style="color:var(--ink-3)">${Math.round((by.null||0)/n*100)}%</span><span class="gs">can be normal, or glue with no owner · <a class="ref" href="#" data-ref="glue">glue work</a></span></button></li>`;
 
   // one big thing (Oura)
-  const big = ITEMS.find(i=>i.id===HIGHLIGHT.item), r = REC[big.rec];
-  $("#bigthing").innerHTML = `<div class="th"><span class="lbl">Highlight of the week · ${WEEKS[big.w]}</span><span class="chip" style="cursor:default"><i class="dot" style="background:${mc(modeOf(big))}"></i>${MODES[modeOf(big)]}</span></div>
+  const big = ITEMS.find(i=>i.id===HIGHLIGHT.item), r = REC[big.rec], bm = modeOf(big);
+  $("#bigthing").innerHTML = `<div class="th"><span class="lbl">Highlight of the week · ${WEEKS[big.w]}</span><span class="chip" style="cursor:default"><i class="dot" style="background:${mc(bm)}"></i>${MODES[bm]}</span></div>
     <p class="oneline">${esc(big.title)}</p>
-    <p class="big-q">${esc(r.t)}</p>
-    <span class="by">${esc(r.who)} · ${esc(r.where)} · ${HIGHLIGHT.when}</span>
-    <div style="margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><button class="chip" data-item="${big.id}">open evidence →</button><a class="ref" href="#" data-ref="solve">why it counts: solve what has no owner</a></div>`;
+    ${r ? `<p class="big-q">${esc(r.t)}</p><span class="by">${esc(r.who)} · ${esc(r.where)} · ${esc(HIGHLIGHT.when)}</span>` : big.summary ? `<p class="by" style="font-size:14px">${esc(big.summary)}</p>` : ""}
+    <div style="margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><button class="chip" data-item="${big.id}">open evidence →</button><a class="ref" href="#" data-ref="${bm}">why it counts: ${esc(REFS[bm].title.toLowerCase())}</a></div>`;
 
   // mix
   const m = cnt(ITEMS, modeOf), mx = Math.max(...Object.values(m));
   $("#t-mix").innerHTML = `<div class="th"><span class="lbl">How I deliver</span><a class="ref" href="#" data-v="trace">trace →</a></div>
     <div class="mixbars">${Object.keys(MODES).map(k=>`<div class="mb"><a class="ref" style="color:var(--ink-2);font-size:12.5px;font-family:var(--f-body)" href="#" data-ref="${k}">${MODES[k]}</a><span class="tr"><i style="width:${(m[k]||0)/mx*100}%;background:${mc(k)}"></i></span><span class="n">${m[k]||0}</span></div>`).join("")}</div>`;
 
-  // reach graph
-  const rc = cnt(ITEMS, i=>i.reach);
-  const pos = {up:[130,22], lateral:[226,80], external:[34,80], team:[130,140]};
-  $("#t-reach").innerHTML = `<div class="th"><span class="lbl">How far it reaches</span><a class="ref" href="#" data-ref="scope">scope →</a></div>
-    <svg viewBox="0 0 260 162" role="img" aria-label="Items by reach: ${Object.keys(REACH).map(k=>REACH[k]+" "+(rc[k]||0)).join(", ")}">
-      ${Object.keys(pos).map(k=>`<line class="edge" x1="130" y1="80" x2="${pos[k][0]}" y2="${pos[k][1]}" stroke="var(--accent)" stroke-opacity=".7" stroke-width="${1+(rc[k]||0)*.7}"/>`).join("")}
-      <circle cx="130" cy="80" r="17" fill="var(--accent)"/><text x="130" y="84" text-anchor="middle" fill="var(--accent-ink)" style="fill:var(--accent-ink)">ME</text>
-      ${Object.keys(pos).map(k=>`<circle cx="${pos[k][0]}" cy="${pos[k][1]}" r="${8+(rc[k]||0)*1.6}" fill="var(--s3)" stroke="var(--line-2)"/><text class="cn" x="${pos[k][0]}" y="${pos[k][1]+4.5}" text-anchor="middle">${rc[k]||0}</text>`).join("")}
-      <text x="164" y="22">${REACH.up}</text><text x="226" y="112" text-anchor="middle">${REACH.lateral}</text><text x="34" y="112" text-anchor="middle">${REACH.external}</text><text x="164" y="150">${REACH.team}</text>
-    </svg>`;
+  // without you: your own answer for each thread you kept
+  const wc = cnt(ITEMS, i=>i.wm), wx = Math.max(1, ...Object.values(wc));
+  $("#t-without").innerHTML = `<div class="th"><span class="lbl">Your answers · without you</span><a class="ref" href="#" data-ref="counterfactual">why →</a></div>
+    <div class="mixbars">${Object.keys(WMS).map(k=>`<div class="mb"><span style="color:var(--ink-2);font-size:12.5px">${WMS[k]}</span><span class="tr"><i style="width:${(wc[k]||0)/wx*100}%;background:var(--accent);opacity:${k==="wouldnt"?1:k==="slower"?.6:.3}"></i></span><span class="n">${wc[k]||0}</span></div>`).join("")}</div>`;
 
   renderRec();
 
   // reviews with baseline
   const avg = REVIEWS.reduce((a,b)=>a+b)/REVIEWS.length;
-  const X = i=>12+i*32, Y = v=>78-v/30*62;
+  const top = Math.max(30, ...REVIEWS), X = i=>12+i*(224/Math.max(1,LAST)), Y = v=>78-v/top*62;
   const pts = REVIEWS.map((v,i)=>`${X(i)},${Y(v)}`).join(" ");
   $("#t-rev").innerHTML = `<div class="th"><span class="lbl">Reviews given</span><a class="ref" href="#" data-ref="elevate">elevate →</a></div>
-    <div style="display:flex;align-items:baseline;gap:10px"><span class="statn num" data-count="${REVIEWS[7]}">${REVIEWS[7]}</span><span style="font-size:12.5px;color:var(--ink-3)">in W42 · your normal is ${avg.toFixed(0)}</span></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="statn num" data-count="${REVIEWS[LAST]}">${REVIEWS[LAST]}</span><span style="font-size:12.5px;color:var(--ink-3)">in ${WEEKS[LAST]} · your normal is ${avg.toFixed(0)}</span></div>
     <svg class="spark" viewBox="0 0 248 96" width="100%" role="img" aria-label="Reviews per week: ${REVIEWS.join(", ")}">
       <line x1="12" x2="236" y1="${Y(avg)}" y2="${Y(avg)}" stroke="var(--ink-3)" stroke-dasharray="3 4"/>
       <text x="236" y="${Y(avg)-5}" text-anchor="end">NORMAL ${avg.toFixed(0)}</text>
-      <polygon points="12,78 ${pts} ${X(7)},78" fill="var(--accent)" fill-opacity=".16"/>
+      <polygon points="12,78 ${pts} ${X(LAST)},78" fill="var(--accent)" fill-opacity=".16"/>
       <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
-      <circle cx="${X(7)}" cy="${Y(REVIEWS[7])}" r="4" fill="var(--accent)"/>
+      <circle cx="${X(LAST)}" cy="${Y(REVIEWS[LAST])}" r="4" fill="var(--accent)"/>
       ${WEEKS.map((w,i)=>`<text x="${X(i)}" y="93" text-anchor="middle">${w.slice(1)}</text>`).join("")}
     </svg>`;
 
   renderWm();
 
   // recap
-  $("#t-recap").innerHTML = `<div class="th"><span class="lbl">Recap · Q3 → Q4</span><span class="play" aria-hidden="true">▶</span></div>
-    <p class="oneline">Your 8 weeks,<br>in ${PHASES.length+4} screens</p><span style="font-size:13px;opacity:.85">Wrapped style. Use ← → or tap the sides.</span>`;
+  $("#t-recap").innerHTML = `<div class="th"><span class="lbl">Recap · ${esc(PERIOD)}</span><span class="play" aria-hidden="true">▶</span></div>
+    <p class="oneline">Your ${WEEKS.length} weeks,<br>in ${PHASES.length+4} screens</p><span style="font-size:13px;opacity:.85">Wrapped style. Use ← → or tap the sides.</span>`;
 
   if(G){
     // fromTo, not from: renderHome runs twice on load, and a second from() would start at half opacity and stay there.
@@ -752,36 +824,188 @@ function renderHome(){
 }
 function renderRec(){
   const r = REC[recI];
-  $("#t-rec").innerHTML = `<div class="th"><span class="lbl">★ ${REC.length} recognitions</span><div class="rec-nav"><button data-rec="-1" aria-label="previous">‹</button><button data-rec="1" aria-label="next">›</button></div></div>
+  if(!r){ $("#t-rec").innerHTML = `<div class="th"><span class="lbl">★ Mentions and praise</span></div><p style="margin:0;font-size:14px;color:var(--ink-2)">None yet in the threads you kept.</p>`; return; }
+  $("#t-rec").innerHTML = `<div class="th"><span class="lbl">★ ${REC.length} mentions and praise</span><div class="rec-nav"><button data-rec="-1" aria-label="previous">‹</button><button data-rec="1" aria-label="next">›</button></div></div>
     <p style="margin:0;font-size:14px;line-height:1.45">“${esc(r.t)}”</p>
     <span class="by" style="margin-top:auto">${esc(r.who)}${r.role?` · ${esc(r.role)}`:""} · ${WEEKS[r.w]}</span>
     <div class="rec-dots">${REC.map((_,i)=>`<i class="${i===recI?"on":""}"></i>`).join("")}</div>`;
 }
 
-/* TRACE */
-let drag = null;
-function renderTrace(){
-  const grid = {}; ITEMS.forEach(i=>{const k=modeOf(i)+i.w; grid[k]=(grid[k]||0)+1});
-  let h = `<div></div>` + WEEKS.map((w,i)=>`<div class="wk ${sel.has(i)?"sel":""}" data-wk="${i}">${w}</div>`).join("");
-  Object.keys(MODES).forEach(m=>{
-    h += `<div class="ml"><i class="dot" style="background:${mc(m)}"></i>${MODES[m]}</div>`;
-    WEEKS.forEach((_,w)=>{ const n = grid[m+w]||0;
-      h += `<button class="cell ${sel.has(w)?"in":""}" data-wk="${w}" style="${n?`background:color-mix(in srgb,${mc(m)} ${n>1?95:55}%,var(--s3));box-shadow:0 0 14px -4px ${mc(m)}`:""}" aria-label="${MODES[m]} ${WEEKS[w]}: ${n}">${n?`<b>${n}</b>`:""}</button>`; });
-  });
-  $("#hm").innerHTML = h;
-  const ws = [...sel].sort((a,b)=>a-b);
-  $("#selinfo").textContent = ws.length ? `Selection: ${ws.map(i=>WEEKS[i]).join(", ")}` : "No selection. Showing all 8 weeks.";
-  const inSel = ITEMS.filter(i=>!ws.length || sel.has(i.w)), rest = ITEMS.filter(i=>ws.length && !sel.has(i.w));
-  $("#feedn").textContent = inSel.length + " items";
-  $("#feed").innerHTML = inSel.slice().reverse().map(i=>`<li><button data-item="${i.id}"><span class="stripe" style="background:${mc(modeOf(i))}"></span><span><div class="ft">${esc(i.title)}</div><div class="fm">${MODES[modeOf(i)]} · ${REACH[i.reach]}${i.rec!=null?" · ★":""}</div></span><span class="wk">${WEEKS[i.w]}</span></button></li>`).join("");
-  const comp = (keys, f, labels) => keys.map(k=>{
-    const a = inSel.filter(i=>f(i)===k).length/(inSel.length||1), b = rest.length ? rest.filter(i=>f(i)===k).length/rest.length : null;
-    const d = b==null ? null : Math.round((a-b)*100);
-    return `<div class="row"><span>${labels[k]}</span><span class="pair"><i style="width:${a*100}%;background:var(--accent)"></i>${b!=null?`<i class="b" style="width:${b*100}%"></i>`:""}</span><span class="d ${d>0?"up":"down"}">${d==null?Math.round(a*100)+"%":(d>0?"+":"")+d+" pp"}</span></div>`;
-  }).join("");
-  $("#bub").innerHTML = comp(Object.keys(MODES), modeOf, MODES);
-  $("#bub2").innerHTML = comp(Object.keys(REACH), i=>i.reach, REACH);
+/* TRACE: your weeks as traces. A week is a trace, a kept thread is a span, its PRs, issues and messages are span events. */
+const DAY = 864e5, DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const EVK = {pr_merged:"PR merged", pr_open:"PR opened", issue_completed:"issue done", issue_open:"issue open", review_comment:"review received",
+  reviews_given:"reviews given", slack_message:"Slack", slack_mention:"mention", meeting:"meeting", doc_created:"doc created", doc_edited:"doc edited"};
+// Heatmap rows, longest on top like a duration axis: label and lower bound in hours.
+const BUCKETS = [["3d +", 72], ["1–3 d", 24], ["< 1 d", .25], ["instant", 0]];
+// ponytail: the year comes from the period start, so a range across New Year puts January weeks a year early.
+const YEAR = +PERIOD.slice(0,4);
+const monday = w => { const j = new Date(YEAR, 0, 4); return new Date(YEAR, 0, 4 - (j.getDay()+6)%7 + (+WEEKS[w].slice(1)-1)*7).getTime(); };
+const fmtDay = t => new Date(t).toLocaleDateString("en", {month:"short", day:"numeric"});
+const fmtWhen = t => { const d = new Date(t); return `${DOW[(d.getDay()+6)%7]} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; };
+const fmtDur = i => { const h = i.hrs; if(h == null) return "no time"; if(h < 1/60) return "instant"; if(h < 1) return `${Math.round(h*60)}m`;
+  return h < 24 ? `${Math.floor(h)}h ${Math.round(h%1*60)}m` : `${Math.floor(h/24)}d ${Math.round(h%24)}h`; };
+for(const it of ITEMS){
+  it.ev ??= [];
+  const ts = it.ev.filter(e=>e[1]).map(e=>Date.parse(e[1]));
+  it.t0 = ts.length ? Math.min(...ts) : null; it.t1 = ts.length ? Math.max(...ts) : null;
+  it.hrs = ts.length ? (it.t1 - it.t0)/36e5 : null;
+  it.day = ts.length ? Math.min(6, Math.max(0, Math.floor((it.t0 - monday(it.w))/DAY))) : 0;
+  it.b = it.hrs == null ? 3 : BUCKETS.findIndex(([,lo]) => it.hrs >= lo);
 }
+let tf = {mode:null, crit:false}, spanSel = null, openRoots = new Set(), selKey = "", heatShown = false, brush = null;
+const passes = i => (!tf.mode || i.mode === tf.mode) && (!tf.crit || i.wm === "wouldnt");
+const pctOf = (xs, f) => xs.length ? xs.filter(f).length / xs.length : 0;
+const selLabel = ws => ws.length > 1 && ws.at(-1)-ws[0] === ws.length-1 ? `${WEEKS[ws[0]]}–${WEEKS[ws.at(-1)]}` : ws.map(i=>WEEKS[i]).join(", ");
+const posIn = w => t => Math.min(100, Math.max(0, (t - monday(w)) / (7*DAY) * 100));
+
+function renderTrace(){
+  if(!ITEMS.length){ $("#tr-lead").textContent = "No threads kept yet. Keep one in Review and it shows here."; return; }
+  if(!sel.size) sel.add(LAST);
+  const ws = [...sel].sort((a,b)=>a-b), key = ws.join(), vis = !$("#v-trace").hidden;
+  // A new selection opens its newest week; two weeks or fewer open all.
+  if(key !== selKey){ selKey = key; openRoots = new Set(ws.length <= 2 ? ws : [ws.at(-1)]);
+    const sw = ITEMS.find(i=>i.id===spanSel)?.w; sel.has(sw) ? openRoots.add(sw) : spanSel = null; }
+  if(vis) traceUrl();
+  const by = cnt(ITEMS, modeOf), top = Object.keys(by).sort((a,b)=>by[b]-by[a])[0], crit = ITEMS.filter(i=>i.wm==="wouldnt").length;
+  $("#tr-lead").innerHTML = `${ITEMS.length} threads you kept, drawn as spans. Most are <b>${MODES[top]}</b> (${Math.round(by[top]/ITEMS.length*100)}%). <b>${crit}</b> are on your critical path: without you, they would not happen.`;
+  drawSvc(); drawHeat(); drawWaterfall(); drawSide();
+  if(vis){ if(!heatShown){ heatShown = true; animHeat(); } play(); }
+}
+
+function drawSvc(){
+  const by = cnt(ITEMS, modeOf), crit = ITEMS.filter(i=>i.wm==="wouldnt").length;
+  $("#svc").classList.toggle("f", !!tf.mode);
+  $("#svc").innerHTML = Object.keys(MODES).filter(m=>by[m]).sort((a,b)=>by[b]-by[a]).map(m=>
+    `<button data-mf="${m}" aria-pressed="${tf.mode===m}" style="--c:${mc(m)}"><i class="sw"></i>${MODES[m]}<b>${by[m]}</b></button>`).join("")
+    + `<span class="svc-sep" aria-hidden="true"></span><button data-crit aria-pressed="${tf.crit}" title="Spans where, without you, it would not happen"><i class="sw crit"></i>critical path<b>${crit}</b></button>`;
+}
+
+function drawHeat(){
+  const xs = ITEMS.filter(passes), N = WEEKS.length, c = {};
+  xs.forEach(i => { const k = `${i.w*7+i.day}:${i.b}`; c[k] = (c[k]||0)+1; });
+  const max = Math.max(1, ...Object.values(c)), col = tf.mode ? mc(tf.mode) : "var(--accent)";
+  let h = [...sel].map(w=>`<i class="hm-band" style="grid-column:${2+w*7} / span 7"></i>`).join("");
+  BUCKETS.forEach(([lab], b) => {
+    h += `<span class="hm-y" style="grid-row:${b+1}">${lab}</span>`;
+    for(let d = 0; d < N*7; d++){ const n = c[`${d}:${b}`] || 0, w = Math.floor(d/7);
+      h += `<i class="hm-c${d%7>4?" we":""}${sel.has(w)?" in":""}" data-w="${w}" data-d="${d}" data-b="${b}" style="grid-column:${d+2};grid-row:${b+1}${n?`;--v:${Math.round(45+55*n/max)}%;--c:${col}`:""}"${n?` data-n="${n}" title="${n} span${n>1?"s":""} · ${WEEKS[w]} ${DOW[d%7]} · ${lab}"`:""}></i>`; }
+  });
+  h += WEEKS.map((wk,w)=>`<button class="hm-x${sel.has(w)?" in":""}" data-w="${w}" style="grid-column:${2+w*7} / span 7">${wk}<small>${fmtDay(monday(w))}</small></button>`).join("");
+  $("#hm").style.setProperty("--n", N*7); $("#hm").innerHTML = h;
+  $("#hm-scale").innerHTML = `1<i style="--c:${col}"></i>${max} span${max>1?"s":""} per day`;
+  const ws = [...sel].sort((a,b)=>a-b);
+  $("#selinfo").innerHTML = `<b>${selLabel(ws)}</b> · ${xs.filter(i=>sel.has(i.w)).length} spans<small>drag across weeks to compare · shift-click adds a week</small>`;
+}
+function animHeat(){
+  if(!G) return;
+  // Time sweeps left to right: each column lands a beat after the one before.
+  G.from("#hm .hm-c[data-n]", {opacity:0, scale:.3, duration:.5, ease:"expo.out", stagger:(i, el)=>+el.dataset.d*.012, clearProps:"opacity,transform"});
+}
+
+function drawWaterfall(){
+  const ws = [...sel].sort((a,b)=>b-a), shown = ITEMS.filter(i=>sel.has(i.w) && passes(i));
+  $("#wf-head").innerHTML = `<div><span class="lbl">Trace view</span><h2>${ws.length === 1 ? WEEKS[ws[0]] : selLabel([...ws].reverse())}<small>${shown.length} span${shown.length===1?"":"s"} · ${ws.length} trace${ws.length===1?"":"s"}</small></h2></div>
+    <div class="wf-ctl">${ws.length > 1 ? `<button id="wf-all">${openRoots.size === ws.length ? "collapse all" : "expand all"}</button>` : ""}<button id="wf-replay" title="Play the week again">▶ replay</button></div>`;
+  $("#wf-axis").innerHTML = `<span class="lbl">Span</span><div class="wt">${DOW.map((d,k)=>`<span style="left:${k/7*100}%">${d}</span>`).join("")}</div>`;
+  $("#wf").innerHTML = ws.map(w => {
+    const pos = posIn(w), m0 = monday(w), on = ITEMS.filter(i=>i.w===w && passes(i)).sort((a,b)=>(a.t0??0)-(b.t0??0)), open = openRoots.has(w);
+    const t = on.filter(i=>i.t0!=null), a = t.length ? pos(Math.min(...t.map(i=>i.t0))) : 0, b = t.length ? pos(Math.max(...t.map(i=>i.t1))) : 0;
+    return `<div class="wr root"><button class="wn" data-root="${w}" aria-expanded="${open}"><span class="chev">${open?"▾":"▸"}</span>${WEEKS[w]}<span class="wd">${fmtDay(m0)} – ${fmtDay(m0+6*DAY)}</span><span class="du">${on.length} spans</span></button>
+      <div class="wt">${t.length ? `<span class="rbar" style="left:${a}%;width:${b-a}%"></span>` : ""}${t.map(i=>`<i class="rtick" style="left:${pos(i.t0)}%;--c:${mc(i.mode)}"></i>`).join("")}</div></div>`
+      + (!open ? "" : on.map(i => spanRow(i, pos)).join("") || `<div class="wr none">No spans in ${WEEKS[w]} match the filter.</div>`);
+  }).join("");
+}
+function spanRow(i, pos){
+  const L = i.t0 == null ? 0 : pos(i.t0), W = i.t0 == null ? 100 : pos(i.t1) - L;
+  // An instant span is its one event: no ticks inside.
+  const ticks = W < .4 ? "" : i.ev.filter(e=>e[1]).map(e=>`<i class="evt" style="left:${(pos(Date.parse(e[1]))-L)/W*100}%"></i>`).join("");
+  return `<div class="wr sp${spanSel===i.id?" on":""}" data-span="${esc(i.id)}" style="--c:${mc(i.mode)}"><button class="wn" data-span="${esc(i.id)}" aria-pressed="${spanSel===i.id}"><i class="sw"></i><span class="nm">${esc(i.title)}</span><span class="du">${fmtDur(i)}</span></button>
+    <div class="wt"><span class="bar${i.wm==="wouldnt"?" crit":""}${i.t0==null?" ghost":""}" style="left:${L}%;width:${W}%" title="${esc(i.title)} · ${fmtDur(i)} · ${i.ev.length} events">${ticks}</span></div></div>`;
+}
+function markSpan(){
+  document.querySelectorAll("#wf .wr.sp").forEach(r=>{ const on = r.dataset.span === spanSel; r.classList.toggle("on", on); r.querySelector(".wn").setAttribute("aria-pressed", on); });
+}
+function play(){
+  if(!G) return;
+  // A replay during a replay would start from half-drawn bars: finish the old one first.
+  play.tl?.progress(1).kill();
+  const W = $(".wf-phl").clientWidth, D = 1.4, tl = play.tl = G.timeline();
+  if(!W) return;
+  // The playhead sweeps Monday to Sunday; each span grows from its start as the playhead reaches it.
+  tl.from("#wf .wn", {opacity:0, x:-8, duration:.35, ease:"power3.out", stagger:.02, clearProps:"opacity,transform"}, 0);
+  tl.fromTo("#wf-ph", {x:0, opacity:1}, {x:W, duration:D, ease:"none"}, 0).to("#wf-ph", {opacity:0, duration:.3});
+  document.querySelectorAll("#wf .bar, #wf .rtick").forEach(b => tl.from(b, {scaleX:b.classList.contains("bar")?0:1, opacity:0, duration:.5, ease:"expo.out", clearProps:"opacity,transform"}, parseFloat(b.style.left)/100*D));
+}
+
+function drawSide(){
+  const i = spanSel && ITEMS.find(x=>x.id===spanSel), sb = $("#sb");
+  if(!i){
+    const ws = [...sel].sort((a,b)=>a-b), xs = ITEMS.filter(x=>sel.has(x.w) && passes(x)), rest = ITEMS.filter(x=>!sel.has(x.w) && passes(x));
+    const by = cnt(xs, modeOf), order = Object.keys(MODES).filter(m=>by[m]).sort((a,b)=>by[b]-by[a]);
+    const long = xs.filter(x=>x.hrs!=null).sort((a,b)=>b.hrs-a.hrs)[0], crit = xs.filter(x=>x.wm==="wouldnt");
+    sb.innerHTML = `<span class="lbl">Trace summary</span>
+      <div class="sb-big"><b>${xs.length}</b><span>span${xs.length===1?"":"s"} in ${selLabel(ws)}</span></div>
+      ${xs.length ? `<div class="mixbar" aria-hidden="true">${order.map(m=>`<i style="flex:${by[m]};--c:${mc(m)}" title="${MODES[m]}: ${by[m]}"></i>`).join("")}</div>
+      <ul class="sb-modes">${order.map(m=>{ const d = rest.length ? Math.round((pctOf(xs,x=>x.mode===m) - pctOf(rest,x=>x.mode===m))*100) : 0;
+        return `<li><i class="sw" style="--c:${mc(m)}"></i><span>${MODES[m]}</span><b>${by[m]}</b><small>${d ? `${d>0?"+":"−"}${Math.abs(d)} pp` : ""}</small></li>`; }).join("")}</ul>
+      ${rest.length ? `<p class="sb-note">pp: how much bigger or smaller the share of each mode is than in the other weeks.</p>` : ""}
+      <div class="sb-kv"><span>critical path</span><b>${crit.length} of ${xs.length}</b></div>
+      ${long ? `<div class="sb-kv"><span>longest</span><button data-span="${esc(long.id)}">${esc(long.title)} · ${fmtDur(long)}</button></div>` : ""}
+      <p class="sb-note">Click a span to see its events.</p>` : `<p class="sb-note">No spans match the filter.</p>`}`;
+  } else {
+    const pr = PROJECTS[i.s];
+    const pct = Math.round(pctOf(ITEMS, x => (x.hrs ?? 0) < (i.hrs ?? 0))*100);
+    const timed = i.ev.filter(e=>e[1]).sort((a,b)=>Date.parse(a[1])-Date.parse(b[1])), untimed = i.ev.filter(e=>!e[1]);
+    const ev = e => `<li><time>${e[1] ? fmtWhen(Date.parse(e[1])) : "no time"}</time><span class="k">${EVK[e[0]] ?? e[0]}</span>${e[3] ? `<a href="${esc(e[3])}" target="_blank" rel="noopener">${esc(e[2] || e[3])} ↗</a>` : `<span class="t">${esc(e[2])}</span>`}</li>`;
+    sb.innerHTML = `<div class="sb-top"><span class="sb-mode" style="--c:${mc(i.mode)}"><i class="sw"></i>${MODES[i.mode]} · ${WEEKS[i.w]}</span><button class="x" id="sb-x">close <kbd>esc</kbd></button></div>
+      <h3>${esc(i.title)}</h3>
+      <div class="sb-dur"><b>${fmtDur(i)}</b><span>${i.hrs ? `longer than ${pct}% of your spans` : "one moment, one event"}</span></div>
+      <dl class="attrs"><dt>mode</dt><dd>${MODES[i.mode]}</dd><dt>without_you</dt><dd>${i.wm ? WMS[i.wm] : "not answered"}</dd>
+        <dt>project</dt><dd>${pr && i.s!=="none" ? (pr.url ? `<a href="${esc(pr.url)}" target="_blank" rel="noopener">${esc(pr.name)} ↗</a>` : esc(pr.name)) : "none"}</dd>
+        <dt>pillar</dt><dd>${PILLAR[i.pillar] ?? "none"}</dd><dt>started</dt><dd>${i.t0 ? `${fmtWhen(i.t0)}, ${fmtDay(i.t0)}` : "no time"}</dd></dl>
+      ${i.summary ? `<p class="sb-sum">${esc(i.summary)}</p>` : ""}
+      <span class="lbl">Span events · ${i.ev.length}</span>
+      <ol class="evl">${timed.map(ev).join("")}${untimed.map(ev).join("")}</ol>
+      ${typeof SAMPLE === "undefined" ? `<a class="ref" href="#/review?week=${YEAR}-${esc(WEEKS[i.w])}&key=${encodeURIComponent(i.id)}">change it in review →</a>` : ""}`;
+  }
+  if(G && !$("#v-trace").hidden){
+    G.from("#sb > *", {y:8, opacity:0, filter:"blur(6px)", duration:.4, ease:"power3.out", stagger:.03, clearProps:"filter,transform,opacity"});
+    G.from("#sb .mixbar i", {scaleX:0, duration:.6, ease:"expo.out", stagger:.04, clearProps:"transform"});
+  }
+}
+// The address keeps weeks and the open span, so reload and a shared link show the same thing.
+const traceUrl = () => history.replaceState(null, "", `#/trace?w=${[...sel].sort((a,b)=>a-b).map(i=>WEEKS[i]).join(",")}${spanSel ? `&s=${encodeURIComponent(spanSel)}` : ""}`);
+const pickSpan = id => { spanSel = spanSel === id ? null : id; markSpan(); drawSide(); traceUrl(); };
+
+$("#v-trace").addEventListener("click", e => {
+  const b = e.target.closest("button, .wr.sp"); if(!b) return;
+  const d = b.dataset;
+  if(d.mf){ tf.mode = tf.mode === d.mf ? null : d.mf; drawSvc(); drawHeat(); drawWaterfall(); drawSide(); play(); }
+  else if("crit" in d){ tf.crit = !tf.crit; drawSvc(); drawHeat(); drawWaterfall(); drawSide(); play(); }
+  else if(d.root){ const w = +d.root; openRoots.has(w) ? openRoots.delete(w) : openRoots.add(w); drawWaterfall(); play(); }
+  else if(b.id === "wf-all"){ openRoots = new Set(openRoots.size === sel.size ? [] : sel); drawWaterfall(); play(); }
+  else if(b.id === "wf-replay") play();
+  else if(b.id === "sb-x") pickSpan(spanSel);
+  else if(d.span) pickSpan(d.span);
+  // Week labels are buttons, so the keyboard can pick a week too. Pointer picks go through the brush.
+  else if(d.w != null && e.detail === 0){ sel = new Set([+d.w]); renderTrace(); }
+});
+// Linked views: hovering a span lights its heatmap cell.
+$("#wf").addEventListener("pointerover", e => {
+  document.querySelectorAll("#hm .ping").forEach(c=>c.classList.remove("ping"));
+  const r = e.target.closest(".wr.sp"); if(!r) return; const i = ITEMS.find(x=>x.id===r.dataset.span); if(!i) return;
+  $(`#hm [data-d="${i.w*7+i.day}"][data-b="${i.b}"]`)?.classList.add("ping");
+});
+$("#wf").addEventListener("pointerleave", () => document.querySelectorAll("#hm .ping").forEach(c=>c.classList.remove("ping")));
+// Brush: drag across weeks selects them; shift-click adds or removes one week.
+const weekAt = e => { const el = document.elementFromPoint(e.clientX, e.clientY)?.closest("#hm [data-w]"); return el ? +el.dataset.w : null; };
+function brushTo(){ sel = new Set(brush.add ? brush.before : []); for(let w = Math.min(brush.a, brush.b); w <= Math.max(brush.a, brush.b); w++) sel.add(w); }
+$("#hm").addEventListener("pointerdown", e => { const w = weekAt(e); if(w == null) return; e.preventDefault();
+  $("#hm").setPointerCapture(e.pointerId); brush = {a:w, b:w, add:e.shiftKey || e.metaKey, before:new Set(sel)}; });
+$("#hm").addEventListener("pointermove", e => { if(!brush) return; const w = weekAt(e); if(w == null || w === brush.b) return; brush.b = w; brushTo(); drawHeat(); });
+$("#hm").addEventListener("pointerup", () => { if(!brush) return;
+  if(brush.add && brush.a === brush.b && brush.before.has(brush.a) && brush.before.size > 1){ sel = new Set(brush.before); sel.delete(brush.a); } else brushTo();
+  brush = null; renderTrace(); });
 
 /* ITEM SHEET */
 function openItem(id){
@@ -808,7 +1032,7 @@ function openItem(id){
     <h2>${esc(it.title)}</h2>
     <div class="chips">
       <button class="chip" data-ref="${m}"><i class="dot" style="background:${mc(m)}"></i>${MODES[m]}</button>
-      <button class="chip" data-ref="scope">${REACH[it.reach]}</button>
+      ${it.wm?`<button class="chip" data-ref="counterfactual">${WMS[it.wm]}</button>`:""}
       <button class="chip" data-ref="tracking">${PILLAR[it.pillar]}</button>
       <span class="chip" style="cursor:default">${g?`<i class="dot" style="background:${g.color}"></i>${esc(g.short)}`:"no goal"}</span>
     </div>
@@ -816,13 +1040,13 @@ function openItem(id){
     ${q?`<figure class="qblock"><p>“${esc(q.t)}”</p><figcaption class="by">${esc(q.who)}</figcaption></figure>`:""}
     <div class="two">
       <div class="why"><span class="lbl">Why this counts · ${MODES[m]}</span><p>“${esc(ref.q)}”</p><a class="ref" href="${ref.url}" target="_blank" rel="noopener">${esc(ref.who)} ↗</a><a class="ref" href="#" data-ref="${m}">all sources →</a></div>
-      <div class="sec"><span class="lbl">Without you, would it have happened?</span><div class="wm" style="display:grid;gap:6px">${wmBtns(it)}</div><a class="ref" href="#" data-ref="counterfactual">why this question →</a></div>
+      <div class="sec"><span class="lbl">Without you, would it have happened?</span><p class="oneline" style="font-size:20px;margin:0">${it.wm ? esc(WMS[it.wm]) : "not answered"}</p>
+        ${typeof SAMPLE === "undefined" ? `<a class="ref" href="#/review?week=2026-${esc(WEEKS[it.w])}&key=${encodeURIComponent(it.id)}">change it in review →</a>` : ""}<a class="ref" href="#" data-ref="counterfactual">why this question →</a></div>
     </div>`;
   $("#sheet").hidden = false; $("#x").focus();
   if(G){ G.from("#sheet-in",{y:40,opacity:0,duration:.35,ease:"power3.out",clearProps:"all"}); G.from("#sheet-in .flame .sp",{scaleX:0,duration:.5,stagger:.04,ease:"power2.out",clearProps:"transform"}); }
 }
 const WM = [["wouldnt","wouldn't happen"],["slower","slower"],["same","same"]];
-const wmBtns = it => WM.map(([k,l],i)=>`<button class="opt" data-wm="${k}" data-id="${it.id}" aria-pressed="${answers[it.id]?.wm===k}"><kbd>${i+1}</kbd>${l}</button>`).join("");
 
 /* SETUP: tools, who you are, first week. The form starts filled from gh and git. */
 const SU = (() => {
@@ -892,14 +1116,14 @@ let sI = 0;
 const ph = (a,b)=>ITEMS.filter(i=>i.w>=a&&i.w<=b);
 const PHASE_BG = ["linear-gradient(160deg,#2a1406,#ff7a45)","linear-gradient(160deg,#ff7a45,#c8326a)","linear-gradient(160deg,#2a2406,#c9a400 70%,#ffe37a)","linear-gradient(160deg,#0d1a2a,#5b47d6 60%,#b3a1ff)","linear-gradient(160deg,#5b47d6,#ff4d52)"];
 const SLIDES = [
-  {bg:"linear-gradient(160deg,#16161d,#3a0d12 60%,#ff4d52)", html:()=>`<span class="k">W35 – W42 · 2026</span><span class="huge num">8</span><p class="h">weeks of work, with a trace</p>`},
-  {bg:"linear-gradient(160deg,#2a0b1a,#ff4f8f)", html:()=>`<span class="k">In total</span><span class="huge num">${ITEMS.length}</span><p class="h">items with evidence. ${REC.length} public recognitions.</p>`},
+  {bg:"linear-gradient(160deg,#16161d,#3a0d12 60%,#ff4d52)", html:()=>`<span class="k">${esc(PERIOD)}</span><span class="huge num">${WEEKS.length}</span><p class="h">weeks of work, with a trace</p>`},
+  {bg:"linear-gradient(160deg,#2a0b1a,#ff4f8f)", html:()=>`<span class="k">In total</span><span class="huge num">${ITEMS.length}</span><p class="h">threads with evidence. ${REC.length} mentions and praise.</p>`},
   ...PHASES.map((p,n)=>({bg:PHASE_BG[n%PHASE_BG.length], html:()=>p.rec!=null
     ? `<span class="k">${esc(p.k)}</span><p class="q">“${esc(REC[p.rec].t)}”</p><span class="by">${esc(REC[p.rec].who)}${REC[p.rec].role?" · "+esc(REC[p.rec].role):""}</span>`
     : `<span class="k">${esc(p.k)}</span><p class="h">${esc(p.h)}</p><div class="rowx">${ph(p.from,p.to).map(i=>`<span class="pill">${esc(i.title)}</span>`).join("")}</div>`})),
   {bg:"linear-gradient(160deg,#08230f,#12854a 60%,#7dffa8)", html:()=>{ const m = cnt(ITEMS, modeOf), mx = Math.max(...Object.values(m));
     return `<span class="k">How you delivered</span><div class="bars2">${Object.keys(MODES).map(k=>`<div><span>${MODES[k]}</span><span class="t"><i style="width:${(m[k]||0)/mx*100}%"></i></span><span>${m[k]||0}</span></div>`).join("")}</div>`}},
-  {bg:"linear-gradient(160deg,#16161d,#2c2c38)", html:()=>{ const d = ITEMS.filter(i=>answers[i.id]?.wm).length;
+  {bg:"linear-gradient(160deg,#16161d,#2c2c38)", html:()=>{ const d = ITEMS.filter(i=>i.wm).length;
     return `<span class="k">The open question</span><p class="h">Without you, which of these would have happened?</p><p class="by" style="font-size:15px">${d} of ${ITEMS.length} answered. Only you know the answer.</p><div class="rowx"><button class="pill" data-story-go="review" style="cursor:pointer;color:#fff">Open review →</button></div>`}},
 ];
 function openStory(){ sI = 0; $("#story").hidden = false; drawStory(); }
@@ -957,6 +1181,7 @@ function route(){
   if(v === "project") PV.open(p.get("id"));
   if(v === "refs") renderRefs(p.get("k"));
   if(v === "setup") SU.open();
+  if(v === "trace"){ sel = new Set((p.get("w") ?? "").split(",").map(w => WEEKS.indexOf(w)).filter(i => i >= 0)); spanSel = p.get("s"); renderTrace(); }
 }
 function show(v){ if(location.hash.split("?")[0] !== "#/"+v) history.pushState(null, "", "#/"+v); route(); }
 addEventListener("hashchange", route);
@@ -973,22 +1198,14 @@ document.addEventListener("click", e=>{
   if(d.cmd){ runCmd(+d.cmd); return; }
   if(d.v){ e.preventDefault(); show(d.v); return; }
   if(d.ref){ e.preventDefault(); location.hash = `#/refs?k=${d.ref}`; return; }
-  if(d.goal){ sel.clear(); ITEMS.filter(i=>(goalOf(i)??"none")===d.goal).forEach(i=>sel.add(i.w)); renderTrace(); show("trace"); return; }
+  if(d.goal){ location.hash = `#/trace?w=${[...new Set(ITEMS.filter(i=>(goalOf(i)??"none")===d.goal).map(i=>i.w))].sort((a,b)=>a-b).map(w=>WEEKS[w]).join(",")}`; return; }
   if(d.item){ openItem(d.item); return; }
   if(t.id==="x"){ $("#sheet").hidden = true; return; }
   if(d.rec){ recI = (recI + +d.rec + REC.length) % REC.length; renderRec(); return; }
-  if(d.wm){ answers[d.id] = {...answers[d.id], wm:d.wm}; save(); renderAll(); if(!$("#sheet").hidden) openItem(d.id); return; }
-  if(t.id==="clearsel"){ sel.clear(); renderTrace(); return; }
 });
 $("#sheet").addEventListener("click", e=>{ if(e.target.id==="sheet") $("#sheet").hidden = true; });
 $("#cmdk").addEventListener("click", e=>{ if(e.target.id==="cmdk") $("#cmdk").hidden = true; });
 $("#cmdk-input").addEventListener("input", filterCmd);
-
-// heatmap brush
-$("#hm").addEventListener("pointerdown", e=>{ const c = e.target.closest("[data-wk]"); if(!c) return; drag = {a:+c.dataset.wk, moved:false}; });
-$("#hm").addEventListener("pointerover", e=>{ if(!drag) return; const c = e.target.closest("[data-wk]"); if(!c) return; const b = +c.dataset.wk; if(b!==drag.a) drag.moved = true;
-  if(drag.moved){ sel.clear(); for(let i=Math.min(drag.a,b); i<=Math.max(drag.a,b); i++) sel.add(i); renderTrace(); } });
-addEventListener("pointerup", e=>{ if(!drag) return; if(!drag.moved){ const w = drag.a; sel.has(w) ? sel.delete(w) : sel.add(w); renderTrace(); } drag = null; });
 
 document.addEventListener("keydown", e=>{
   if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="k"){ e.preventDefault(); $("#cmdk").hidden ? openCmd() : ($("#cmdk").hidden = true); return; }
@@ -1000,27 +1217,10 @@ document.addEventListener("keydown", e=>{
     return;
   }
   if(!$("#story").hidden){ if(e.key==="ArrowRight"||e.key===" ") { e.preventDefault(); step(1); } else if(e.key==="ArrowLeft") step(-1); else if(e.key==="Escape") $("#story").hidden = true; return; }
+  if(e.key==="Escape" && $("#sheet").hidden && spanSel && !$("#v-trace").hidden){ pickSpan(spanSel); return; }
   if(e.key==="Escape"){ $("#sheet").hidden = true; return; }
-  const inSheet = !$("#sheet").hidden;
-  if(["1","2","3"].includes(e.key) && inSheet){
-    const id = $("#sheet-in [data-wm]")?.dataset.id; if(!id) return;
-    answers[id] = {...answers[id], wm:WM[+e.key-1][0]}; save(); renderAll(); openItem(id);
-  }
 });
 
-// Live data from the local SQLite, when served by app/server.ts. Static values stay as the fallback.
-async function hydrate(){
-  let api;
-  try{ const r = await fetch("/api/projects?weeks="+WEEKS.map(w=>"2026-"+w).join(",")); if(!r.ok) return; api = await r.json(); }catch(e){ return; }
-  const known = Object.values(PROJECTS);
-  for(const a of api.projects){
-    const P = known.find(x=>x.name===a.name) || (PROJECTS[a.id] = {name:a.name, goal:null, ms:[]});
-    Object.assign(P, {url:a.url, lead:a.lead, status:a.status, done:a.done, open:a.open, live:true});
-    if(a.ms.length) P.ms = a.ms.map(m=>({name:m.name, progress:m.progress}));
-  }
-  Object.assign(PROJECTS.none, {done:api.none.done, open:api.none.open, live:true});
-  renderAll(); renderHome();
-}
 /* PENDING: your undecided threads per week, for the nav badge and the home tile. */
 let PENDING = {};
 function renderWm(){
@@ -1418,8 +1618,8 @@ $("#v-project").addEventListener("change", e => {
 return {open};
 })();
 
-renderAll(); route(); loadPending(); hydrate();
-if(typeof SAMPLE !== "undefined") document.querySelectorAll(".sample-note").forEach(x => x.hidden = false);
+renderAll(); route(); loadPending();
+if(typeof SAMPLE !== "undefined") document.querySelectorAll(".sample-note, .sample-tag").forEach(x => x.hidden = false);
 // First run: nobody to collect for yet, so start at setup.
 fetch("/api/setup").then(r => r.json()).then(s => { if(!s.config && !location.hash.startsWith("#/setup")) show("setup"); }).catch(() => {});
 </script>
