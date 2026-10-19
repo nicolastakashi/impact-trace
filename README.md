@@ -9,6 +9,9 @@ CLIs and MCPs. Code here only validates them, stores them in SQLite, and shows t
 claude -p (skills) ━▶ data/raw/<week>/*.json ━▶ ingest ━▶ data/impact.db ━▶ app
 ```
 
+North and Trace show the threads you kept in review, the last 8 weeks. Before your first
+review they show fictional example data, marked as such.
+
 `data/` holds your work data and `config.json`. It is git-ignored and must never be pushed.
 
 ## Before you start
