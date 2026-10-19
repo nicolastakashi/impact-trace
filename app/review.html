@@ -61,6 +61,7 @@ header .back{margin-left:auto;font:500 12px var(--f-mono);color:var(--ink-2)}
 .queue button{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;border-radius:9px;padding:8px 10px;cursor:pointer;font-size:13.5px;color:var(--ink-2)}
 .queue button:hover{background:var(--s2)}
 .queue button[aria-current="true"]{background:var(--s3);color:var(--ink)}
+[hidden]{display:none!important}
 .queue .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .queue .n{font:500 11px var(--f-mono);color:var(--ink-3)}
 .queue .done{color:var(--m-build)}
@@ -118,7 +119,7 @@ header .back{margin-left:auto;font:500 12px var(--f-mono);color:var(--ink-2)}
 .discard[aria-pressed="true"]{border-style:solid;border-color:var(--ink-2);color:var(--ink);background:var(--s3)}
 .queue .gone .t{text-decoration:line-through;color:var(--ink-3)}
 .queue .sep{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 10px 6px;border-top:1px solid var(--line);margin-top:6px}
-.queue .sep button{all:unset;cursor:pointer;font:500 11px var(--f-mono);color:var(--ink-2);border:1px dashed var(--line-2);border-radius:6px;padding:2px 6px}
+.queue .sep button{all:unset;cursor:pointer;font:500 11px var(--f-mono);color:var(--ink-2);border:1px dashed var(--line-2);border-radius:6px;padding:2px 6px;white-space:nowrap}
 .queue .sep button:hover{color:var(--ink);border-color:var(--ink-2)}
 .prog i.x{background:var(--line-2)}
 
