@@ -218,9 +218,15 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .r-prog i.d{background:var(--m-build)}
   .r-prog i.c{background:var(--accent)}
   .r-prog i.g{background:var(--line-2)}
-  .crumb{display:flex;flex-wrap:wrap;gap:8px 16px;font:500 12px var(--f-mono);color:var(--ink-2)}
-  .crumb a{text-decoration:none}
-  .crumb a:hover{color:var(--accent)}
+  .crumb{font:500 12px var(--f-mono);color:var(--ink-3);text-decoration:none}
+  .crumb:hover{color:var(--accent)}
+  .r-more{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center;font:500 12px var(--f-mono);color:var(--ink-3);padding:10px 12px;border:1px solid var(--line);border-radius:12px}
+  .r-more:hover,.r-more:focus-visible{color:var(--ink-2);border-color:var(--line-2)}
+  .r-label{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:15px}
+  .r-label b{font-weight:500}
+  .r-label .sep{color:var(--ink-3)}
+  .r-ask{display:grid;gap:12px;padding-top:20px;border-top:1px solid var(--line)}
+  .r-ask .q{font:700 22px/1 var(--f-num);text-transform:uppercase;letter-spacing:.02em}
   .undo{font:500 11px var(--f-mono);letter-spacing:.04em;color:var(--ink-2);background:none;border:1px dashed var(--line-2);border-radius:6px;padding:1px 6px;cursor:pointer}
   .undo:hover{color:var(--ink);border-color:var(--ink-2)}
   .gbtn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font:500 12px var(--f-mono);color:var(--ink-2);border:1px solid var(--line-2);border-radius:8px;padding:3px 8px}
@@ -254,20 +260,21 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .r-chip[aria-pressed="true"]{background:var(--s1);border-color:var(--c,var(--ink));box-shadow:0 0 0 1px var(--c,var(--ink)), 0 0 14px -6px var(--c,var(--ink))}
   .r-two{display:grid;grid-template-columns:1fr 1fr;gap:22px}
 
-  .r-wm{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .r-wm{display:grid;grid-template-columns:repeat(3,1fr) auto;gap:8px}
   .r-wm button{display:flex;align-items:center;gap:10px;padding:12px;background:var(--s2);border:1px solid var(--line);border-radius:12px;cursor:pointer;text-align:left}
   .r-wm button:hover{border-color:var(--ink-2)}
   .r-wm button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
   .r-wm button[aria-pressed="true"] kbd{color:var(--ink)}
-  .discard{justify-self:start;display:inline-flex;align-items:center;gap:8px;padding:7px 10px 7px 7px;background:none;border:1px dashed var(--line-2);border-radius:10px;cursor:pointer;font-size:13px;color:var(--ink-2)}
+  .discard{display:inline-flex;align-items:center;gap:8px;padding:7px 10px 7px 7px;background:none;border:1px dashed var(--line-2);border-radius:10px;cursor:pointer;font-size:13px;color:var(--ink-2)}
   .discard:hover{color:var(--ink);border-color:var(--ink-2)}
   .discard[aria-pressed="true"]{border-style:solid;border-color:var(--ink-2);color:var(--ink);background:var(--s3)}
 
-  .r-keys{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12.5px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:14px}
+  .r-keys{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12.5px;color:var(--ink-3)}
   .r-keys span{display:inline-flex;align-items:center;gap:4px}
 }
 @media (max-width:820px){ #v-review .rv-grid{grid-template-columns:1fr} #v-review .r-queue{max-height:220px;position:static} }
 @media (max-width:620px){ #v-review .r-two{grid-template-columns:1fr} }
+@media (max-width:720px){ #v-review .r-wm{grid-template-columns:1fr 1fr} }
 @media (max-width:520px){ #v-review .r-wm{grid-template-columns:1fr} #v-review .r-events li{grid-template-columns:1fr;gap:2px} }
 
 /* groups: one card per group; a week strip, then its threads week by week. */
@@ -875,7 +882,7 @@ const KIND = {pr_merged:"PR merged", pr_open:"PR open", issue_completed:"issue d
   meeting:"meeting", doc_created:"doc created", doc_edited:"doc edited"};
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const post = (url, body) => fetch(url, {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
-let data = null, cur = 0, draft = {}, from = null, all = false, keys = false;
+let data = null, cur = 0, draft = {}, from = null, all = false, keys = false, edit = false;
 
 async function load(week){
   data = await (await fetch("/api/review" + (week ? `?week=${week}` : ""))).json();
@@ -918,33 +925,39 @@ function render(){
   // The address follows the open thread, so reload and back keep your place.
   if(!$("#v-review").hidden) history.replaceState(null, "", `#/review?week=${data.week}&key=${encodeURIComponent(t.key)}${from ? `&from=${encodeURIComponent(from)}` : ""}`);
   const back = from && data.groups.find(g => g.id === from), group = t.projects[0];
-  // Claude's evidence first; only three until you ask for the rest.
-  const evs = [...t.events].sort((a, b) => ev.has(b.id) - ev.has(a.id)), few = all ? evs : evs.slice(0, 3);
+  // Claude's evidence first.
+  const evs = [...t.events].sort((a, b) => ev.has(b.id) - ev.has(a.id));
+  const kinds = Object.entries(t.events.reduce((a,e) => (a[KIND[e.kind]??e.kind] = (a[KIND[e.kind]??e.kind]||0)+1, a), {})).map(([k,n]) => `${n} ${k}`).join(" · ");
+  // Claude already suggests mode and pillar; the chips show only when you want to change them, or when there is no suggestion.
+  const chips = edit || !d.mode || !d.pillar, same = d.mode === t.claude.mode && d.pillar === t.claude.pillar;
   $("#rv-card").innerHTML = `
     <div class="r-prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.without_me==="discard"?"g":x.human.without_me?"d":i===cur?"c":""}"></i>`).join("")}</div>
-    ${back || group ? `<div class="crumb">${back ? `<a href="#/groups?g=${encodeURIComponent(back.id)}">← back to ${esc(back.name)}</a>` : ""}${group && group.id !== from ? `<a href="#/groups?g=${encodeURIComponent(group.id)}">${esc(group.name)} across weeks →</a>` : ""}</div>` : ""}
-    <div class="r-sec"><div class="gwrap">
-        <button class="gbtn" id="gopen" aria-haspopup="listbox" aria-expanded="false"><kbd>P</kbd>${t.projects.length ? t.projects.map(p => esc(p.name) + (p.by === "claude" ? ` <span class="ai" title="Claude placed this thread here">Claude</span>` : p.by === "channel" ? ` <span class="ai" title="From a dedicated Slack channel">channel</span>` : "")).join(", ") : "no group"} ▾</button>
-        ${t.projects.some(p => p.by === "claude") ? `<button class="undo" id="unassign">wrong group ✕</button>` : ""}
-        <div class="gpop" id="gpop" hidden><input id="gq" placeholder="Find a group, or type a new one" autocomplete="off" aria-label="Group"><ul id="gl-list" role="listbox"></ul></div></div>
+    <div class="gwrap">
+      ${back ? `<a class="crumb" href="#/groups?g=${encodeURIComponent(back.id)}">← ${esc(back.name)}</a>` : ""}
+      <button class="gbtn" id="gopen" aria-haspopup="listbox" aria-expanded="false" title="Change group (P)">${t.projects.length ? t.projects.map(p => esc(p.name) + (p.by === "claude" ? ` <span class="ai" title="Claude placed this thread here">Claude</span>` : "")).join(", ") : "no group"} ▾</button>
+      ${t.projects.some(p => p.by === "claude") ? `<button class="undo" id="unassign">wrong group ✕</button>` : ""}
+      ${group && group.id !== from ? `<a class="crumb" href="#/groups?g=${encodeURIComponent(group.id)}">across weeks →</a>` : ""}
+      <div class="gpop" id="gpop" hidden><input id="gq" placeholder="Find a group, or type a new one" autocomplete="off" aria-label="Group"><ul id="gl-list" role="listbox"></ul></div></div>
+    <div class="r-sec">
       <input class="r-title" id="rv-title" value="${esc(d.title)}" aria-label="Thread title">
       <textarea class="r-summary" id="rv-summary" rows="2" aria-label="Summary of what you did" placeholder="No summary yet">${esc(d.summary)}</textarea></div>
-    <div class="r-sec"><span class="lbl">Evidence · ${evs.length}${evs.length > 3 ? ` <button class="undo" id="all">${all ? "show less" : "show all"}</button>` : ""}</span><ul class="r-events">${few.map(e => `<li class="${ev.has(e.id)?"ev":""}">
+    <div class="r-sec">
+      <button class="r-more" id="all" aria-expanded="${all}"><span>${kinds}</span><span class="lbl">${all ? "hide" : "evidence"} ${all ? "▴" : "▾"}</span></button>
+      ${all ? `<ul class="r-events">${evs.map(e => `<li class="${ev.has(e.id)?"ev":""}">
       <span class="k">${KIND[e.kind]??e.kind}</span>
       <span class="ev-x">${e.url?`<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title ?? e.id)} ↗</a>`:esc(e.title ?? e.id)}
       ${e.author && e.kind!=="pr_merged" && e.kind!=="pr_open" ? ` <span class="lbl">${esc(e.author)}</span>`:""}
-      ${e.text?`<small>${esc(e.text)}</small>`:""}</span></li>`).join("")}</ul></div>
-    <div class="r-two">
+      ${e.text?`<small>${esc(e.text)}</small>`:""}</span></li>`).join("")}</ul>` : ""}</div>
+    ${chips ? `<div class="r-two">
       <div class="r-sec"><span class="lbl">Mode</span><div class="r-chips">${Object.keys(MODES).map((k,i) => chip("mode", k, MODES[k], MODE_KEYS[i], d, t, mc(k))).join("")}</div></div>
       <div class="r-sec"><span class="lbl">Pillar</span><div class="r-chips">${Object.keys(PILLAR).map((k,i) => chip("pillar", k, PILLAR[k], PILLAR_KEYS[i], d, t)).join("")}</div></div>
-    </div>
-    <div class="r-sec"><span class="lbl">Without you?</span>
-      <div class="r-wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}</div>
-      <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}"><kbd>0</kbd>Discard${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button></div>
+    </div>` : `<div class="r-label"><i class="dot" style="background:${mc(d.mode)}"></i><b>${MODES[d.mode]}</b><span class="sep">·</span><b>${PILLAR[d.pillar]}</b>${same ? `<span class="ai">Claude</span>` : ""}<button class="undo" id="edit">change</button></div>`}
+    <div class="r-ask"><span class="q">Without you?</span>
+      <div class="r-wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}
+      <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}"><kbd>0</kbd>discard${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button></div></div>
     <div class="r-keys" ${keys ? "" : "hidden"}><span><kbd>A</kbd>–<kbd>H</kbd> mode</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> pillar</span>
       <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> without you, save</span><span><kbd>0</kbd> discard</span><span><kbd>⇧0</kbd> discard all routine</span><span><kbd>J</kbd><kbd>K</kbd> move</span>
-      <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>O</kbd> open evidence</span><span><kbd>P</kbd> group</span><span><kbd>?</kbd> hide</span></div>
-    ${keys ? "" : `<button class="undo" id="keys" style="justify-self:start"><kbd>?</kbd> shortcuts</button>`}`;
+      <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>V</kbd> evidence</span><span><kbd>O</kbd> open evidence</span><span><kbd>P</kbd> group</span><span><kbd>?</kbd> hide</span></div>`;
   $("#rv-queue [aria-current=true]")?.scrollIntoView({block:"nearest"});
 }
 
@@ -955,7 +968,7 @@ function chip(field, k, label, key, d, t, color){
 }
 
 function set(field, v){ pick(data.threads[cur])[field] = v; render(); }
-function go(i){ cur = Math.min(Math.max(i,0), data.threads.length-1); all = false; render(); }
+function go(i){ cur = Math.min(Math.max(i,0), data.threads.length-1); all = false; edit = false; render(); }
 // J/K step over threads the filter hides.
 function step(dir){ for(let i = cur + dir; i >= 0 && i < data.threads.length; i += dir) if(shown(i)) return go(i); }
 function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
@@ -1036,7 +1049,7 @@ $("#v-review").addEventListener("click", e => {
   else if(b.id === "unassign") unassign();
   else if(b.id === "discard-all") discardAll();
   else if(b.id === "all"){ all = !all; render(); }
-  else if(b.id === "keys"){ keys = true; render(); }
+  else if(b.id === "edit"){ edit = true; render(); }
   else if(b.id === "gopen") $("#gpop").hidden ? gOpen() : gClose();
   else if(b.dataset.g) gChoose(+b.dataset.g);
 });
@@ -1059,8 +1072,8 @@ document.addEventListener("keydown", e => {
   if(e.target.id === "rv-title" || e.target.id === "rv-summary"){ if(e.key === "Escape" || (e.key === "Enter" && !e.shiftKey)){ e.preventDefault(); e.target.blur(); } return; }
   if(e.target.tagName === "SELECT" || e.metaKey || e.ctrlKey || e.altKey || !data.threads.length) return;
   const k = e.key.toLowerCase();
-  if(MODE_KEYS.includes(k)) set("mode", Object.keys(MODES)[MODE_KEYS.indexOf(k)]);
-  else if(PILLAR_KEYS.includes(k)) set("pillar", Object.keys(PILLAR)[PILLAR_KEYS.indexOf(k)]);
+  if(MODE_KEYS.includes(k)){ edit = true; set("mode", Object.keys(MODES)[MODE_KEYS.indexOf(k)]); }
+  else if(PILLAR_KEYS.includes(k)){ edit = true; set("pillar", Object.keys(PILLAR)[PILLAR_KEYS.indexOf(k)]); }
   else if(["1","2","3"].includes(k)) decide(WM[+k-1][0]);
   else if(e.code === "Digit0" && e.shiftKey) discardAll();
   else if(k === "0") decide("discard");
@@ -1070,6 +1083,7 @@ document.addEventListener("keydown", e => {
   else if(k === "e"){ const s = $("#rv-summary"); s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
   else if(k === "p") gOpen();
   else if(e.key === "?"){ keys = !keys; render(); }
+  else if(k === "v"){ all = !all; render(); }
   else if(k === "o"){ const a = $(".r-events li.ev a") ?? $(".r-events a"); if(a) window.open(a.href, "_blank", "noopener"); }
   else return;
   e.preventDefault();
