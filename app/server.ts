@@ -131,7 +131,7 @@ const server = Bun.serve({
     const url = new URL(req.url);
     if (url.pathname === "/") return new Response(Bun.file(page));
     // Old addresses: review and groups now live inside the one page.
-    if (url.pathname === "/review" || url.pathname === "/groups") return new Response(null, { status: 302, headers: { location: `/#${url.pathname}${url.search}` } });
+    if (url.pathname === "/review" || url.pathname === "/groups") return new Response(null, { status: 302, headers: { location: `/#${url.pathname === "/groups" ? "/projects" : url.pathname}${url.search}` } });
     if (url.pathname === "/api/groups") return Response.json(groups());
     if (url.pathname === "/api/pending") return Response.json(pending());
     if (url.pathname === "/api/review") {

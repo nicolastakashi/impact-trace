@@ -190,7 +190,7 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 /* review: real threads from SQLite. One queue on the left, one decision card on the right. */
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:90;background:var(--ink);color:var(--ground);padding:8px 14px;border-radius:10px;font:500 13px var(--f-mono)}
 nav .ex{font-size:8.5px;padding:2px 4px}
-#v-review, #v-groups{
+#v-review, #v-projects{
   .stats{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:end}
   .stat{display:grid;gap:6px}
   .stat b{font:700 28px/1 var(--f-num);font-variant-numeric:tabular-nums}
@@ -277,12 +277,16 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 @media (max-width:620px){ #v-review .r-fields{grid-template-columns:1fr} #v-review .r-fields > span:empty{display:none} }
 @media (max-width:520px){ #v-review .r-wm{grid-template-columns:1fr} #v-review .r-events li{grid-template-columns:1fr;gap:2px} }
 
-/* groups: one card per group; a week strip, then its threads week by week. */
-#v-groups{
+/* projects: one card per project; a week strip, then its threads week by week. */
+#v-projects{
   .filters{display:flex;gap:6px}
   .filters button{font:500 12px var(--f-mono);color:var(--ink-2);background:var(--s1);border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer}
   .filters button[aria-pressed="true"]{color:var(--ink);border-color:var(--ink-2);background:var(--s3)}
   .grp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(520px,100%),1fr));gap:12px;align-items:start}
+  .facts{font:500 11.5px var(--f-mono);color:var(--ink-3);margin-top:-8px}
+  .facts a{text-decoration:none}
+  .facts a:hover{color:var(--accent)}
+  .ms{display:grid;gap:6px}
   .grp{background:var(--s1);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px clamp(14px,2.5vw,22px);display:grid;gap:14px;scroll-margin-top:96px}
   .grp.on{border-color:var(--accent);box-shadow:var(--glow)}
   .gh{all:unset;cursor:pointer;display:flex;align-items:baseline;gap:8px 14px}
@@ -305,15 +309,9 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .wk .ok{color:var(--m-build);margin-left:6px}
   .wk .todo{font:500 10px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-left:6px}
 }
-@media (max-width:560px){ #v-groups .wk{grid-template-columns:1fr;gap:4px} }
+@media (max-width:560px){ #v-projects .wk{grid-template-columns:1fr;gap:4px} }
 
 /* projects */
-.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
-.pcard{display:grid;gap:14px;align-content:start}
-.pcard h3{margin:0;font:800 22px/1.02 var(--f-num);text-transform:uppercase;text-wrap:balance}
-.pcard h3 a{text-decoration:none}
-.pcard h3 a:hover{color:var(--accent)}
-.pmeta{display:flex;flex-wrap:wrap;gap:6px 14px;font:500 11.5px var(--f-mono);color:var(--ink-3)}
 .pill{font:600 11px/1 var(--f-num);letter-spacing:.1em;text-transform:uppercase;padding:4px 7px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2)}
 .pill.done{border-color:color-mix(in srgb,var(--m-build) 60%,var(--line));color:var(--m-build)}
 .pill.warn{border-color:color-mix(in srgb,var(--m-solve) 60%,var(--line));color:var(--m-solve)}
@@ -321,12 +319,6 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 .msr .tr{height:6px;border-radius:3px;background:var(--s3);overflow:hidden}
 .msr .tr i{display:block;height:100%;background:var(--accent);border-radius:3px}
 .msr b{font:700 13px var(--f-num);text-align:right;color:var(--ink)}
-.pbars{display:flex;gap:3px;align-items:end;height:38px}
-.pbars i{flex:1;border-radius:3px 3px 1px 1px;background:var(--accent);min-height:2px;opacity:.85}
-.pbars i.z{background:var(--s3);opacity:1}
-.pitems{display:grid;gap:6px;margin:0;padding:0;list-style:none}
-.pitems button{width:100%;text-align:left;background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;display:grid;grid-template-columns:8px 1fr auto;gap:10px;align-items:center;font-size:13px}
-.pitems button:hover{border-color:var(--line-2)}
 .crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font:500 12px var(--f-mono);color:var(--ink-2)}
 .crumbs span.sep{color:var(--ink-3)}
 .crumbs a,.crumbs b{font-weight:500;padding:4px 8px;border-radius:6px;background:var(--s2);border:1px solid var(--line);text-decoration:none}
@@ -386,8 +378,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   <div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M1 8h3l2-5 4 10 2-5h3" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><b>Impact Trace</b></div>
   <nav role="tablist" aria-label="Views">
     <button role="tab" id="t-home" data-v="home" aria-selected="true">North</button>
-    <button role="tab" id="t-proj" data-v="proj" aria-selected="false">Projects</button>
-    <button role="tab" id="t-groups" data-v="groups" aria-selected="false">Groups</button>
+    <button role="tab" id="t-projects" data-v="projects" aria-selected="false">Projects</button>
     <button role="tab" id="t-trace" data-v="trace" aria-selected="false">Trace <span class="ex">example</span></button>
     <button role="tab" id="t-review" data-v="review" aria-selected="false">Review <span class="badge" id="badge"></span></button>
     <button role="tab" id="t-refs" data-v="refs" aria-selected="false">References</button>
@@ -421,17 +412,6 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   </div>
 </section>
 
-<!-- PROJECTS -->
-<section class="view" id="v-proj" hidden>
-  <div class="vhead">
-    <h1>From PR to <em>goal</em></h1>
-    <p>PR → issue → project → milestone comes from Linear, automatically. Project → goal is the only manual link, set once per project. Linear initiatives are only "Running Projects", so they do not work as OKRs.</p>
-  </div>
-  <div class="panel"><div class="hm-wrap"><div class="hm" id="phm" style="grid-template-columns:minmax(150px,230px) repeat(8,1fr)"></div></div>
-    <div class="hm-hint"><span>Your closed issues per week, per project. Linear data, 2026-10-18.</span></div></div>
-  <div class="pgrid" id="pgrid"></div>
-</section>
-
 <!-- TRACE -->
 <section class="view" id="v-trace" hidden>
   <div class="vhead">
@@ -454,11 +434,11 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   </div>
 </section>
 
-<!-- GROUPS -->
-<section class="view" id="v-groups" hidden>
-  <div class="vhead"><h1>Groups <em>across weeks</em></h1>
-    <div class="filters" role="group" aria-label="Kind of group"><button data-f="all" aria-pressed="true">All</button><button data-f="linear" aria-pressed="false">Linear projects</button><button data-f="topic" aria-pressed="false">Topics</button></div></div>
-  <div class="grp-list" id="grp-list"><div class="empty">Loading groups…</div></div>
+<!-- PROJECTS: Linear projects and your own topics, across weeks -->
+<section class="view" id="v-projects" hidden>
+  <div class="vhead"><h1>Projects <em>across weeks</em></h1>
+    <div class="filters" role="group" aria-label="Kind of project"><button data-f="all" aria-pressed="true">All</button><button data-f="linear" aria-pressed="false">Linear</button><button data-f="topic" aria-pressed="false">Topics</button></div></div>
+  <div class="grp-list" id="grp-list"><div class="empty">Loading projects…</div></div>
 </section>
 
 <!-- REVIEW -->
@@ -639,26 +619,6 @@ function renderRec(){
     <div class="rec-dots">${REC.map((_,i)=>`<i class="${i===recI?"on":""}"></i>`).join("")}</div>`;
 }
 
-/* PROJECTS */
-function renderProj(){
-  const keys = Object.keys(PROJECTS).filter(k=>PROJECTS[k].done);
-  const mx = Math.max(...keys.flatMap(k=>PROJECTS[k].done));
-  $("#phm").innerHTML = `<div></div>` + WEEKS.map(w=>`<div class="wk">${w}</div>`).join("") + keys.map(k=>{ const P = PROJECTS[k], g = GOALS.find(x=>x.id===P.goal);
-    return `<div class="ml" title="${esc(P.name)}"><i class="dot" style="background:${g?g.color:"var(--line-2)"}"></i><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(P.name)}</span></div>` + P.done.map((n,w)=>`<button class="cell" data-proj="${k}" style="${n?`background:color-mix(in srgb,var(--accent) ${25+n/mx*70}%,var(--s3))`:""}" aria-label="${esc(P.name)} ${WEEKS[w]}: ${n}">${n?`<b>${n}</b>`:""}</button>`).join(""); }).join("");
-  const order = [...GOALS.map(g=>g.id), null];
-  $("#pgrid").innerHTML = Object.entries(PROJECTS).sort((a,b)=>order.indexOf(a[1].goal)-order.indexOf(b[1].goal)).map(([k,P])=>{
-    const g = GOALS.find(x=>x.id===P.goal), its = ITEMS.filter(i=>i.s===k), tot = P.done ? P.done.reduce((a,b)=>a+b,0) : 0, pm = P.done ? Math.max(1,...P.done) : 1;
-    return `<article class="panel pcard" id="proj-${k}">
-      <div style="display:flex;justify-content:space-between;gap:10px;align-items:start"><h3>${P.url?`<a href="${P.url}" target="_blank" rel="noopener">${esc(P.name)} ↗</a>`:esc(P.name)}</h3>
-        <span style="display:flex;gap:6px">${P.live?`<span class="pill done">live</span>`:""}<span class="pill ${P.status==="Completed"?"done":""}">${esc(P.status)}</span></span></div>
-      <div class="pmeta"><span>${g?`<i class="dot" style="background:${g.color}"></i> ${esc(g.short)} <span class="ex">example</span>`:"no goal"}</span>${P.lead?`<span>lead: ${esc(P.lead)}${P.lead==="Nicolas Takashi"?" (you)":""}</span>`:""}${P.done?`<span>${tot} of your issues closed</span>`:""}${P.open?`<span class="${k==="none"?"warn":""}">${P.open} open</span>`:""}</div>
-      ${P.done?`<div class="pbars" aria-label="Closed issues per week: ${P.done.join(", ")}">${P.done.map(n=>`<i class="${n?"":"z"}" style="height:${n?Math.max(10,n/pm*100):6}%"></i>`).join("")}</div>`:""}
-      ${P.note?`<span class="pill ${k==="none"?"warn":""}" style="justify-self:start;letter-spacing:.02em;text-transform:none;font:500 12px var(--f-body)">${esc(P.note)}</span>`:""}
-      ${P.ms.length?`<div class="sec"><span class="lbl">Milestones</span>${P.ms.map(m=>`<div class="msr"><span>${esc(m.name)}</span><span class="tr"><i style="width:${m.progress||0}%"></i></span><b>${m.progress==null?"—":m.progress+"%"}</b></div>`).join("")}</div>`:""}
-      ${its.length?`<div class="sec"><span class="lbl">Linked impact · ${its.length}</span><ul class="pitems">${its.map(i=>`<li><button data-item="${i.id}"><i class="dot" style="background:${mc(modeOf(i))}"></i><span>${esc(i.title)}</span><span class="ref">${WEEKS[i.w]}${i.rec!=null?" ★":""}</span></button></li>`).join("")}</ul></div>`:`<span class="ref">No linked impact items yet. Closed work with no recorded story.</span>`}
-    </article>`; }).join("");
-}
-
 /* TRACE */
 let drag = null;
 function renderTrace(){
@@ -768,7 +728,7 @@ function step(d){ sI = Math.max(0, Math.min(SLIDES.length-1, sI+d)); drawStory()
 
 /* CMDK */
 let cmdSel = 0, cmdRes = [];
-const VIEWS = [["home","North"],["proj","Projects"],["groups","Groups"],["trace","Trace"],["review","Review"],["refs","References"]];
+const VIEWS = [["home","North"],["proj","Projects"],["projects","Projects"],["trace","Trace"],["review","Review"],["refs","References"]];
 function openCmd(){ $("#cmdk").hidden = false; $("#cmdk-input").value=""; filterCmd(); $("#cmdk-input").focus(); }
 function filterCmd(){
   const q = $("#cmdk-input").value.toLowerCase();
@@ -796,14 +756,14 @@ function route(){
   const v = VIEWS.some(([k]) => k === path) ? path : "home", p = new URLSearchParams(qs);
   display(v);
   if(v === "review") RV.open(p.get("week"), p.get("key"), p.get("from"));
-  if(v === "groups") GV.open(p.get("g"));
+  if(v === "projects") GV.open(p.get("p"));
 }
 function show(v){ if(location.hash.split("?")[0] !== "#/"+v) history.pushState(null, "", "#/"+v); route(); }
 addEventListener("hashchange", route);
-function renderAll(){ renderTrace(); renderProj(); }
+function renderAll(){ renderTrace(); }
 
 document.addEventListener("click", e=>{
-  const t = e.target.closest("button,a,[data-wk]"); if(!t || t.closest("#v-review, #v-groups")) return;
+  const t = e.target.closest("button,a,[data-wk]"); if(!t || t.closest("#v-review, #v-projects")) return;
   const d = t.dataset;
   if(d.storyGo){ $("#story").hidden = true; show(d.storyGo); return; }
   if(d.step){ step(+d.step); return; }
@@ -815,7 +775,6 @@ document.addEventListener("click", e=>{
   if(d.ref){ e.preventDefault(); show("refs"); const el = document.getElementById("ref-"+d.ref); if(el){ el.scrollIntoView({block:"center"}); document.querySelectorAll(".refc").forEach(x=>x.classList.toggle("hl", x===el)); } return; }
   if(d.goal){ sel.clear(); ITEMS.filter(i=>(goalOf(i)??"none")===d.goal).forEach(i=>sel.add(i.w)); renderTrace(); show("trace"); return; }
   if(d.item){ openItem(d.item); return; }
-  if(d.proj){ document.getElementById("proj-"+d.proj)?.scrollIntoView({block:"center",behavior:RM?"auto":"smooth"}); return; }
   if(t.id==="x"){ $("#sheet").hidden = true; return; }
   if(d.rec){ recI = (recI + +d.rec + REC.length) % REC.length; renderRec(); return; }
   if(d.wm){ answers[d.id] = {...answers[d.id], wm:d.wm}; save(); renderAll(); if(!$("#sheet").hidden) openItem(d.id); return; }
@@ -931,12 +890,12 @@ function render(){
   $("#rv-card").innerHTML = `
     <div class="r-prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.without_me==="discard"?"g":x.human.without_me?"d":i===cur?"c":""}"></i>`).join("")}</div>
     <div class="gwrap">
-      ${back ? `<a class="crumb" href="#/groups?g=${encodeURIComponent(back.id)}">← ${esc(back.name)}</a>` : ""}
-      <button class="gbtn" id="gopen" aria-haspopup="listbox" aria-expanded="false" title="Change group (P)">${t.projects.length ? t.projects.map(p => esc(p.name) + (p.by === "claude" ? ` <span class="ai" title="Claude placed this thread here">Claude</span>` : "")).join(", ") : "no group"} ▾</button>
-      ${t.projects.some(p => p.by === "claude") ? `<button class="undo" id="unassign">wrong group ✕</button>` : ""}
-      ${group && group.id !== from ? `<a class="crumb" href="#/groups?g=${encodeURIComponent(group.id)}">across weeks →</a>` : ""}
+      ${back ? `<a class="crumb" href="#/projects?p=${encodeURIComponent(back.id)}">← ${esc(back.name)}</a>` : ""}
+      <button class="gbtn" id="gopen" aria-haspopup="listbox" aria-expanded="false" title="Change project (P)">${t.projects.length ? t.projects.map(p => esc(p.name) + (p.by === "claude" ? ` <span class="ai" title="Claude placed this thread here">Claude</span>` : "")).join(", ") : "no project"} ▾</button>
+      ${t.projects.some(p => p.by === "claude") ? `<button class="undo" id="unassign">wrong project ✕</button>` : ""}
+      ${group && group.id !== from ? `<a class="crumb" href="#/projects?p=${encodeURIComponent(group.id)}">across weeks →</a>` : ""}
       <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}" title="Not your impact: routine, noise, or someone else's work (0)"><kbd>0</kbd>discard${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button>
-      <div class="gpop" id="gpop" hidden><input id="gq" placeholder="Find a group, or type a new one" autocomplete="off" aria-label="Group"><ul id="gl-list" role="listbox"></ul></div></div>
+      <div class="gpop" id="gpop" hidden><input id="gq" placeholder="Find a project, or type a new topic" autocomplete="off" aria-label="Project"><ul id="gl-list" role="listbox"></ul></div></div>
     <div class="r-sec">
       <input class="r-title" id="rv-title" value="${esc(d.title)}" aria-label="Thread title">
       <textarea class="r-summary" id="rv-summary" rows="2" aria-label="Summary of what you did" placeholder="No summary yet">${esc(d.summary)}</textarea></div>
@@ -956,7 +915,7 @@ function render(){
       <div class="r-wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}</div></div>
     <div class="r-keys" ${keys ? "" : "hidden"}><span><kbd>A</kbd>–<kbd>H</kbd> mode</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> pillar</span>
       <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> without you, save</span><span><kbd>0</kbd> discard</span><span><kbd>⇧0</kbd> discard all routine</span><span><kbd>J</kbd><kbd>K</kbd> move</span>
-      <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>V</kbd> evidence</span><span><kbd>O</kbd> open evidence</span><span><kbd>P</kbd> group</span><span><kbd>?</kbd> hide</span></div>`;
+      <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>V</kbd> evidence</span><span><kbd>O</kbd> open evidence</span><span><kbd>P</kbd> project</span><span><kbd>?</kbd> hide</span></div>`;
   $("#rv-queue [aria-current=true]")?.scrollIntoView({block:"nearest"});
 }
 
@@ -1007,7 +966,7 @@ async function discardAll(){
   after();
 }
 
-// Group picker: existing groups first, then "create" for a new topic.
+// Project picker: existing projects first, then "create" for a new topic.
 let gSel = 0, gRes = [];
 function gRender(){
   const q = $("#gq").value.trim().toLowerCase();
@@ -1016,7 +975,7 @@ function gRender(){
   gSel = Math.min(gSel, Math.max(gRes.length-1, 0));
   $("#gl-list").innerHTML = gRes.map((g,i) => `<li><button role="option" data-g="${i}" aria-selected="${i===gSel}">
     <span>${g.create ? `Create “${esc(g.create)}”` : esc(g.name)}</span><span class="k">${g.create ? "new topic" : g.kind === "topic" ? "topic" : "linear"}</span></button></li>`).join("")
-    || `<li class="lbl" style="padding:8px 10px">No groups yet. Type a name to create one.</li>`;
+    || `<li class="lbl" style="padding:8px 10px">No projects yet. Type a name to create a topic.</li>`;
 }
 function gOpen(){ $("#gpop").hidden = false; $("#gopen").setAttribute("aria-expanded","true"); $("#gq").value = ""; gSel = 0; gRender(); $("#gq").focus(); }
 function gClose(){ $("#gpop").hidden = true; $("#gopen")?.setAttribute("aria-expanded","false"); }
@@ -1030,14 +989,14 @@ async function gChoose(i){
   const g = gRes[i]; if(!g) return;
   const t = data.threads[cur];
   const r = await post("/api/group", {week: data.week, key: t.key, ...(g.create ? {name: g.create} : {group_id: g.id})});
-  if(!r.ok){ toast(`Not grouped: ${await r.text()}`); return; }
+  if(!r.ok){ toast(`Not moved: ${await r.text()}`); return; }
   gClose(); await reloadAt(t.events[0].id); toast(g.create ? `Created ${g.create}` : `Moved to ${g.name}`);
 }
 async function unassign(){
   const t = data.threads[cur];
   const r = await post("/api/unassign", {week: data.week, key: t.key});
   if(!r.ok){ toast(`Not undone: ${await r.text()}`); return; }
-  await reloadAt(t.events[0].id); toast("Group removed");
+  await reloadAt(t.events[0].id); toast("Project removed");
 }
 
 $("#v-review").addEventListener("click", e => {
@@ -1090,17 +1049,28 @@ document.addEventListener("keydown", e => {
 return {open};
 })();
 
-/* GROUPS: every group across weeks. A thread opens in review, with a way back here. */
+/* PROJECTS: every project across weeks. A thread opens in review, with a way back here. */
 const GV = (() => {
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let data = null, filter = "all", focus = null;
+let data = null, linear = new Map(), filter = "all", focus = null;
 const opened = new Set();
 async function open(g){
   focus = g; if(g) opened.add(g);
   // Always fresh: decisions made in review change the ticks here.
-  data = await (await fetch("/api/groups")).json();
+  const [g1, l1] = await Promise.all([fetch("/api/groups").then(r => r.json()), fetch("/api/projects?weeks=").then(r => r.ok ? r.json() : {projects: []}).catch(() => ({projects: []}))]);
+  data = g1; linear = new Map(l1.projects.map(x => [x.id, x]));
   render();
-  if(g) document.querySelector(`#v-groups [data-gid="${CSS.escape(g)}"]`)?.scrollIntoView({block:"start", behavior: RM ? "auto" : "smooth"});
+  if(g) document.querySelector(`#v-projects [data-gid="${CSS.escape(g)}"]`)?.scrollIntoView({block:"start", behavior: RM ? "auto" : "smooth"});
+}
+// From Linear: status, lead, open issues. A topic is yours only, so it says that.
+function facts(g){
+  const L = linear.get(g.id);
+  if(g.kind === "topic" || !L) return `<span class="facts">topic · yours</span>`;
+  return `<span class="facts">${L.url ? `<a href="${esc(L.url)}" target="_blank" rel="noopener">Linear ↗</a>` : "Linear"}${L.status ? ` · ${esc(L.status)}` : ""}${L.open ? ` · ${L.open} open` : ""}${L.lead ? ` · lead ${esc(L.lead)}` : ""}</span>`;
+}
+function milestones(g){
+  const ms = linear.get(g.id)?.ms ?? [];
+  return ms.length ? `<div class="ms">${ms.map(m => `<div class="msr"><span>${esc(m.name)}</span><span class="tr"><i style="width:${m.progress||0}%"></i></span><b>${m.progress==null?"—":m.progress+"%"}</b></div>`).join("")}</div>` : "";
 }
 function render(){
   const gs = data.groups.filter(g => filter === "all" || g.kind === filter)
@@ -1111,19 +1081,21 @@ function render(){
   $("#grp-list").innerHTML = gs.map(g => { const todo = Object.values(g.weeks).flat().filter(t => !t.decided).length;
     return `<section class="grp ${g.id === focus ? "on" : ""}" data-gid="${esc(g.id)}" aria-label="${esc(g.name)}">
     <button class="gh" data-toggle="${esc(g.id)}" aria-expanded="${opened.has(g.id)}"><h2>${esc(g.name)}</h2>${todo ? `<span class="todo">${todo} to review</span>` : ""}<span class="chev">${opened.has(g.id) ? "▴" : "▾"}</span></button>
+    ${facts(g)}
     <div class="strip" style="--n:${n}">${data.weeks.map(w => { const c = (g.weeks[w] ?? []).length;
       return `<i class="${c ? "on" : ""}" style="--v:${c / max}" title="${w}: ${c}">${c || ""}</i>`; }).join("")}${data.weeks.map(w => `<span>${w.slice(5)}</span>`).join("")}</div>
+    ${opened.has(g.id) ? milestones(g) : ""}
     <div class="weeks" ${opened.has(g.id) ? "" : "hidden"}>${data.weeks.filter(w => g.weeks[w]).map(w => `<div class="wk"><span class="lbl">${w.slice(5)}</span><ul>
       ${g.weeks[w].map(t => `<li><a href="#/review?week=${w}&key=${encodeURIComponent(t.key)}&from=${encodeURIComponent(g.id)}"><b>${esc(t.title ?? "Untitled")}</b><span class="n">${t.events}</span>${t.decided ? `<span class="ok" title="You decided this">✓</span>` : `<span class="todo">to review</span>`}
 </a></li>`).join("")}</ul></div>`).join("")
-      || `<span class="lbl">No threads yet. Pick this group for a thread in review with P.</span>`}</div></section>`; }).join("")
-    || `<div class="empty">No groups yet. In review, press P on a thread to put it in a group or create one.</div>`;
+      || `<span class="lbl">No threads yet. Pick this project for a thread in review with P.</span>`}</div></section>`; }).join("")
+    || `<div class="empty">No projects yet. In review, press P on a thread to pick one or create a topic.</div>`;
 }
-$("#v-groups").addEventListener("click", e => {
+$("#v-projects").addEventListener("click", e => {
   const tg = e.target.closest("[data-toggle]");
   if(tg){ const id = tg.dataset.toggle; opened.has(id) ? opened.delete(id) : opened.add(id); return render(); }
   const b = e.target.closest("[data-f]"); if(!b) return;
-  filter = b.dataset.f; document.querySelectorAll("#v-groups [data-f]").forEach(x => x.setAttribute("aria-pressed", x === b)); render(); });
+  filter = b.dataset.f; document.querySelectorAll("#v-projects [data-f]").forEach(x => x.setAttribute("aria-pressed", x === b)); render(); });
 return {open};
 })();
 
