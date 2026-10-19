@@ -203,7 +203,8 @@ function saveSetup(b: any) {
 }
 
 const server = Bun.serve({
-  port: 4317,
+  // PORT lets a second copy, with its own data/, run next to yours.
+  port: Number(process.env.PORT ?? 4317),
   // Your Dash0 data and a write endpoint: never reachable from the network.
   hostname: "127.0.0.1",
   async fetch(req) {
