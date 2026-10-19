@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -116,25 +116,25 @@ header .back{margin-left:auto;font:500 12px var(--f-mono);color:var(--ink-2)}
 <body>
 <header>
   <h1>Review</h1>
-  <label class="stat"><span class="lbl">Semana</span><select id="week" aria-label="Semana"></select></label>
-  <div class="stat"><span class="lbl">Decididos</span><b id="done">–</b></div>
-  <div class="stat"><span class="lbl">Claude igual a você · modo</span><b id="agree">–</b></div>
-  <a class="back" href="/">← impacto</a>
+  <label class="stat"><span class="lbl">Week</span><select id="week" aria-label="Week"></select></label>
+  <div class="stat"><span class="lbl">Decided</span><b id="done">–</b></div>
+  <div class="stat"><span class="lbl">Claude matches you · mode</span><b id="agree">–</b></div>
+  <a class="back" href="/">← impact</a>
 </header>
 <div class="wrap">
-  <ul class="queue" id="queue" aria-label="Threads da semana"></ul>
-  <main class="card" id="card"><div class="empty">Carregando threads…</div></main>
+  <ul class="queue" id="queue" aria-label="Threads of the week"></ul>
+  <main class="card" id="card"><div class="empty">Loading threads…</div></main>
 </div>
 <div class="toast" id="toast" hidden></div>
 <script>
-const MODES = {clarify:"clarificar", prevent:"evitar", solve:"resolver", build:"construir", elevate:"elevar", external:"externo"};
+const MODES = {clarify:"clarify", prevent:"prevent", solve:"solve", build:"build", elevate:"elevate", external:"external"};
 const MODE_KEYS = ["a","s","d","f","g","h"];
 const PILLAR = {big:"big-picture", exec:"execution", level:"leveling-up"};
 const PILLAR_KEYS = ["z","x","c"];
-const WM = [["wouldnt","não aconteceria"],["slower","mais devagar"],["same","igual"]];
-const KIND = {pr_merged:"PR mergeado", pr_open:"PR aberto", issue_completed:"issue feita", issue_open:"issue aberta",
-  review_comment:"review recebida", reviews_given:"reviews dadas", slack_message:"Slack", slack_mention:"menção",
-  meeting:"reunião", doc_created:"doc novo", doc_edited:"doc editado"};
+const WM = [["wouldnt","wouldn't happen"],["slower","slower"],["same","same"]];
+const KIND = {pr_merged:"PR merged", pr_open:"PR open", issue_completed:"issue done", issue_open:"issue open",
+  review_comment:"review received", reviews_given:"reviews given", slack_message:"Slack", slack_mention:"mention",
+  meeting:"meeting", doc_created:"doc created", doc_edited:"doc edited"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const mc = m => `var(--m-${m})`;
@@ -169,34 +169,34 @@ function render(){
   $("#queue").innerHTML = ts.map((t,i) => { const d = pick(t); return `<li><button data-i="${i}" aria-current="${i===cur}" class="${t.human.without_me==="discard"?"gone":""}">
     <i class="dot" style="background:${mc(d.mode)}"></i><span class="t">${esc(d.title)}</span>
     <span class="n ${t.human.without_me?"done":""}">${t.human.without_me==="discard"?"✕":t.human.without_me?"✓":t.events.length}</span></button></li>`; }).join("");
-  if(!ts.length){ $("#card").innerHTML = `<div class="empty">Nenhuma thread com sugestão ainda. Rode <code>./run.sh</code> para coletar e sugerir labels da semana.</div>`; return; }
+  if(!ts.length){ $("#card").innerHTML = `<div class="empty">No suggested threads yet. Run <code>./run.sh</code> to collect the week and suggest labels.</div>`; return; }
   const t = ts[cur], d = pick(t), ev = new Set(JSON.parse(t.claude.evidence ?? "[]"));
   const kinds = Object.entries(t.events.reduce((a,e) => (a[e.kind]=(a[e.kind]||0)+1, a), {})).map(([k,n]) => `${n} ${KIND[k]??k}`).join(" · ");
   $("#card").innerHTML = `
     <div class="prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.without_me==="discard"?"x":x.human.without_me?"d":i===cur?"c":""}"></i>`).join("")}</div>
     <div class="sec"><span class="lbl">${esc(data.week)} · ${kinds}</span>
-      <input class="title" id="title" value="${esc(d.title)}" aria-label="Título da thread">
-      <textarea class="summary" id="summary" rows="2" aria-label="Resumo do que você fez" placeholder="Sem resumo ainda">${esc(d.summary)}</textarea></div>
-    <div class="sec"><span class="lbl">Evidência</span><ul class="events">${t.events.map(e => `<li class="${ev.has(e.id)?"ev":""}">
+      <input class="title" id="title" value="${esc(d.title)}" aria-label="Thread title">
+      <textarea class="summary" id="summary" rows="2" aria-label="Summary of what you did" placeholder="No summary yet">${esc(d.summary)}</textarea></div>
+    <div class="sec"><span class="lbl">Evidence</span><ul class="events">${t.events.map(e => `<li class="${ev.has(e.id)?"ev":""}">
       <span class="k">${KIND[e.kind]??e.kind}</span>
       <span class="x">${e.url?`<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title ?? e.id)} ↗</a>`:esc(e.title ?? e.id)}
       ${e.author && e.kind!=="pr_merged" && e.kind!=="pr_open" ? ` <span class="lbl">${esc(e.author)}</span>`:""}
       ${e.text?`<small>${esc(e.text)}</small>`:""}</span></li>`).join("")}</ul></div>
     <div class="two">
-      <div class="sec"><span class="lbl">Modo</span><div class="chips">${Object.keys(MODES).map((k,i) => chip("mode", k, MODES[k], MODE_KEYS[i], d, t, mc(k))).join("")}</div></div>
-      <div class="sec"><span class="lbl">Pilar · Reilly</span><div class="chips">${Object.keys(PILLAR).map((k,i) => chip("pillar", k, PILLAR[k], PILLAR_KEYS[i], d, t)).join("")}</div></div>
+      <div class="sec"><span class="lbl">Mode</span><div class="chips">${Object.keys(MODES).map((k,i) => chip("mode", k, MODES[k], MODE_KEYS[i], d, t, mc(k))).join("")}</div></div>
+      <div class="sec"><span class="lbl">Pillar · Reilly</span><div class="chips">${Object.keys(PILLAR).map((k,i) => chip("pillar", k, PILLAR[k], PILLAR_KEYS[i], d, t)).join("")}</div></div>
     </div>
-    <div class="sec"><span class="lbl">Sem mim, teria acontecido? · salva e avança</span>
+    <div class="sec"><span class="lbl">Without you, would it have happened? · saves and moves on</span>
       <div class="wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}</div>
-      <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}"><kbd>0</kbd>Descartar · não é impacto</button></div>
-    <div class="keys"><span><kbd>A</kbd>–<kbd>H</kbd> modo</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> pilar</span>
-      <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> sem mim, salva</span><span><kbd>0</kbd> descartar</span><span><kbd>J</kbd><kbd>K</kbd> navegar</span>
-      <span><kbd>T</kbd> editar título</span><span><kbd>E</kbd> editar resumo</span><span><kbd>O</kbd> abrir evidência</span></div>`;
+      <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}"><kbd>0</kbd>Discard · not impact</button></div>
+    <div class="keys"><span><kbd>A</kbd>–<kbd>H</kbd> mode</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> pillar</span>
+      <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> without you, save</span><span><kbd>0</kbd> discard</span><span><kbd>J</kbd><kbd>K</kbd> move</span>
+      <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>O</kbd> open evidence</span></div>`;
   $("#queue [aria-current=true]")?.scrollIntoView({block:"nearest"});
 }
 
 function chip(field, k, label, key, d, t, color){
-  const ai = t.claude[field] === k ? `<span class="ai" title="sugestão do Claude">Claude</span>` : "";
+  const ai = t.claude[field] === k ? `<span class="ai" title="Claude's suggestion">Claude</span>` : "";
   return `<button class="chip" data-${field}="${k}" aria-pressed="${d[field]===k}" style="${color?`--c:${color}`:""}">
     <kbd>${key.toUpperCase()}</kbd>${color?`<i class="dot" style="background:${color}"></i>`:""}${label}${ai}</button>`;
 }
@@ -211,9 +211,9 @@ async function save(wm){
   d.summary = $("#summary").value.trim();
   const labels = wm === "discard" ? {without_me: wm} : {title: d.title, mode: d.mode, pillar: d.pillar, without_me: wm, ...(d.summary && {summary: d.summary})};
   const r = await fetch("/api/labels", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({week: data.week, key: t.key, labels})});
-  if(!r.ok){ toast(`Não salvou: ${await r.text()}`); return; }
+  if(!r.ok){ toast(`Not saved: ${await r.text()}`); return; }
   Object.assign(t.human, labels);
-  toast(wm === "discard" ? "Descartado" : "Salvo");
+  toast(wm === "discard" ? "Discarded" : "Saved");
   const next = data.threads.findIndex((x,i) => i > cur && !x.human.without_me);
   go(next >= 0 ? next : cur);
 }
