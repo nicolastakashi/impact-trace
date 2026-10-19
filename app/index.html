@@ -395,6 +395,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 .ex2{border-style:dashed}
 
 /* setup */
+#setup-btn[aria-current="page"]{color:var(--ink);border-color:var(--ink-2)}
 .sample-note{display:block;font-size:13.5px;color:var(--ink-2);background:var(--s2);border:1px dashed var(--line-2);border-radius:12px;padding:10px 14px;text-decoration:none}
 .sample-note b{color:var(--accent);font-weight:600}
 #v-setup{
@@ -504,6 +505,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
     <button role="tab" id="t-refs" data-v="refs" aria-selected="false">References</button>
   </nav>
   <div class="hright">
+    <button class="cmdk-btn" id="setup-btn" data-v="setup" title="Who you are, and your tools">Setup</button>
     <button class="cmdk-btn" id="cmdk-open">Search <kbd>⌘</kbd><kbd>K</kbd></button>
   </div>
 </header>
@@ -927,6 +929,7 @@ function display(v){
   // A project page sits under the Projects tab.
   document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.v===(v==="project"?"projects":v)));
   document.querySelectorAll("section.view").forEach(s=>s.hidden = s.id!=="v-"+v);
+  $("#setup-btn").setAttribute("aria-current", v === "setup" ? "page" : "false");
   $("#sheet").hidden = true; window.scrollTo(0,0);
   if(v==="home") renderHome();
   const els = document.querySelectorAll(`#v-${v} .panel, #v-${v} .refc, #v-${v} .pcard`);
