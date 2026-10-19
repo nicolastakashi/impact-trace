@@ -46,6 +46,13 @@ gh search prs --author nicolastakashi --merged --merged-at "$monday..$sunday" --
 
 bun ingest/ingest.ts "$week"
 
+# Place threads Linear does not put in a project, before labels, so labels see whole threads.
+echo "▶ projects $week"
+bun ingest/assign.ts emit "$week" > "$out/unplaced.json"
+claude -p "/assign-projects $week" --model sonnet --output-format json \
+  --json-schema "$(cat schemas/assign.json)" < "$out/unplaced.json" > "$out/assign.run.json"
+bun ingest/assign.ts save "$week" "$out/assign.run.json"
+
 # Labels are judgment, not lifting: a stronger model, no tools, only the threads as input.
 echo "▶ labels $week"
 bun ingest/review.ts emit "$week" > "$out/threads.json"

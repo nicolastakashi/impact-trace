@@ -222,9 +222,12 @@ function ingestGithub(out: any, week: string, runId: string, event: any, link: a
   }
 }
 
+// An event's project: Linear's, else an assignment (yours over Claude's; yours may say none).
+export const PROJECT = `coalesce(project_id, (SELECT a.project_id FROM assignments a WHERE a.event_id = events.id ORDER BY a.source = 'human' DESC LIMIT 1))`;
+
 // Work threads: events joined through the PRs, issues and docs they share. Raw URLs do not join.
 // Then threads with the same main Linear project merge: PRs that cite different issues of one
-// project are one piece of work. Only the main project counts, so one PR that cites two
+// project are one piece of work; so are threads you or Claude placed in it. Only the main project counts, so one PR that cites two
 // projects cannot merge both whole projects.
 // ponytail: one hub ref (an epic named everywhere) merges its threads; cap by degree if that shows up.
 export function threads(db: Database, weeks: string[]) {
@@ -244,8 +247,8 @@ export function threads(db: Database, weeks: string[]) {
   const groups = new Map<string, string[]>();
   for (const { id } of events) groups.set(find(id), [...(groups.get(find(id)) ?? []), id]);
 
-  const project = new Map((db.query(`SELECT id, project_id FROM events WHERE week IN (${marks}) AND project_id IS NOT NULL`)
-    .all(...weeks) as any[]).map((e) => [e.id, e.project_id as string]));
+  const project = new Map((db.query(`SELECT id, ${PROJECT} p FROM events WHERE week IN (${marks}) AND p IS NOT NULL`)
+    .all(...weeks) as any[]).map((e) => [e.id, e.p as string]));
   const byProject = new Map<string, string[]>();
   const out: string[][] = [];
   for (const ids of groups.values()) {
