@@ -34,5 +34,16 @@ login and connectors are; both read and write the same `data/`.
 docker compose up -d --build   # http://127.0.0.1:4317, rebuild after code changes
 ```
 
-One week cost $0.67 on 2026-10-19: collection with Haiku, projects and labels with Sonnet. `ingest` exits 2 when a source failed or when
+Collect on a schedule (macOS, launchd): weekdays at 18:00. Monday closes last week,
+weekend included; the other days collect this week so far.
+
+```bash
+./schedule.sh install    # or: remove. Logs in data/logs/
+```
+
+`PORT=4318 bun app/server.ts` runs a second copy next to yours, for example a fresh
+clone with its own `data/` to try the setup from scratch.
+
+One week cost $0.67 on 2026-10-19: collection with Haiku, projects and labels with Sonnet.
+Each scheduled run costs about that, so weekdays add up to about $3.35 a week. `ingest` exits 2 when a source failed or when
 Claude returned fewer GitHub PRs than `gh` counts on its own.
