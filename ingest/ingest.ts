@@ -201,6 +201,7 @@ function ingestSlack(db: Database, out: any, week: string, runId: string, event:
     const id = `slack:${m.channel_id}/${m.ts}`;
     event.run(id, "slack", mine ? "slack_message" : "slack_mention", week, at, m.channel_name, m.permalink, m.author_name,
       null, null, JSON.stringify(m), runId);
+    channelTopic(db, m.channel_name);
     for (const r of refsIn(m.text, keys)) link.run(id, r, "mentions");
   }
 }
@@ -229,8 +230,22 @@ function ingestGithub(db: Database, out: any, week: string, runId: string, event
   }
 }
 
-// An event's project: Linear's, else an assignment (yours over Claude's; yours may say none).
-export const PROJECT = `coalesce(project_id, (SELECT a.project_id FROM assignments a WHERE a.event_id = events.id ORDER BY a.source = 'human' DESC LIMIT 1))`;
+// An event's group, strongest first: yours; Linear's project; a dedicated #internal-* channel
+// as a topic; Claude's placement, unless you undid it (your row with no group).
+export const PROJECT = `coalesce(
+  (SELECT a.project_id FROM assignments a WHERE a.event_id = events.id AND a.source = 'human'),
+  events.project_id,
+  CASE WHEN events.source = 'slack' AND events.title LIKE '#internal-%' THEN 'topic:' || substr(events.title, 2) END,
+  (SELECT a.project_id FROM assignments a WHERE a.event_id = events.id AND a.source = 'claude'
+     AND NOT EXISTS (SELECT 1 FROM assignments h WHERE h.event_id = events.id AND h.source = 'human')))`;
+
+// "#internal-axel-springer" → topic "Axel Springer".
+export function channelTopic(db: Database, channel: string) {
+  if (!channel.startsWith("#internal-")) return;
+  const name = channel.slice("#internal-".length).split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+  db.query("INSERT INTO projects (id, name, kind, updated_at) VALUES (?, ?, 'topic', ?) ON CONFLICT DO NOTHING")
+    .run(`topic:${channel.slice(1)}`, name, new Date().toISOString());
+}
 
 // Work threads. Strong links join events: a PR and its issues, a review and its PR, a doc and
 // itself. Then threads with the same main Linear project merge (yours or Claude's placement

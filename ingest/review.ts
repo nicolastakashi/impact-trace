@@ -10,10 +10,14 @@ import { open, PROJECT, ROOT, threads } from "./ingest";
 // Alone, these say something; a lone Slack message or meeting rarely does.
 const SOLO = new Set(["slack_mention", "doc_created", "pr_merged"]);
 
+const FIRM = ["human", "linear", "channel", "claude"];
+
 export function reviewThreads(db: Database, week: string) {
   const get = db.query(`SELECT id, kind, title, url, author, payload, ${PROJECT} pid,
-    CASE WHEN project_id IS NOT NULL THEN 'linear'
-      ELSE (SELECT source FROM assignments WHERE event_id = events.id ORDER BY source = 'human' DESC LIMIT 1) END by FROM events WHERE id = ?`);
+    CASE WHEN EXISTS (SELECT 1 FROM assignments WHERE event_id = events.id AND source = 'human' AND project_id IS NOT NULL) THEN 'human'
+      WHEN project_id IS NOT NULL THEN 'linear'
+      WHEN source = 'slack' AND title LIKE '#internal-%' THEN 'channel'
+      ELSE 'claude' END by FROM events WHERE id = ?`);
   const name = db.query("SELECT name FROM projects WHERE id = ?");
   return threads(db, [week]).flatMap((ids) => {
     const events = ids.map((id) => get.get(id) as any);
@@ -21,8 +25,8 @@ export function reviewThreads(db: Database, week: string) {
     return [{
       key: `${week}:${[...ids].sort()[0]}`,
       // by: who placed it. A thread placed by Claude can be undone in review.
-      // Linear wins: Claude only shows when it alone placed the thread there.
-      projects: [...new Map(events.filter((e) => e.pid).sort((a, b) => (a.by === "linear" ? 1 : 0) - (b.by === "linear" ? 1 : 0))
+      // The firmest source wins: Claude only shows when it alone placed the thread there.
+      projects: [...new Map(events.filter((e) => e.pid).sort((a, b) => FIRM.indexOf(b.by) - FIRM.indexOf(a.by))
         .map((e) => [e.pid, { id: e.pid, name: (name.get(e.pid) as any)?.name, by: e.by }])).values()],
       events: events.map(({ payload, pid, by, ...e }) => ({ ...e, text: JSON.parse(payload).text?.slice(0, 400) })),
     }];

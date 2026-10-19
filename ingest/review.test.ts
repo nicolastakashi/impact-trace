@@ -46,3 +46,24 @@ test("an assignment places a thread in a project, and yours overrides Claude's",
   db.query("INSERT INTO assignments (event_id, project_id, source, at) VALUES ('github:x/docs#1', NULL, 'human', 'now')").run();
   expect(threads(db, ["2026-W42"]).length).toBe(2);
 });
+
+test("group precedence: yours, then Linear, then a dedicated channel, then Claude", () => {
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  for (const [id, name, kind] of [["P1", "Datasets", "linear"], ["topic:internal-acme", "Acme", "topic"], ["topic:mine", "Mine", "topic"]])
+    db.query("INSERT INTO projects (id, name, kind, updated_at) VALUES (?, ?, ?, 'now')").run(id, name, kind);
+  const ev = db.query("INSERT INTO events (id, source, kind, week, title, project_id, payload, run_id) VALUES (?, ?, ?, '2026-W42', ?, ?, '{}', 'r')");
+  ev.run("linear:A-1", "linear", "issue_completed", "Delete", "P1");
+  ev.run("slack:C/1", "slack", "slack_mention", "#internal-acme", null);
+  ev.run("github:x/y#1", "github", "pr_merged", "fix", null);
+  const as = db.query("INSERT INTO assignments (event_id, project_id, source, at) VALUES (?, ?, ?, 'now')");
+  as.run("slack:C/1", "P1", "claude");
+  as.run("github:x/y#1", "P1", "claude");
+  const groupOf = (id: string) => reviewThreads(db, "2026-W42").find((t) => t.events.some((e) => e.id === id))?.projects[0];
+
+  expect(groupOf("slack:C/1")).toEqual({ id: "topic:internal-acme", name: "Acme", by: "channel" });
+  expect(groupOf("github:x/y#1")).toEqual({ id: "P1", name: "Datasets", by: "linear" });
+  as.run("linear:A-1", "topic:mine", "human");
+  as.run("github:x/y#1", "topic:mine", "human");
+  expect(groupOf("github:x/y#1")).toEqual({ id: "topic:mine", name: "Mine", by: "human" });
+});

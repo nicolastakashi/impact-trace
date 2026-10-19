@@ -5,7 +5,8 @@ argument-hint: "<YYYY-WNN>"
 ---
 
 The input is JSON for week `$ARGUMENTS`: `projects`, the Linear projects with their `id`,
-`name` and `issues` (titles of the project's issues, from all weeks), and `threads`, work threads Linear does not place in any project. Each thread
+`name`, `kind` (`linear`, or `topic` for work Linear does not track, like a customer) and
+`issues` (titles of the project's issues, from all weeks), and `threads`, work threads Linear does not place in any project. Each thread
 has a `key` and its `events`: PRs, issues, Slack messages, meetings and docs.
 
 For each thread, pick the project its work belongs to, or `null`.

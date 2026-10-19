@@ -13,7 +13,7 @@ export function unplaced(db: Database, week: string) {
     week,
     // Each project's own issue titles, from every week: its vocabulary. "synthetics-worker" is
     // in a Private Locations issue, so a PR about it can be placed by evidence, not by guess.
-    projects: (db.query("SELECT id, name FROM projects ORDER BY name").all() as any[]).map((p) => ({ ...p,
+    projects: (db.query("SELECT id, name, kind FROM projects ORDER BY name").all() as any[]).map((p) => ({ ...p,
       issues: (db.query(`SELECT DISTINCT title FROM events WHERE project_id = ? AND kind LIKE 'issue_%'
         ORDER BY occurred_at DESC LIMIT 40`).all(p.id) as any[]).map((r) => r.title) })),
     threads: reviewThreads(db, week).filter((t) => !t.projects.length).map(({ key, events }) => ({ key, events })),
