@@ -73,6 +73,16 @@ header .back{margin-left:auto;font:500 12px var(--f-mono);color:var(--ink-2)}
 .lbl .ai{font:500 10px var(--f-mono);letter-spacing:.06em;color:var(--ink-3);border:1px solid var(--line-2);border-radius:5px;padding:0 4px}
 .undo{margin-left:8px;font:500 11px var(--f-mono);letter-spacing:.04em;text-transform:none;color:var(--ink-2);background:none;border:1px dashed var(--line-2);border-radius:6px;padding:1px 6px;cursor:pointer}
 .undo:hover{color:var(--ink);border-color:var(--ink-2)}
+.gbtn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font:500 12px var(--f-mono);color:var(--ink-2);border:1px solid var(--line-2);border-radius:8px;padding:3px 8px}
+.gbtn:hover,.gbtn:focus-visible{color:var(--ink);border-color:var(--ink-2)}
+.gwrap{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.gpop{position:absolute;top:calc(100% + 6px);left:0;z-index:20;width:min(360px,80vw);background:var(--s1);border:1px solid var(--line-2);border-radius:12px;box-shadow:var(--shadow);padding:8px;display:grid;gap:6px}
+.gpop input{font:400 14px var(--f-body);color:var(--ink);background:var(--s2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.gpop input:focus{outline:0;border-color:var(--accent)}
+.gpop ul{list-style:none;margin:0;padding:0;max-height:260px;overflow:auto}
+.gpop li button{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;font-size:13.5px}
+.gpop li button[aria-selected="true"]{background:var(--s3)}
+.gpop li .k{font:500 10px var(--f-mono);color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
 .title{width:100%;font:700 30px/1.15 var(--f-num);letter-spacing:.01em;color:var(--ink);background:transparent;border:0;border-bottom:1px dashed var(--line-2);padding:2px 0 6px}
 .title:focus{outline:0;border-bottom-color:var(--accent)}
 .summary{width:100%;max-width:72ch;font:400 16px/1.55 var(--f-body);color:var(--ink-2);background:transparent;border:0;border-radius:8px;padding:6px 8px;margin:-6px -8px 0;resize:none;field-sizing:content;min-height:2lh}
@@ -125,7 +135,8 @@ header .back{margin-left:auto;font:500 12px var(--f-mono);color:var(--ink-2)}
   <label class="stat"><span class="lbl">Week</span><select id="week" aria-label="Week"></select></label>
   <div class="stat"><span class="lbl">Decided</span><b id="done">–</b></div>
   <div class="stat"><span class="lbl">Claude matches you · mode</span><b id="agree">–</b></div>
-  <a class="back" href="/">← impact</a>
+  <a class="back" href="/groups">groups →</a>
+  <a class="back" href="/" style="margin-left:16px">← impact</a>
 </header>
 <div class="wrap">
   <ul class="queue" id="queue" aria-label="Threads of the week"></ul>
@@ -154,6 +165,9 @@ async function load(week){
   data.threads.sort((a, b) => routine(a) - routine(b));
   $("#week").innerHTML = data.weeks.map(w => `<option ${w===data.week?"selected":""}>${w}</option>`).join("");
   cur = Math.max(0, data.threads.findIndex(t => !t.human.without_me));
+  // A link from the groups page opens that thread.
+  const want = new URLSearchParams(location.search).get("key");
+  if(want && data.week === new URLSearchParams(location.search).get("week")){ const i = data.threads.findIndex(t => t.key === want); if(i >= 0) cur = i; }
   render();
 }
 
@@ -185,8 +199,10 @@ function render(){
   const kinds = Object.entries(t.events.reduce((a,e) => (a[e.kind]=(a[e.kind]||0)+1, a), {})).map(([k,n]) => `${n} ${KIND[k]??k}`).join(" · ");
   $("#card").innerHTML = `
     <div class="prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.without_me==="discard"?"x":x.human.without_me?"d":i===cur?"c":""}"></i>`).join("")}</div>
-    <div class="sec"><span class="lbl">${esc(data.week)}${t.projects.length?` · ${t.projects.map(p => esc(p.name) + (p.by === "claude" ? ` <span class="ai" title="Claude placed this thread in the project">Claude</span>` : "")).join(", ")}`:""} · ${kinds}
-        ${t.projects.some(p => p.by === "claude") ? `<button class="undo" id="unassign">wrong project ✕</button>` : ""}</span>
+    <div class="sec"><div class="gwrap"><span class="lbl">${esc(data.week)} · ${kinds}</span>
+        <button class="gbtn" id="gopen" aria-haspopup="listbox" aria-expanded="false"><kbd>P</kbd>${t.projects.length ? t.projects.map(p => esc(p.name) + (p.by === "claude" ? ` <span class="ai" title="Claude placed this thread here">Claude</span>` : p.by === "channel" ? ` <span class="ai" title="From a dedicated Slack channel">channel</span>` : "")).join(", ") : "no group"} ▾</button>
+        ${t.projects.some(p => p.by === "claude") ? `<button class="undo" id="unassign">wrong group ✕</button>` : ""}
+        <div class="gpop" id="gpop" hidden><input id="gq" placeholder="Find a group, or type a new one" autocomplete="off" aria-label="Group"><ul id="glist" role="listbox"></ul></div></div>
       <input class="title" id="title" value="${esc(d.title)}" aria-label="Thread title">
       <textarea class="summary" id="summary" rows="2" aria-label="Summary of what you did" placeholder="No summary yet">${esc(d.summary)}</textarea></div>
     <div class="sec"><span class="lbl">Evidence</span><ul class="events">${t.events.map(e => `<li class="${ev.has(e.id)?"ev":""}">
@@ -203,7 +219,7 @@ function render(){
       <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}"><kbd>0</kbd>Discard · not impact${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button></div>
     <div class="keys"><span><kbd>A</kbd>–<kbd>H</kbd> mode</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> pillar</span>
       <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> without you, save</span><span><kbd>0</kbd> discard</span><span><kbd>⇧0</kbd> discard all routine</span><span><kbd>J</kbd><kbd>K</kbd> move</span>
-      <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>O</kbd> open evidence</span></div>`;
+      <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>O</kbd> open evidence</span><span><kbd>P</kbd> group</span></div>`;
   $("#queue [aria-current=true]")?.scrollIntoView({block:"nearest"});
 }
 
@@ -231,6 +247,33 @@ async function save(wm){
 }
 
 // The thread splits back into its parts, so reload the week and stay near the same place.
+// Group picker: existing groups first, then "create" for a new topic.
+let gSel = 0, gRes = [];
+function gRender(){
+  const q = $("#gq").value.trim().toLowerCase();
+  gRes = data.groups.filter(g => g.name.toLowerCase().includes(q)).map(g => ({...g}));
+  if(q && !data.groups.some(g => g.name.toLowerCase() === q)) gRes.push({create: $("#gq").value.trim()});
+  gSel = Math.min(gSel, Math.max(gRes.length-1, 0));
+  $("#glist").innerHTML = gRes.map((g,i) => `<li><button role="option" data-g="${i}" aria-selected="${i===gSel}">
+    <span>${g.create ? `Create “${esc(g.create)}”` : esc(g.name)}</span><span class="k">${g.create ? "new topic" : g.kind === "topic" ? "topic" : "linear"}</span></button></li>`).join("")
+    || `<li class="lbl" style="padding:8px 10px">No groups yet. Type a name to create one.</li>`;
+}
+function gOpen(){ $("#gpop").hidden = false; $("#gopen").setAttribute("aria-expanded","true"); $("#gq").value = ""; gSel = 0; gRender(); $("#gq").focus(); }
+function gClose(){ $("#gpop").hidden = true; $("#gopen")?.setAttribute("aria-expanded","false"); }
+// After a regroup the thread's key can change, so find it again by one of its events.
+async function reloadAt(eventId){
+  draft = {}; await load(data.week);
+  const i = data.threads.findIndex(t => t.events.some(e => e.id === eventId));
+  go(i >= 0 ? i : cur);
+}
+async function gChoose(i){
+  const g = gRes[i]; if(!g) return;
+  const t = data.threads[cur];
+  const r = await fetch("/api/group", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({week: data.week, key: t.key, ...(g.create ? {name: g.create} : {group_id: g.id})})});
+  if(!r.ok){ toast(`Not grouped: ${await r.text()}`); return; }
+  gClose(); await reloadAt(t.events[0].id); toast(g.create ? `Created ${g.create}` : `Moved to ${g.name}`);
+}
+
 // One decision for every thread Claude marked routine and you have not decided.
 async function discardAll(){
   const todo = data.threads.filter(routine);
@@ -245,10 +288,10 @@ async function discardAll(){
 }
 
 async function unassign(){
-  const t = data.threads[cur], at = cur;
+  const t = data.threads[cur];
   const r = await fetch("/api/unassign", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({week: data.week, key: t.key})});
   if(!r.ok){ toast(`Not undone: ${await r.text()}`); return; }
-  draft = {}; await load(data.week); go(at); toast("Project removed");
+  await reloadAt(t.events[0].id); toast("Group removed");
 }
 
 document.addEventListener("click", e => {
@@ -259,9 +302,19 @@ document.addEventListener("click", e => {
   else if(b.dataset.wm) save(b.dataset.wm);
   else if(b.id === "unassign") unassign();
   else if(b.id === "discard-all") discardAll();
+  else if(b.id === "gopen") $("#gpop").hidden ? gOpen() : gClose();
+  else if(b.dataset.g) gChoose(+b.dataset.g);
 });
+document.addEventListener("input", e => { if(e.target.id === "gq"){ gSel = 0; gRender(); } });
 document.addEventListener("input", e => { if(e.target.id === "title" || e.target.id === "summary") pick(data.threads[cur])[e.target.id] = e.target.value; });
 document.addEventListener("keydown", e => {
+  if(e.target.id === "gq"){
+    if(e.key === "Escape"){ e.preventDefault(); gClose(); }
+    else if(e.key === "ArrowDown"){ e.preventDefault(); gSel = Math.min(gSel+1, gRes.length-1); gRender(); }
+    else if(e.key === "ArrowUp"){ e.preventDefault(); gSel = Math.max(gSel-1, 0); gRender(); }
+    else if(e.key === "Enter"){ e.preventDefault(); gChoose(gSel); }
+    return;
+  }
   if(e.target.id === "title" || e.target.id === "summary"){ if(e.key === "Escape" || (e.key === "Enter" && !e.shiftKey)){ e.preventDefault(); e.target.blur(); } return; }
   if(e.metaKey || e.ctrlKey || e.altKey || !data.threads.length) return;
   const k = e.key.toLowerCase();
@@ -274,6 +327,7 @@ document.addEventListener("keydown", e => {
   else if(k === "k") go(cur-1);
   else if(k === "t"){ e.preventDefault(); $("#title").focus(); $("#title").select(); }
   else if(k === "e"){ e.preventDefault(); const s = $("#summary"); s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
+  else if(k === "p"){ e.preventDefault(); gOpen(); }
   else if(k === "o"){ const a = $(".events li.ev a") ?? $(".events a"); if(a) window.open(a.href, "_blank", "noopener"); }
   else return;
   e.preventDefault();
