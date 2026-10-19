@@ -33,8 +33,12 @@ collect() { # source tools [skill args]: the raw file is named after the source
 
 collect linear "$linear_tools"
 collect github "$github_tools"
-# Two calls: one pass each. A single call skipped the mention pass.
-collect slack_own "$slack_tools" own
+# One call per pass: a single call skipped the mention pass. Own messages go one day per
+# call: a busy week (338 rows) was too long for one answer.
+for i in 0 1 2 3 4 5 6; do
+  day=$(python3 -c 'import datetime as d,sys; print(d.date.fromisoformat(sys.argv[1])+d.timedelta(int(sys.argv[2])))' "$monday" "$i")
+  collect "slack_own_$((i + 1))" "$slack_tools" "own $day"
+done
 collect slack_mention "$slack_tools" mention
 collect calendar "$calendar_tools"
 collect drive "$drive_tools"

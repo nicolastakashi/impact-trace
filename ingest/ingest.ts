@@ -74,7 +74,9 @@ export function ingestWeek(db: Database, dir: string, week: string) {
       payload=excluded.payload, run_id=excluded.run_id`);
   const link = db.query("INSERT OR IGNORE INTO links (from_id, to_ref, rel) VALUES (?, ?, ?)");
 
-  for (const source of ["linear", "github", "slack_own", "slack_mention", "calendar", "drive"]) {
+  // slack_own is the old one-call-per-week file; weeks collected before the split still have it.
+  const days = [1, 2, 3, 4, 5, 6, 7].map((d) => `slack_own_${d}`);
+  for (const source of ["linear", "github", "slack_own", ...days, "slack_mention", "calendar", "drive"]) {
     const file = join(dir, `${source}.run.json`);
     if (!existsSync(file)) continue;
     const run = JSON.parse(readFileSync(file, "utf8"));
