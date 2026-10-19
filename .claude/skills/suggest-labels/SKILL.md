@@ -1,22 +1,22 @@
 ---
 name: suggest-labels
-description: Suggest impact labels for one week of Nicolas's work threads, as JSON for impact-trace. Suggestions only; he decides.
+description: Suggest impact labels for one week of an engineer's work threads, as JSON for impact-trace. Suggestions only; they decide.
 argument-hint: "<YYYY-WNN>"
 ---
 
-The input is JSON for week `$ARGUMENTS`: `threads`, the work threads to label, and
-`examples`, titles of threads Nicolas already judged. Each thread has a `key` and its `events`: PRs, issues, Slack messages, meetings and docs, with short text.
+The input is JSON for week `$ARGUMENTS`: `level`, the engineer's level, `threads`, the work threads to label, and
+`examples`, titles of threads the engineer already judged. Each thread has a `key` and its `events`: PRs, issues, Slack messages, meetings and docs, with short text.
 `projects` lists the Linear projects the thread belongs to, when known.
-Nicolas is a Principal Engineer. Label each thread once, using only what the events show.
+The engineer works at `level`. Judge the work against that level. Label each thread once, using only what the events show.
 
 ## Fields
 
 `title`: what the thread delivered or is about, in under 10 words. Use the events' own
 words. No adjectives of praise.
 
-`summary`: what he did, in one or two sentences and under 40 words. Past tense, no
+`summary`: what they did, in one or two sentences and under 40 words. Past tense, no
 subject ("Shipped soft-delete for datasets: ..."). Facts and counts from the events only.
-No praise, no judgment of impact. For a mention, say what the other person says he did.
+No praise, no judgment of impact. For a mention, say what the other person says the engineer did.
 
 `mode`: the one kind of value that fits best.
 - `clarify`: made a fuzzy problem clear. Proposals, decision docs, framing, scoping.
@@ -31,17 +31,17 @@ No praise, no judgment of impact. For a mention, say what the other person says 
 - `exec`: project execution. Getting a hard thing done.
 - `level`: leveling up others.
 
-`routine`: true when the thread is not worth recording as impact, the way Nicolas judged
+`routine`: true when the thread is not worth recording as impact, the way the engineer judged
 `examples.routine` (access requests, small talk, a lone reply, a small PR with no wider
-effect). False when it is like `examples.kept`. When unsure, false: he reviews it anyway.
+effect). False when it is like `examples.kept`. When unsure, false: they review it anyway.
 
 `evidence`: the event ids that support `mode`. One to three.
 
-Do not judge what would have happened without him. He writes that himself.
+Do not judge what would have happened without them. They write that themselves.
 
 ## Rules
 
-A mention by someone else is about what they say he did; quote it, do not add to it.
+A mention by someone else is about what they say the engineer did; quote it, do not add to it.
 Write every field in English, even when the events are in another language.
 Return one label per input thread, with its `key` unchanged.
 Return only the structured output. Nothing else.

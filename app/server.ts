@@ -1,7 +1,7 @@
 // Serve the app and its data. Usage: bun app/server.ts  →  http://localhost:4317
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { LIVE, open, PLACED } from "../ingest/ingest";
+import { CONFIG, LIVE, open, PLACED } from "../ingest/ingest";
 import { labelsOf, reviewThreads } from "../ingest/review";
 
 const db = open();
@@ -180,8 +180,31 @@ function project(id: string) {
     open: (db.query("SELECT count(*) n FROM events WHERE kind = 'issue_open' AND project_id = ?").get(id) as any).n });
 }
 
+// Setup: who you are, so the collectors search for you. ?guess=1 fills the form from the CLIs you already use.
+const sh = (...cmd: string[]) => { try { const p = Bun.spawnSync(cmd, { stderr: "ignore" }); return p.success ? p.stdout.toString().trim() : ""; } catch { return ""; } };
+function setup(guess: boolean) {
+  const config = existsSync(CONFIG) ? JSON.parse(readFileSync(CONFIG, "utf8")) : null;
+  if (!guess) return Response.json({ config });
+  const [github = "", name = ""] = sh("gh", "api", "user", "--jq", '.login + "\t" + (.name // "")').split("\t");
+  return Response.json({ config, checks: { gh: !!github, claude: !!sh("claude", "--version") },
+    guess: { github, name: name || sh("git", "config", "user.name"), orgs: sh("gh", "api", "user/orgs", "--jq", ".[].login").split("\n").filter(Boolean) } });
+}
+const LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
+function saveSetup(b: any) {
+  const c = { name: String(b?.name ?? "").trim(), github: String(b?.github ?? "").trim(), level: String(b?.level ?? "").trim(),
+    orgs: (Array.isArray(b?.orgs) ? b.orgs : []).map((o: any) => String(o).trim()).filter(Boolean) };
+  // These go into search queries and shell arguments: keep them to what names look like.
+  if (!c.name || c.name.length > 80 || /["\n\\]/.test(c.name)) return new Response("Your name, as people write it in Slack", { status: 400 });
+  if (!LOGIN.test(c.github)) return new Response("A GitHub login: letters, digits and dashes", { status: 400 });
+  if (!c.orgs.every((o: string) => LOGIN.test(o))) return new Response("GitHub orgs: letters, digits and dashes", { status: 400 });
+  if (!c.level || c.level.length > 60) return new Response("Your level, for example Senior Engineer", { status: 400 });
+  writeFileSync(CONFIG, JSON.stringify(c, null, 2) + "\n");
+  return Response.json({ ok: true });
+}
+
 const server = Bun.serve({
-  port: 4317,
+  // PORT lets a second copy, with its own data/, run next to yours.
+  port: Number(process.env.PORT ?? 4317),
   // Your Dash0 data and a write endpoint: never reachable from the network.
   hostname: "127.0.0.1",
   async fetch(req) {
@@ -189,6 +212,7 @@ const server = Bun.serve({
     if (url.pathname === "/") return new Response(Bun.file(page));
     // Old addresses: review and groups now live inside the one page.
     if (url.pathname === "/review" || url.pathname === "/groups") return new Response(null, { status: 302, headers: { location: `/#${url.pathname === "/groups" ? "/projects" : url.pathname}${url.search}` } });
+    if (url.pathname === "/api/setup" && req.method === "GET") return setup(url.searchParams.has("guess"));
     if (url.pathname === "/api/groups") return Response.json(groups());
     if (url.pathname === "/api/pending") return Response.json(pending());
     if (url.pathname === "/api/project") return project(url.searchParams.get("id") ?? "");
@@ -199,6 +223,7 @@ const server = Bun.serve({
     }
     // A JSON content type forces a CORS preflight, so other sites cannot post here.
     const json = req.method === "POST" && req.headers.get("content-type") === "application/json";
+    if (url.pathname === "/api/setup" && json) return saveSetup(await req.json().catch(() => null));
     if (url.pathname === "/api/labels" && json) return decide(await req.json().catch(() => null));
     if (url.pathname === "/api/unassign" && json) return unassign(await req.json().catch(() => null));
     if (url.pathname === "/api/group" && json) return group(await req.json().catch(() => null));

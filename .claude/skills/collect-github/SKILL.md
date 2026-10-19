@@ -1,10 +1,11 @@
 ---
 name: collect-github
-description: Collect Nicolas's GitHub PRs, reviews given and review comments received for one ISO week, as JSON for impact-trace. Read-only.
-argument-hint: "<YYYY-MM-DD of the Monday>"
+description: Collect your GitHub PRs, reviews given and review comments received for one ISO week, as JSON for impact-trace. Read-only.
+argument-hint: "<YYYY-MM-DD of the Monday> <LOGIN> <ORGS>"
 ---
 
-Collect facts for the week that starts on Monday `$ARGUMENTS`. Copy, never interpret.
+`$ARGUMENTS` is the Monday that starts the week, your GitHub login (`LOGIN`), and your
+company's GitHub orgs, comma-separated (`ORGS`, or `-` for none). Collect facts for that week. Copy, never interpret.
 Quote titles and comment bodies exactly as written.
 
 You are read-only. Only run `gh search prs` and `gh api` **GET** calls. Never pass
@@ -19,19 +20,19 @@ You are read-only. Only run `gh search prs` and `gh api` **GET** calls. Never pa
 Merged in the window (`at` = `closedAt`):
 
 ```
-gh search prs --author nicolastakashi --merged --merged-at FROM..TO --limit 200 \
+gh search prs --author LOGIN --merged --merged-at FROM..TO --limit 200 \
   --json number,title,repository,url,closedAt,body
 ```
 
 Opened in the window and still open (`at` = `createdAt`):
 
 ```
-gh search prs --author nicolastakashi --created FROM..TO --state open --limit 200 \
+gh search prs --author LOGIN --created FROM..TO --state open --limit 200 \
   --json number,title,repository,url,createdAt,body
 ```
 
-Drop every PR whose repository starts with `nicolastakashi/`. Those are side projects.
-Keep upstream repositories (prometheus, perses, open-telemetry and others).
+Drop every PR whose repository starts with `LOGIN/`. Those are side projects.
+Keep upstream repositories (open source projects outside `ORGS`).
 
 `linear_refs` are Linear identifiers such as `ACME-41` or `ACME-573` that appear in the
 title or the body. Upper-case them. Do not copy the body itself.
@@ -39,22 +40,22 @@ title or the body. Upper-case them. Do not copy the body itself.
 ## 3. Reviews given
 
 ```
-gh search prs --reviewed-by nicolastakashi --updated FROM..TO --limit 200 \
+gh search prs --reviewed-by LOGIN --updated FROM..TO --limit 200 \
   --json number,author,repository
 ```
 
-`reviews_given` is the number of rows whose author is not `nicolastakashi`.
+`reviews_given` is the number of rows whose author is not `LOGIN`.
 
 ## 4. Review comments received
 
-For each merged PR in a `dash0hq/` repository, read both:
+For each merged PR in a repository owned by one of `ORGS`, read both:
 
 ```
 gh api --paginate repos/<repo>/pulls/<number>/comments
 gh api --paginate repos/<repo>/pulls/<number>/reviews
 ```
 
-Keep comments and non-empty review bodies whose author is not `nicolastakashi` and does
+Keep comments and non-empty review bodies whose author is not `LOGIN` and does
 not end in `[bot]`. Copy `body` verbatim and `html_url` as `url`.
 
 ## 5. Output

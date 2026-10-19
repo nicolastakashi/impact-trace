@@ -1,13 +1,23 @@
 // Ingest one week of collector output from data/raw/<week>/ into SQLite.
 // Usage: bun ingest/ingest.ts 2026-W42
 import { Database } from "bun:sqlite";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 export const ROOT = join(import.meta.dir, "..");
+export const CONFIG = join(ROOT, "data/config.json");
+
+// Who you are, from the setup page. Git-ignored, like the rest of data/.
+export type Config = { name: string; github: string; orgs: string[]; level: string };
+export function config(): Config {
+  if (!existsSync(CONFIG)) throw new Error("No data/config.json yet: run bun app/server.ts and open http://127.0.0.1:4317/#/setup");
+  return JSON.parse(readFileSync(CONFIG, "utf8"));
+}
 type Status = "ok" | "count_mismatch" | "error";
 
 export function open(path = join(ROOT, "data/impact.db")) {
+  // A fresh clone has no data/ yet.
+  if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const db = new Database(path, { create: true, strict: true });
   db.exec("PRAGMA foreign_keys = ON");
   migrate(db);
@@ -64,7 +74,7 @@ function check(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
 }
 
-export function ingestWeek(db: Database, dir: string, week: string) {
+export function ingestWeek(db: Database, dir: string, week: string, me: Config = config()) {
   const result: Record<string, Status> = {};
   const now = new Date().toISOString();
   const event = db.query(`INSERT INTO events (id, source, kind, week, occurred_at, title, url, author, project_id, milestone_id, payload, run_id)
@@ -115,10 +125,10 @@ export function ingestWeek(db: Database, dir: string, week: string) {
         .run(runId, week, source, run.total_cost_usd ?? null, run.num_turns ?? null, expected, got, status, now);
       if (status === "error") return;
       if (source === "linear") ingestLinear(db, out, week, runId, now, event, link);
-      else if (source === "github") ingestGithub(db, out, week, runId, event, link);
+      else if (source === "github") ingestGithub(db, out, week, runId, event, link, me);
       else if (source === "calendar") ingestCalendar(out, week, runId, event, link);
       else if (source === "drive") ingestDrive(out, week, runId, event, link);
-      else ingestSlack(db, out, week, runId, event, link);
+      else ingestSlack(db, out, week, runId, event, link, me);
     })();
   }
   return result;
@@ -190,13 +200,13 @@ function ingestDrive(out: any, week: string, runId: string, event: any, link: an
   }
 }
 
-function ingestSlack(db: Database, out: any, week: string, runId: string, event: any, link: any) {
+function ingestSlack(db: Database, out: any, week: string, runId: string, event: any, link: any, me: Config) {
   const keys = issueKeys(db);
   for (const m of out.messages) {
     const at = new Date(Number(m.ts) * 1000).toISOString();
     const mine = m.author_id === out.self_user_id;
     // Search matches the name anywhere, threads included; a mention must name you in the text.
-    const names = m.text.includes(`<@${out.self_user_id}`) || m.text.includes("Nicolas Takashi");
+    const names = m.text.includes(`<@${out.self_user_id}`) || m.text.includes(me.name);
     // ponytail: GitHub app posts echo PRs the github source already has; match by name until Slack gives a bot flag.
     const echo = m.author_name === "GitHub";
     if (isoWeek(at) !== week || (m.pass === "mention" && (mine || !names || echo))) continue;
@@ -208,7 +218,7 @@ function ingestSlack(db: Database, out: any, week: string, runId: string, event:
   }
 }
 
-function ingestGithub(db: Database, out: any, week: string, runId: string, event: any, link: any) {
+function ingestGithub(db: Database, out: any, week: string, runId: string, event: any, link: any, me: Config) {
   // Claude copies anything shaped like ABC-123 from a PR body: eu-west-1, UTF-8, names. Only
   // your Linear teams' keys are issues. ponytail: teams seen in your issues; a PR citing another
   // team's issue loses that link, fetch the team list from Linear if that matters.
@@ -217,13 +227,13 @@ function ingestGithub(db: Database, out: any, week: string, runId: string, event
   for (const [kind, prs] of [["pr_merged", out.prs_merged], ["pr_open", out.prs_open]] as const) {
     for (const p of prs) {
       const id = `github:${p.repo}#${p.number}`;
-      event.run(id, "github", kind, kind === "pr_merged" ? isoWeek(p.at) : week, p.at, p.title, p.url, "nicolastakashi", null, null, JSON.stringify(p), runId);
+      event.run(id, "github", kind, kind === "pr_merged" ? isoWeek(p.at) : week, p.at, p.title, p.url, me.github, null, null, JSON.stringify(p), runId);
       // Re-ingest replaces the links, so a fixed filter also removes old wrong ones.
       drop.run(id);
       for (const r of p.linear_refs) if (keys.has(r.split("-")[0])) link.run(id, `linear:${r}`, "mentions");
     }
   }
-  event.run(`github:reviews_given:${week}`, "github", "reviews_given", week, null, null, null, "nicolastakashi", null, null,
+  event.run(`github:reviews_given:${week}`, "github", "reviews_given", week, null, null, null, me.github, null, null,
     JSON.stringify({ count: out.reviews_given }), runId);
   for (const c of out.review_comments_received) {
     const id = `github:${c.url}`;

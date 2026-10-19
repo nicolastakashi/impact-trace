@@ -1,6 +1,6 @@
 ---
 name: collect-linear
-description: Collect Nicolas's Linear issues and their projects for one ISO week, as JSON for impact-trace. Read-only.
+description: Collect your Linear issues and their projects for one ISO week, as JSON for impact-trace. Read-only.
 argument-hint: "<YYYY-MM-DD of the Monday>"
 ---
 
