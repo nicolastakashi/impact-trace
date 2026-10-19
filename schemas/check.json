@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "required": ["week", "threads"],
+  "properties": {
+    "week": { "type": "string", "pattern": "^\\d{4}-W\\d{2}$" },
+    "threads": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "mixed", "topics"],
+        "properties": {
+          "key": { "type": "string" },
+          "mixed": { "type": "boolean" },
+          "topics": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}
