@@ -395,13 +395,31 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 .ex2{border-style:dashed}
 
 /* refs */
-.refs{columns:3 300px;column-gap:12px}
-.refc{break-inside:avoid;margin-bottom:12px;background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;display:grid;gap:12px;box-shadow:var(--shadow)}
-.refc h3{margin:0;font:800 20px/1 var(--f-num);text-transform:uppercase;display:flex;gap:8px;align-items:center}
-.refc ul{margin:0;padding:0;list-style:none;display:grid;gap:14px}
-.refc li{display:grid;gap:5px}
-.refc q{font-size:14px;line-height:1.45}
-.refc.hl{border-color:var(--accent);box-shadow:var(--glow)}
+/* One topic in focus; the others are one click away, in a list on the left. */
+.refs{display:grid;grid-template-columns:230px 1fr;gap:18px;align-items:start}
+.ref-tabs{display:grid;gap:18px;position:sticky;top:calc(env(safe-area-inset-top, 0px) + 96px)}
+.ref-tabs div{display:grid;gap:2px}
+.ref-tabs .lbl{padding:0 12px 6px}
+.ref-tabs button{display:flex;align-items:center;gap:10px;text-align:left;font:500 14px var(--f-body);color:var(--ink-2);background:none;border:0;border-left:2px solid transparent;border-radius:0 10px 10px 0;padding:8px 12px;cursor:pointer}
+.ref-tabs button:hover{color:var(--ink);background:var(--s1)}
+.ref-tabs button[aria-pressed="true"]{color:var(--ink);background:var(--s2);border-left-color:var(--c,var(--ink-2))}
+.ref-tabs button .n{margin-left:auto;font:500 11px var(--f-mono);color:var(--ink-3)}
+.refc{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:clamp(18px,3vw,32px);display:grid;gap:24px;box-shadow:var(--shadow)}
+.refc h3{margin:0;font:800 clamp(28px,4vw,44px)/1 var(--f-num);text-transform:uppercase;display:flex;gap:12px;align-items:center;text-wrap:balance}
+.refc ul{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:14px}
+.refc li{display:grid;grid-template-rows:auto 1fr auto;gap:10px;background:var(--s2);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.refc li::before{content:"“";font:800 54px/.6 var(--f-num);color:var(--c,var(--ink-3));height:22px}
+.refc q{font-size:clamp(17px,1.8vw,20px);line-height:1.4;quotes:none;text-wrap:pretty}
+.refc .ref{align-self:end}
+@media (max-width:760px){
+  .refs{grid-template-columns:1fr}
+  .ref-tabs{position:static;display:flex;flex-wrap:wrap;gap:6px 14px}
+  .ref-tabs div{display:flex;flex-wrap:wrap;gap:6px}
+  .ref-tabs .lbl{width:100%;padding:0}
+  .ref-tabs button{border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+  .ref-tabs button .n{display:none}
+  .ref-tabs button[aria-pressed="true"]{border-color:var(--c,var(--ink-2))}
+}
 .warn{color:var(--m-solve)}
 
 /* cmdk */
@@ -530,7 +548,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 
 <!-- REFS -->
 <section class="view" id="v-refs" hidden>
-  <div class="vhead"><h1>Why <em>this counts</em></h1><p>The sources behind each delivery mode. Quotes were checked against the original pages on 2026-10-18. ⚠ marks a secondary source.</p></div>
+  <div class="vhead"><h1>Why <em>this counts</em></h1><p>Quotes checked on 2026-10-18. ⚠ is a secondary source.</p></div>
   <div class="refs" id="refs"></div>
 </section>
 </div>
@@ -759,11 +777,18 @@ const WM = [["wouldnt","wouldn't happen"],["slower","slower"],["same","same"]];
 const wmBtns = it => WM.map(([k,l],i)=>`<button class="opt" data-wm="${k}" data-id="${it.id}" aria-pressed="${answers[it.id]?.wm===k}"><kbd>${i+1}</kbd>${l}</button>`).join("");
 
 /* REFS */
-function renderRefs(){
-  $("#refs").innerHTML = Object.entries(REFS).map(([k,r])=>`<article class="refc" id="ref-${k}">
-    <h3>${MODES[k]?`<i class="dot" style="background:${mc(k)};width:12px;height:12px"></i>`:""}${esc(r.title)}</h3>
-    <ul>${r.items.map(x=>`<li><q>${esc(x.q)}</q><a class="ref" href="${x.url}" target="_blank" rel="noopener">${esc(x.who)} ↗</a>${x.warn?`<span class="ref warn">⚠ ${esc(x.warn)}</span>`:""}</li>`).join("")}</ul></article>`).join("");
+function renderRefs(k){
+  if(!REFS[k]) k = "clarify";
+  const tab = ([id, r]) => `<button data-refk="${id}" aria-pressed="${id === k}" style="--c:${MODES[id] ? mc(id) : "var(--ink-2)"}">${MODES[id] ? `<i class="dot" style="background:${mc(id)}"></i>` : ""}${esc(MODES[id] ? MODES[id][0].toUpperCase() + MODES[id].slice(1) : r.title)}<span class="n">${r.items.length}</span></button>`;
+  const all = Object.entries(REFS), r = REFS[k];
+  $("#refs").innerHTML = `<div class="ref-tabs" role="group" aria-label="Topics">
+      <div><span class="lbl">Modes</span>${all.filter(([id]) => MODES[id]).map(tab).join("")}</div>
+      <div><span class="lbl">How it is judged</span>${all.filter(([id]) => !MODES[id]).map(tab).join("")}</div></div>
+    <article class="refc" style="--c:${MODES[k] ? mc(k) : "var(--ink-3)"}">
+    <h3>${MODES[k]?`<i class="dot" style="background:${mc(k)};width:14px;height:14px"></i>`:""}${esc(r.title)}</h3>
+    <ul>${r.items.map(x=>`<li><q>${esc(x.q)}</q><a class="ref" href="${x.url}" target="_blank" rel="noopener">${esc(x.who)} ↗</a>${x.warn?`<span class="ref warn">⚠ ${esc(x.warn)}</span>`:""}</li>`).join("")}</ul></article>`;
 }
+$("#refs").addEventListener("click", e => { const b = e.target.closest("[data-refk]"); if(b) history.replaceState(null, "", `#/refs?k=${b.dataset.refk}`), renderRefs(b.dataset.refk); });
 
 /* STORY (Wrapped) */
 let sI = 0;
@@ -832,6 +857,7 @@ function route(){
   if(v === "review") RV.open(p.get("week"), p.get("key"), p.get("from"));
   if(v === "projects") p.get("p") ? (history.replaceState(null, "", `#/project?id=${encodeURIComponent(p.get("p"))}`), route()) : GV.open();
   if(v === "project") PV.open(p.get("id"));
+  if(v === "refs") renderRefs(p.get("k"));
 }
 function show(v){ if(location.hash.split("?")[0] !== "#/"+v) history.pushState(null, "", "#/"+v); route(); }
 addEventListener("hashchange", route);
@@ -847,7 +873,7 @@ document.addEventListener("click", e=>{
   if(t.id==="cmdk-open"){ openCmd(); return; }
   if(d.cmd){ runCmd(+d.cmd); return; }
   if(d.v){ e.preventDefault(); show(d.v); return; }
-  if(d.ref){ e.preventDefault(); show("refs"); const el = document.getElementById("ref-"+d.ref); if(el){ el.scrollIntoView({block:"center"}); document.querySelectorAll(".refc").forEach(x=>x.classList.toggle("hl", x===el)); } return; }
+  if(d.ref){ e.preventDefault(); location.hash = `#/refs?k=${d.ref}`; return; }
   if(d.goal){ sel.clear(); ITEMS.filter(i=>(goalOf(i)??"none")===d.goal).forEach(i=>sel.add(i.w)); renderTrace(); show("trace"); return; }
   if(d.item){ openItem(d.item); return; }
   if(t.id==="x"){ $("#sheet").hidden = true; return; }
@@ -1293,5 +1319,5 @@ $("#v-project").addEventListener("change", e => {
 return {open};
 })();
 
-renderRefs(); renderAll(); route(); loadPending(); hydrate();
+renderAll(); route(); loadPending(); hydrate();
 </script>
