@@ -33,6 +33,16 @@ export function reviewThreads(db: Database, week: string) {
   });
 }
 
+// A thread's key is its first event, so a regroup or a merge can change it. Labels follow the
+// thread: a field missing under the new key comes from an old key whose first event is in it.
+export function labelsOf(db: Database, t: { key: string; events: { id: string }[] }) {
+  const week = t.key.slice(0, 8);
+  const keys = [t.key, ...t.events.map((e) => `${week}:${e.id}`).filter((k) => k !== t.key)];
+  const rows = db.query(`SELECT thread_key, field, value, source FROM labels WHERE thread_key IN (${keys.map(() => "?").join()})`).all(...keys) as any[];
+  const seen = new Set<string>();
+  return keys.flatMap((k) => rows.filter((r) => r.thread_key === k)).filter((r) => !seen.has(r.field + r.source) && seen.add(r.field + r.source));
+}
+
 // Your past decisions, as examples of what is routine for you and what is not.
 export function examples(db: Database) {
   const rows = db.query(`SELECT h.value v, coalesce((SELECT value FROM labels t WHERE t.thread_key = h.thread_key AND t.field = 'title'

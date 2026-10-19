@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
 import { migrate, threads } from "./ingest";
 import { saveAssignments, unplaced } from "./assign";
-import { reviewThreads, saveSuggestions } from "./review";
+import { labelsOf, reviewThreads, saveSuggestions } from "./review";
 
 test("review keeps threads that say something and saves only known keys", () => {
   const db = new Database(":memory:", { strict: true });
@@ -85,4 +85,15 @@ test("a merged project counts as the one it was merged into", () => {
   const [t, ...rest] = reviewThreads(db, "2026-W42");
   expect(rest).toEqual([]);
   expect(t.projects.map((p) => p.id)).toEqual(["P1"]);
+});
+
+test("labels follow a thread when its first event changes", () => {
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  db.query("INSERT INTO labels (thread_key, week, field, value, source, events, at) VALUES ('2026-W42:github:x/y#1', '2026-W42', 'title', 'Old', 'claude', '[]', 'now')").run();
+  db.query("INSERT INTO labels (thread_key, week, field, value, source, events, at) VALUES ('2026-W42:github:x/y#1', '2026-W42', 'without_me', 'slower', 'human', '[]', 'now')").run();
+  db.query("INSERT INTO labels (thread_key, week, field, value, source, events, at) VALUES ('2026-W42:calendar:e', '2026-W42', 'title', 'New', 'claude', '[]', 'now')").run();
+  // A meeting joined, so the key is now the meeting's.
+  const l = labelsOf(db, { key: "2026-W42:calendar:e", events: [{ id: "calendar:e" }, { id: "github:x/y#1" }] });
+  expect(l.map((r) => [r.field, r.source, r.value])).toEqual([["title", "claude", "New"], ["without_me", "human", "slower"]]);
 });
