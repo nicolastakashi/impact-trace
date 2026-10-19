@@ -15,7 +15,8 @@ review they show fictional example data, marked as such.
 Feedback reads the Slack messages you wrote in the last 8 weeks and names patterns in how you
 show up, with your own words quoted and a stronger version. It runs once a week, after the week
 ends. The code drops any quote it cannot find in your messages and makes every count, so the
-one experiment it proposes is measured the next week.
+one experiment it proposes is measured the next week. Accept or reject each piece, with a reason if you want:
+the next run reads your verdicts and does not repeat what you rejected.
 
 `data/` holds your work data and `config.json`. It is git-ignored and must never be pushed.
 
