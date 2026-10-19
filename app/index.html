@@ -395,6 +395,8 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 .ex2{border-style:dashed}
 
 /* setup */
+@keyframes spin{to{transform:rotate(1turn)}}
+@keyframes shine{from{background-position:100% 0}to{background-position:0 0}}
 #setup-btn[aria-current="page"]{color:var(--ink);border-color:var(--ink-2)}
 .sample-note{display:block;font-size:13.5px;color:var(--ink-2);background:var(--s2);border:1px dashed var(--line-2);border-radius:12px;padding:10px 14px;text-decoration:none}
 .sample-note b{color:var(--accent);font-weight:600}
@@ -406,6 +408,9 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .steps li.done h2::before{content:"✓";background:color-mix(in srgb,var(--m-build) 30%,var(--s3));color:var(--ink)}
   .checks{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:14px;color:var(--ink-2)}
   .checks li{display:flex;gap:10px;align-items:baseline}
+  .spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--line-2);border-top-color:var(--accent);animation:spin .8s linear infinite;align-self:center;flex:none}
+  .skel{display:grid;gap:10px}
+  .skel i{display:block;height:38px;max-width:420px;border-radius:10px;background:linear-gradient(90deg,var(--s2) 30%,var(--s3) 50%,var(--s2) 70%) 0 0/300% 100%;animation:shine 1.4s ease-in-out infinite}
   .checks .ok{color:var(--m-build)} .checks .no{color:var(--accent)} .checks .unk{color:var(--ink-3)}
   form{display:grid;gap:14px}
   label{display:grid;gap:6px;font-size:14px;color:var(--ink)}
@@ -586,7 +591,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 <!-- SETUP -->
 <section class="view" id="v-setup" hidden>
   <div class="vhead"><h1>Set <em>up</em></h1><p>Three steps. Everything stays on this machine.</p></div>
-  <ol class="steps" id="su"><li class="empty">Checking your tools…</li></ol>
+  <ol class="steps" id="su"></ol>
 </section>
 
 <!-- REFS -->
@@ -823,7 +828,14 @@ const wmBtns = it => WM.map(([k,l],i)=>`<button class="opt" data-wm="${k}" data-
 const SU = (() => {
 const LEVELS = ["Software Engineer","Senior Engineer","Staff Engineer","Senior Staff Engineer","Principal Engineer","Distinguished Engineer"];
 let s = null, err = "";
-async function open(){ s = await (await fetch("/api/setup?guess=1")).json(); render(); }
+// Asking gh takes a second: show the steps right away, with the checks running.
+function waiting(){
+  const row = (t) => `<li><span class="spin" aria-hidden="true"></span>${t} <span class="lbl">checking…</span></li>`;
+  $("#su").innerHTML = `<li aria-busy="true"><h2>Tools</h2><ul class="checks">${row("Claude Code")}${row("GitHub CLI, logged in")}</ul></li>
+    <li aria-busy="true"><h2>About you</h2><div class="skel"><i></i><i></i><i></i><i style="width:40%"></i></div></li>
+    <li aria-busy="true"><h2>Your first week</h2><div class="skel"><i style="width:30%"></i></div></li>`;
+}
+async function open(){ if(!s) waiting(); s = await (await fetch("/api/setup?guess=1")).json(); render(); }
 function render(){
   const c = s.config ?? {}, g = s.guess, v = (k) => esc(c[k] ?? g[k] ?? "");
   const mark = (ok) => ok ? `<span class="ok">✓</span>` : `<span class="no">✕</span>`;
