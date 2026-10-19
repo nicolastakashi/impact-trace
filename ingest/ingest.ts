@@ -115,7 +115,7 @@ export function ingestWeek(db: Database, dir: string, week: string) {
         .run(runId, week, source, run.total_cost_usd ?? null, run.num_turns ?? null, expected, got, status, now);
       if (status === "error") return;
       if (source === "linear") ingestLinear(db, out, week, runId, now, event, link);
-      else if (source === "github") ingestGithub(out, week, runId, event, link);
+      else if (source === "github") ingestGithub(db, out, week, runId, event, link);
       else if (source === "calendar") ingestCalendar(out, week, runId, event, link);
       else if (source === "drive") ingestDrive(out, week, runId, event, link);
       else ingestSlack(db, out, week, runId, event, link);
@@ -203,16 +203,24 @@ function ingestSlack(db: Database, out: any, week: string, runId: string, event:
     const id = `slack:${m.channel_id}/${m.ts}`;
     event.run(id, "slack", mine ? "slack_message" : "slack_mention", week, at, m.channel_name, m.permalink, m.author_name,
       null, null, JSON.stringify(m), runId);
+    channelTopic(db, m.channel_name);
     for (const r of refsIn(m.text, keys)) link.run(id, r, "mentions");
   }
 }
 
-function ingestGithub(out: any, week: string, runId: string, event: any, link: any) {
+function ingestGithub(db: Database, out: any, week: string, runId: string, event: any, link: any) {
+  // Claude copies anything shaped like ABC-123 from a PR body: eu-west-1, UTF-8, names. Only
+  // your Linear teams' keys are issues. ponytail: teams seen in your issues; a PR citing another
+  // team's issue loses that link, fetch the team list from Linear if that matters.
+  const keys = issueKeys(db);
+  const drop = db.query("DELETE FROM links WHERE from_id = ? AND rel = 'mentions'");
   for (const [kind, prs] of [["pr_merged", out.prs_merged], ["pr_open", out.prs_open]] as const) {
     for (const p of prs) {
       const id = `github:${p.repo}#${p.number}`;
       event.run(id, "github", kind, kind === "pr_merged" ? isoWeek(p.at) : week, p.at, p.title, p.url, "nicolastakashi", null, null, JSON.stringify(p), runId);
-      for (const r of p.linear_refs) link.run(id, `linear:${r}`, "mentions");
+      // Re-ingest replaces the links, so a fixed filter also removes old wrong ones.
+      drop.run(id);
+      for (const r of p.linear_refs) if (keys.has(r.split("-")[0])) link.run(id, `linear:${r}`, "mentions");
     }
   }
   event.run(`github:reviews_given:${week}`, "github", "reviews_given", week, null, null, null, "nicolastakashi", null, null,
@@ -224,8 +232,32 @@ function ingestGithub(out: any, week: string, runId: string, event: any, link: a
   }
 }
 
-// Work threads: events joined through the PRs, issues and docs they share. Raw URLs do not join.
-// ponytail: one hub ref (an epic named everywhere) merges its threads; cap by degree if that shows up.
+// An event's group, strongest first: yours; Linear's project; a dedicated #internal-* channel
+// as a topic; Claude's placement, unless you undid it (your row with no group).
+const PLACED = `coalesce(
+  (SELECT a.project_id FROM assignments a WHERE a.event_id = events.id AND a.source = 'human'),
+  events.project_id,
+  CASE WHEN events.source = 'slack' AND events.title LIKE '#internal-%' THEN 'topic:' || substr(events.title, 2) END,
+  (SELECT a.project_id FROM assignments a WHERE a.event_id = events.id AND a.source = 'claude'
+     AND NOT EXISTS (SELECT 1 FROM assignments h WHERE h.event_id = events.id AND h.source = 'human')))`;
+// A merged project counts as the one you merged it into.
+export const PROJECT = `coalesce((SELECT m.into_id FROM project_merges m WHERE m.from_id = ${PLACED}), ${PLACED})`;
+
+// "#internal-axel-springer" → topic "Axel Springer".
+export function channelTopic(db: Database, channel: string) {
+  if (!channel.startsWith("#internal-")) return;
+  const name = channel.slice("#internal-".length).split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+  db.query("INSERT INTO projects (id, name, kind, updated_at) VALUES (?, ?, 'topic', ?) ON CONFLICT DO NOTHING")
+    .run(`topic:${channel.slice(1)}`, name, new Date().toISOString());
+}
+
+// Work threads. Strong links join events: a PR and its issues, a review and its PR, a doc and
+// itself. Then threads with the same main Linear project merge (yours or Claude's placement
+// counts for events Linear leaves out); only the main project counts, so one PR that cites
+// two projects cannot merge both. Slack messages and meetings are weak: they attach to the one
+// thread they cite most, and never join two threads, because one "PTAL #1 #2 #3" would.
+// Raw URLs do not join.
+const WEAK = new Set(["slack", "calendar"]);
 export function threads(db: Database, weeks: string[]) {
   const parent = new Map<string, string>();
   const find = (x: string): string => {
@@ -236,13 +268,41 @@ export function threads(db: Database, weeks: string[]) {
     return r;
   };
   const marks = weeks.map(() => "?").join(",");
-  const events = db.query(`SELECT id FROM events WHERE week IN (${marks})`).all(...weeks) as { id: string }[];
+  const events = db.query(`SELECT id, source, ${PROJECT} p FROM events WHERE week IN (${marks})`).all(...weeks) as any[];
   const links = db.query(`SELECT from_id, to_ref FROM links JOIN events ON events.id = from_id
     WHERE week IN (${marks}) AND (to_ref LIKE 'github:%' OR to_ref LIKE 'linear:%' OR to_ref LIKE 'gdoc:%')`).all(...weeks) as any[];
-  for (const l of links) parent.set(find(l.from_id), find(l.to_ref));
+  const weak = new Set(events.filter((e) => WEAK.has(e.source)).map((e) => e.id));
+  for (const l of links) if (!weak.has(l.from_id)) parent.set(find(l.from_id), find(l.to_ref));
+
   const groups = new Map<string, string[]>();
-  for (const { id } of events) groups.set(find(id), [...(groups.get(find(id)) ?? []), id]);
-  return [...groups.values()].sort((a, b) => b.length - a.length);
+  for (const e of events) if (!weak.has(e.id)) groups.set(find(e.id), [...(groups.get(find(e.id)) ?? []), e.id]);
+  const project = new Map(events.filter((e) => e.p).map((e) => [e.id, e.p as string]));
+  const out: string[][] = [];
+  const byProject = new Map<string, string[]>();
+  const home = new Map<string, string[]>(); // group root → its thread
+  for (const [root, ids] of groups) {
+    const n = new Map<string, number>();
+    for (const id of ids) if (project.has(id)) n.set(project.get(id)!, (n.get(project.get(id)!) ?? 0) + 1);
+    // Most issues wins; a tie goes to the smaller id so the result does not depend on order.
+    const main = [...n].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0];
+    let t: string[];
+    if (main) { if (!byProject.has(main)) byProject.set(main, []); t = byProject.get(main)!; t.push(...ids); }
+    else { t = [...ids]; out.push(t); }
+    home.set(root, t);
+  }
+
+  const cites = new Map<string, string[]>();
+  for (const l of links) if (weak.has(l.from_id)) cites.set(l.from_id, [...(cites.get(l.from_id) ?? []), l.to_ref]);
+  for (const id of weak) {
+    const hit = new Map<string[], number>();
+    for (const r of cites.get(id) ?? []) { const t = home.get(find(r)); if (t) hit.set(t, (hit.get(t) ?? 0) + 1); }
+    // Most cited wins; a tie goes to the bigger thread.
+    const best = [...hit].sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0]?.[0];
+    if (best) best.push(id);
+    else if (project.has(id)) { if (!byProject.has(project.get(id)!)) byProject.set(project.get(id)!, []); byProject.get(project.get(id)!)!.push(id); }
+    else out.push([id]);
+  }
+  return [...out, ...byProject.values()].sort((a, b) => b.length - a.length);
 }
 
 if (import.meta.main) {

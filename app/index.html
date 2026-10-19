@@ -2,6 +2,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Schibsted+Grotesk:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
+/* The artifact viewer added this reset; served locally, overlays with display:grid ignored [hidden]. */
+[hidden]{display:none!important}
 /* Layout: bento cockpit as home (rings + tiles), observability views for Trace and Item (heatmap + brush, flame graph), Wrapped-style story for the recap. Dark-first, glow as elevation. */
 :root{
   color-scheme: light;
@@ -65,7 +67,6 @@ nav .badge{font:700 11px var(--f-num);background:var(--accent);color:var(--accen
 .hright{margin-left:auto;display:flex;align-items:center;gap:12px}
 .cmdk-btn{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--s1);border-radius:10px;padding:6px 8px 6px 12px;color:var(--ink-3);cursor:pointer;font-size:13px}
 .cmdk-btn:hover{border-color:var(--line-2);color:var(--ink-2)}
-.proto{font:500 10.5px/1.3 var(--f-mono);color:var(--ink-3);max-width:28ch}
 
 section.view{padding-top:26px;display:grid;gap:22px}
 .vhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:10px 24px}
@@ -177,33 +178,145 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .opt:hover{border-color:var(--line-2)}
 .opt[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--s2))}
 
-/* review */
-.review{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;align-items:start}
-.rcard{display:grid;gap:18px}
-.rcard h2{font:800 clamp(28px,3.6vw,42px)/1 var(--f-num);text-transform:uppercase;margin:0;text-wrap:balance}
+/* shared bits */
 .prog{display:flex;gap:3px}
 .prog i{flex:1;height:4px;border-radius:2px;background:var(--s3)}
 .prog i.d{background:var(--accent)}
 .prog i.c{background:var(--ink-2)}
-.prob{display:grid;grid-template-columns:82px 1fr 38px;gap:10px;align-items:center;font-size:12.5px}
-.prob .tr{height:8px;border-radius:4px;background:var(--s3);overflow:hidden}
-.prob .tr i{display:block;height:100%;border-radius:4px}
-.prob .v{font:700 14px var(--f-num);text-align:right}
 .sec{display:grid;gap:10px}
-.queue{display:grid;gap:3px;margin:0;padding:0;list-style:none;max-height:640px;overflow-y:auto}
-.queue button{width:100%;text-align:left;border:1px solid transparent;background:none;border-radius:10px;padding:8px 10px;cursor:pointer;display:grid;grid-template-columns:8px 1fr 18px;gap:10px;align-items:center;font-size:13px;color:var(--ink-2)}
-.queue button[aria-current="true"]{background:var(--s2);border-color:var(--line);color:var(--ink)}
-.queue .ok{color:var(--m-build);font-size:12px}
 .keys{display:flex;flex-wrap:wrap;gap:10px 18px;font-size:12px;color:var(--ink-3);align-items:center}
 .keys span{display:inline-flex;gap:4px;align-items:center}
 
+/* review: real threads from SQLite. One queue on the left, one decision card on the right. */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:90;background:var(--ink);color:var(--ground);padding:8px 14px;border-radius:10px;font:500 13px var(--f-mono)}
+nav .ex{font-size:8.5px;padding:2px 4px}
+#v-review, #v-projects{
+  .stats{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:end}
+  .stat{display:grid;gap:6px}
+  .stat b{font:700 28px/1 var(--f-num);font-variant-numeric:tabular-nums}
+  select{font:500 13px var(--f-mono);background:var(--s1);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:6px 8px}
+  .empty{padding:40px;text-align:center;color:var(--ink-2)}
+  .ai{font:500 10px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);border:1px solid var(--line-2);border-radius:5px;padding:0 4px}
+}
+#v-review{
+  .rv-grid{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:20px;align-items:start}
+  .r-queue{list-style:none;margin:0;padding:6px;background:var(--s1);border:1px solid var(--line);border-radius:14px;max-height:calc(100vh - 120px);overflow:auto;position:sticky;top:96px}
+  .r-queue button{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;border-radius:9px;padding:8px 10px;cursor:pointer;font-size:13.5px;color:var(--ink-2)}
+  .r-queue button:hover{background:var(--s2)}
+  .r-queue button[aria-current="true"]{background:var(--s3);color:var(--ink)}
+  .r-queue .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .r-queue .n{font:500 11px var(--f-mono);color:var(--ink-3)}
+  .r-queue .done{color:var(--m-build)}
+  .r-queue .gone .t{text-decoration:line-through;color:var(--ink-3)}
+  .r-queue .sep{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 10px 6px;border-top:1px solid var(--line);margin-top:6px}
+  .r-queue .sep button{all:unset;cursor:pointer;font:500 11px var(--f-mono);color:var(--ink-2);border:1px dashed var(--line-2);border-radius:6px;padding:2px 6px;white-space:nowrap}
+  .r-queue .sep button:hover{color:var(--ink);border-color:var(--ink-2)}
+
+  .r-card{background:var(--s1);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:clamp(18px,3vw,32px);display:grid;gap:22px;min-width:0}
+  .r-prog{display:flex;gap:3px}
+  .r-prog i{flex:1;height:4px;border-radius:2px;background:var(--s3)}
+  .r-prog i.d{background:var(--m-build)}
+  .r-prog i.c{background:var(--accent)}
+  .r-prog i.g{background:var(--line-2)}
+  .crumb{font:500 12px var(--f-mono);color:var(--ink-3);text-decoration:none}
+  .crumb:hover{color:var(--accent)}
+  .r-more{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center;font:500 12px var(--f-mono);color:var(--ink-3);padding:10px 12px;border:1px solid var(--line);border-radius:12px}
+  .r-more:hover,.r-more:focus-visible{color:var(--ink-2);border-color:var(--line-2)}
+  .r-ask{display:grid;gap:12px;padding-top:20px;border-top:1px solid var(--line)}
+  .r-ask .q{font:700 22px/1 var(--f-num);text-transform:uppercase;letter-spacing:.02em}
+  .undo{font:500 11px var(--f-mono);letter-spacing:.04em;color:var(--ink-2);background:none;border:1px dashed var(--line-2);border-radius:6px;padding:1px 6px;cursor:pointer}
+  .undo:hover{color:var(--ink);border-color:var(--ink-2)}
+  .gbtn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font:500 12px var(--f-mono);color:var(--ink-2);border:1px solid var(--line-2);border-radius:8px;padding:3px 8px}
+  .gbtn:hover,.gbtn:focus-visible{color:var(--ink);border-color:var(--ink-2)}
+  .gwrap{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .gpop{position:absolute;top:calc(100% + 6px);left:0;z-index:20;width:min(360px,80vw);background:var(--s1);border:1px solid var(--line-2);border-radius:12px;box-shadow:var(--shadow);padding:8px;display:grid;gap:6px}
+  .gpop input{font:400 14px var(--f-body);color:var(--ink);background:var(--s2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+  .gpop input:focus{outline:0;border-color:var(--accent)}
+  .gpop ul{list-style:none;margin:0;padding:0;max-height:260px;overflow:auto}
+  .gpop li button{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;font-size:13.5px}
+  .gpop li button[aria-selected="true"]{background:var(--s3)}
+  .gpop li .k{font:500 10px var(--f-mono);color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
+  .r-title{width:100%;font:700 clamp(26px,3vw,34px)/1.1 var(--f-num);color:var(--ink);background:transparent;border:0;border-bottom:1px dashed var(--line-2);padding:2px 0 6px}
+  .r-title:focus{outline:0;border-bottom-color:var(--accent)}
+  .r-summary{width:100%;max-width:72ch;font:400 16px/1.55 var(--f-body);color:var(--ink-2);background:transparent;border:0;border-radius:8px;padding:6px 8px;margin:-6px -8px 0;resize:none;field-sizing:content;min-height:2lh}
+  .r-summary:hover{background:var(--s2)}
+  .r-summary:focus{outline:0;background:var(--s2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line-2)}
+  .r-sec{display:grid;gap:10px}
+
+  .r-events{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:12px;max-height:300px;overflow:auto}
+  .r-events li{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:9px 12px;border-top:1px solid var(--line);font-size:13.5px}
+  .r-events li:first-child{border-top:0}
+  .r-events li.ev{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+  .r-events .k{font:500 11px var(--f-mono);color:var(--ink-3);padding-top:2px}
+  .r-events .ev-x{min-width:0;overflow-wrap:anywhere}
+  .r-events .ev-x small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;color:var(--ink-3);font-size:12.5px;margin-top:2px}
+
+  .r-fields{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px 16px;align-items:center}
+  .seg{display:flex;flex-wrap:wrap;width:fit-content;max-width:100%;background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px}
+  .seg button{position:relative;display:inline-flex;align-items:center;gap:7px;border:0;background:none;border-radius:9px;padding:7px 12px;cursor:pointer;font-size:13.5px;color:var(--ink-2)}
+  .seg button:hover{color:var(--ink);background:var(--s3)}
+  .seg button[aria-pressed="true"]{background:var(--s1);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--c,var(--ink-2)), 0 0 14px -6px var(--c,var(--ink-2))}
+  .seg kbd{min-width:16px;height:16px;padding:0 3px;font-size:9.5px;border-bottom-width:1px;opacity:.55}
+  .seg button.sug::after,.sug-dot{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);display:inline-block}
+  .seg button.sug::after{position:absolute;top:4px;right:4px}
+  .legend{display:flex;align-items:center;gap:6px;font:500 11px var(--f-mono);color:var(--ink-3)}
+
+  .r-wm{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .r-wm button{display:flex;align-items:center;gap:10px;padding:12px;background:var(--s2);border:1px solid var(--line);border-radius:12px;cursor:pointer;text-align:left}
+  .r-wm button:hover{border-color:var(--ink-2)}
+  .r-wm button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+  .r-wm button[aria-pressed="true"] kbd{color:var(--ink)}
+  .discard{margin-left:auto;display:inline-flex;align-items:center;gap:8px;padding:7px 10px 7px 7px;background:none;border:1px dashed var(--line-2);border-radius:10px;cursor:pointer;font-size:13px;color:var(--ink-2)}
+  .discard:hover{color:var(--ink);border-color:var(--ink-2)}
+  .discard[aria-pressed="true"]{border-style:solid;border-color:var(--ink-2);color:var(--ink);background:var(--s3)}
+
+  .r-keys{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12.5px;color:var(--ink-3)}
+  .r-keys span{display:inline-flex;align-items:center;gap:4px}
+}
+@media (max-width:820px){ #v-review .rv-grid{grid-template-columns:1fr} #v-review .r-queue{max-height:220px;position:static} }
+@media (max-width:620px){ #v-review .r-fields{grid-template-columns:1fr} #v-review .r-fields > span:empty{display:none} }
+@media (max-width:520px){ #v-review .r-wm{grid-template-columns:1fr} #v-review .r-events li{grid-template-columns:1fr;gap:2px} }
+
+/* projects: one card per project; a week strip, then its threads week by week. */
+#v-projects{
+  .filters{display:flex;gap:6px}
+  .filters button{font:500 12px var(--f-mono);color:var(--ink-2);background:var(--s1);border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer}
+  .filters button[aria-pressed="true"]{color:var(--ink);border-color:var(--ink-2);background:var(--s3)}
+  .grp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(520px,100%),1fr));gap:12px;align-items:start}
+  .facts{font:500 11.5px var(--f-mono);color:var(--ink-3);margin-top:-8px}
+  .facts a{text-decoration:none}
+  .facts a:hover{color:var(--accent)}
+  .ms{display:grid;gap:6px}
+  .mrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
+  .mrow select{font:500 12px var(--f-mono);padding:4px 6px}
+  .mchip{display:inline-flex;align-items:center;gap:6px;font:500 11.5px var(--f-mono);color:var(--ink-2);background:var(--s2);border:1px solid var(--line);border-radius:8px;padding:2px 4px 2px 8px}
+  .mchip button{all:unset;cursor:pointer;color:var(--ink-3);padding:0 4px;border-radius:4px}
+  .mchip button:hover,.mchip button:focus-visible{color:var(--accent)}
+  .grp{background:var(--s1);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px clamp(14px,2.5vw,22px);display:grid;gap:14px;scroll-margin-top:96px}
+  .grp.on{border-color:var(--accent);box-shadow:var(--glow)}
+  .gh{all:unset;cursor:pointer;display:flex;align-items:baseline;gap:8px 14px}
+  .gh:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:6px}
+  .gh .todo{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+  .gh .chev{margin-left:auto;color:var(--ink-3)}
+  .gh h2{font:800 22px/1.02 var(--f-num);text-transform:uppercase;margin:0;text-wrap:balance}
+  .strip{display:grid;grid-template-columns:repeat(var(--n),minmax(26px,1fr));gap:4px}
+  .strip i{display:grid;place-items:center;height:26px;border-radius:6px;background:var(--s3);font:500 11px var(--f-mono);font-style:normal;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .strip i.on{background:color-mix(in srgb,var(--accent) calc(25% + var(--v) * 60%),var(--s3));color:var(--ink)}
+  .strip span{font:500 10px var(--f-mono);color:var(--ink-3);text-align:center}
+  .weeks{display:grid;gap:10px}
+  .wk{display:grid;grid-template-columns:40px 1fr;gap:12px}
+  .wk ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .wk a{text-decoration:none;display:block;border-radius:10px;padding:6px 10px;margin:-6px -10px}
+  .wk a:hover{background:var(--s2)}
+  .wk b{font-weight:500}
+  .wk small{display:block;color:var(--ink-2);font-size:13px}
+  .wk .n{font:500 11px var(--f-mono);color:var(--ink-3);margin-left:6px}
+  .wk .ok{color:var(--m-build);margin-left:6px}
+  .wk .todo{font:500 10px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-left:6px}
+}
+@media (max-width:560px){ #v-projects .wk{grid-template-columns:1fr;gap:4px} }
+
 /* projects */
-.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
-.pcard{display:grid;gap:14px;align-content:start}
-.pcard h3{margin:0;font:800 22px/1.02 var(--f-num);text-transform:uppercase;text-wrap:balance}
-.pcard h3 a{text-decoration:none}
-.pcard h3 a:hover{color:var(--accent)}
-.pmeta{display:flex;flex-wrap:wrap;gap:6px 14px;font:500 11.5px var(--f-mono);color:var(--ink-3)}
 .pill{font:600 11px/1 var(--f-num);letter-spacing:.1em;text-transform:uppercase;padding:4px 7px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2)}
 .pill.done{border-color:color-mix(in srgb,var(--m-build) 60%,var(--line));color:var(--m-build)}
 .pill.warn{border-color:color-mix(in srgb,var(--m-solve) 60%,var(--line));color:var(--m-solve)}
@@ -211,12 +324,6 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .msr .tr{height:6px;border-radius:3px;background:var(--s3);overflow:hidden}
 .msr .tr i{display:block;height:100%;background:var(--accent);border-radius:3px}
 .msr b{font:700 13px var(--f-num);text-align:right;color:var(--ink)}
-.pbars{display:flex;gap:3px;align-items:end;height:38px}
-.pbars i{flex:1;border-radius:3px 3px 1px 1px;background:var(--accent);min-height:2px;opacity:.85}
-.pbars i.z{background:var(--s3);opacity:1}
-.pitems{display:grid;gap:6px;margin:0;padding:0;list-style:none}
-.pitems button{width:100%;text-align:left;background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;display:grid;grid-template-columns:8px 1fr auto;gap:10px;align-items:center;font-size:13px}
-.pitems button:hover{border-color:var(--line-2)}
 .crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font:500 12px var(--f-mono);color:var(--ink-2)}
 .crumbs span.sep{color:var(--ink-3)}
 .crumbs a,.crumbs b{font-weight:500;padding:4px 8px;border-radius:6px;background:var(--s2);border:1px solid var(--line);text-decoration:none}
@@ -266,38 +373,37 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .story .tap.l{left:0} .story .tap.r{right:0}
 .story .hint{position:absolute;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font:500 11px var(--f-mono);opacity:.7;z-index:2}
 
-@media (max-width:980px){ .bento{grid-template-columns:repeat(2,minmax(0,1fr))} .split,.review{grid-template-columns:1fr} }
-@media (max-width:620px){ .bento{grid-template-columns:1fr} .t-rings,.t-big,.t-wide{grid-column:auto;grid-row:auto} .rings-wrap{grid-template-columns:1fr} .rings{max-width:200px;justify-self:center} .two{grid-template-columns:1fr} .proto{display:none} }
+@media (max-width:980px){ .bento{grid-template-columns:repeat(2,minmax(0,1fr))} .split{grid-template-columns:1fr} }
+@media (max-width:620px){ .bento{grid-template-columns:1fr} .t-rings,.t-big,.t-wide{grid-column:auto;grid-row:auto} .rings-wrap{grid-template-columns:1fr} .rings{max-width:200px;justify-self:center} .two{grid-template-columns:1fr} }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
 </style>
 
 <div class="wrap">
 <header>
   <div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M1 8h3l2-5 4 10 2-5h3" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><b>Impact Trace</b></div>
-  <nav role="tablist" aria-label="Telas">
-    <button role="tab" id="t-home" data-v="home" aria-selected="true">Norte</button>
-    <button role="tab" id="t-proj" data-v="proj" aria-selected="false">Projetos</button>
-    <button role="tab" id="t-trace" data-v="trace" aria-selected="false">Trace</button>
+  <nav role="tablist" aria-label="Views">
+    <button role="tab" id="t-home" data-v="home" aria-selected="true">North</button>
+    <button role="tab" id="t-projects" data-v="projects" aria-selected="false">Projects</button>
+    <button role="tab" id="t-trace" data-v="trace" aria-selected="false">Trace <span class="ex">example</span></button>
     <button role="tab" id="t-review" data-v="review" aria-selected="false">Review <span class="badge" id="badge"></span></button>
-    <button role="tab" id="t-refs" data-v="refs" aria-selected="false">Referências</button>
+    <button role="tab" id="t-refs" data-v="refs" aria-selected="false">References</button>
   </nav>
   <div class="hright">
-    <span class="proto" id="proto">Protótipo. Objetivos e probabilidades são exemplos.</span>
-    <button class="cmdk-btn" id="cmdk-open">Buscar <kbd>⌘</kbd><kbd>K</kbd></button>
+    <button class="cmdk-btn" id="cmdk-open">Search <kbd>⌘</kbd><kbd>K</kbd></button>
   </div>
 </header>
 
 <!-- HOME -->
 <section class="view" id="v-home">
   <div class="vhead">
-    <h1 id="home-h">W35–W42 <em>·</em> 8 semanas</h1>
+    <h1 id="home-h">W35–W42 <em>·</em> 8 weeks</h1>
     <p id="home-p"></p>
   </div>
   <div class="bento">
     <div class="tile t-rings">
-      <div class="th"><span class="lbl">Para onde vai o trabalho</span><span class="ex">objetivos de exemplo</span></div>
+      <div class="th"><span class="lbl">Where the work goes</span><span class="ex">example goals</span></div>
       <div class="rings-wrap">
-        <svg class="rings" viewBox="0 0 240 240" role="img" aria-label="Parte dos itens que serve a cada objetivo" id="rings"></svg>
+        <svg class="rings" viewBox="0 0 240 240" role="img" aria-label="Share of items that serve each goal" id="rings"></svg>
         <ul class="glist" id="glist"></ul>
       </div>
     </div>
@@ -311,58 +417,60 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
   </div>
 </section>
 
-<!-- PROJECTS -->
-<section class="view" id="v-proj" hidden>
-  <div class="vhead">
-    <h1>Do PR ao <em>objetivo</em></h1>
-    <p>PR → issue → projeto → milestone vem do Linear, automático. Projeto → objetivo é a única ligação manual, feita uma vez por projeto. As initiatives do Linear são só "Running Projects", então não servem como OKR.</p>
-  </div>
-  <div class="panel"><div class="hm-wrap"><div class="hm" id="phm" style="grid-template-columns:minmax(150px,230px) repeat(8,1fr)"></div></div>
-    <div class="hm-hint"><span>Issues seus fechados por semana, por projeto. Dados do Linear, 2026-10-18.</span></div></div>
-  <div class="pgrid" id="pgrid"></div>
-</section>
-
 <!-- TRACE -->
 <section class="view" id="v-trace" hidden>
   <div class="vhead">
-    <h1>Como entrego, <em>semana a semana</em></h1>
-    <p>Clique em semanas ou arraste por elas para selecionar. O painel compara a seleção com o resto do período, como o BubbleUp do Honeycomb.</p>
+    <h1>How I deliver, <em>week by week</em></h1>
+    <p>Click weeks or drag across them to select. The panel compares the selection with the rest of the period, like Honeycomb BubbleUp.</p>
   </div>
   <div class="panel">
     <div class="hm-wrap"><div class="hm" id="hm"></div></div>
-    <div class="hm-hint"><span id="selinfo"></span><button class="chip" id="clearsel">limpar seleção</button></div>
+    <div class="hm-hint"><span id="selinfo"></span><button class="chip" id="clearsel">clear selection</button></div>
   </div>
   <div class="split">
-    <div class="panel" style="display:grid;gap:12px"><div class="th" style="display:flex;justify-content:space-between"><span class="lbl">Itens da seleção</span><span class="lbl" id="feedn"></span></div><ul class="feed" id="feed"></ul></div>
+    <div class="panel" style="display:grid;gap:12px"><div class="th" style="display:flex;justify-content:space-between"><span class="lbl">Items in selection</span><span class="lbl" id="feedn"></span></div><ul class="feed" id="feed"></ul></div>
     <div class="panel" style="display:grid;gap:16px">
-      <span class="lbl">Seleção vs resto</span>
+      <span class="lbl">Selection vs rest</span>
       <div class="bub" id="bub"></div>
-      <div style="display:flex;gap:14px;font-size:12px;color:var(--ink-3)"><span style="display:flex;gap:6px;align-items:center"><i class="dot" style="background:var(--accent)"></i>seleção</span><span style="display:flex;gap:6px;align-items:center"><i class="dot" style="background:var(--line-2)"></i>resto</span></div>
-      <span class="lbl">Alcance na seleção</span>
+      <div style="display:flex;gap:14px;font-size:12px;color:var(--ink-3)"><span style="display:flex;gap:6px;align-items:center"><i class="dot" style="background:var(--accent)"></i>selection</span><span style="display:flex;gap:6px;align-items:center"><i class="dot" style="background:var(--line-2)"></i>rest</span></div>
+      <span class="lbl">Reach in selection</span>
       <div class="bub" id="bub2"></div>
     </div>
   </div>
 </section>
 
+<!-- PROJECTS: Linear projects and your own topics, across weeks -->
+<section class="view" id="v-projects" hidden>
+  <div class="vhead"><h1>Projects <em>across weeks</em></h1>
+    <div class="filters" role="group" aria-label="Kind of project"><button data-f="all" aria-pressed="true">All</button><button data-f="linear" aria-pressed="false">Linear</button><button data-f="topic" aria-pressed="false">Topics</button></div></div>
+  <div class="grp-list" id="grp-list"><div class="empty">Loading projects…</div></div>
+</section>
+
 <!-- REVIEW -->
 <section class="view" id="v-review" hidden>
-  <div class="vhead"><h1>Review <em>semanal</em></h1><p>O classificador sugere, e você confirma. A única pergunta que é sempre sua: sem você, isso teria acontecido?</p></div>
-  <div class="review">
-    <div class="panel rcard" id="rcard"></div>
-    <div class="panel sec"><span class="lbl">Fila</span><ul class="queue" id="queue"></ul></div>
+  <div class="vhead"><h1>Weekly <em>review</em></h1>
+    <div class="stats">
+      <label class="stat"><span class="lbl">Week</span><select id="rv-week" aria-label="Week"></select></label>
+      <label class="stat"><span class="lbl">Show</span><select id="rv-show" aria-label="Show"><option value="pending">Pending</option><option value="all">All</option></select></label>
+      <div class="stat"><span class="lbl">Decided</span><b id="rv-done">–</b></div>
+    </div></div>
+  <div class="rv-grid">
+    <ul class="r-queue" id="rv-queue" aria-label="Threads of the week"></ul>
+    <main class="r-card" id="rv-card"><div class="empty">Loading threads…</div></main>
   </div>
 </section>
 
 <!-- REFS -->
 <section class="view" id="v-refs" hidden>
-  <div class="vhead"><h1>Por que <em>isso conta</em></h1><p>As fontes por trás de cada modo de entrega. As citações foram verificadas nas páginas originais em 2026-10-18. ⚠ marca uma fonte secundária.</p></div>
+  <div class="vhead"><h1>Why <em>this counts</em></h1><p>The sources behind each delivery mode. Quotes were checked against the original pages on 2026-10-18. ⚠ marks a secondary source.</p></div>
   <div class="refs" id="refs"></div>
 </section>
 </div>
 
-<div class="sheet" id="sheet" hidden><div class="sheet-in" id="sheet-in" role="dialog" aria-modal="true" aria-label="Detalhe do item"></div></div>
-<div class="cmdk" id="cmdk" hidden><div class="cmdk-in" role="dialog" aria-label="Buscar"><input id="cmdk-input" type="text" placeholder="Buscar itens, pessoas, telas…" autocomplete="off"><ul id="cmdk-list" role="listbox"></ul></div></div>
+<div class="sheet" id="sheet" hidden><div class="sheet-in" id="sheet-in" role="dialog" aria-modal="true" aria-label="Item detail"></div></div>
+<div class="cmdk" id="cmdk" hidden><div class="cmdk-in" role="dialog" aria-label="Search"><input id="cmdk-input" type="text" placeholder="Search items, people, views…" autocomplete="off"><ul id="cmdk-list" role="listbox"></ul></div></div>
 <div class="story" id="story" hidden></div>
+<div class="toast" id="toast" hidden role="status"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="/data.js"></script>
@@ -370,47 +478,47 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const G = (!RM && window.gsap) ? window.gsap : null;
 
-const MODES = {clarify:"clarificar", prevent:"evitar", solve:"resolver", build:"construir", elevate:"elevar", external:"externo"};
-const REACH = {team:"meu time", lateral:"lateral", up:"para cima", external:"indústria"};
+const MODES = {clarify:"clarify", prevent:"prevent", solve:"solve", build:"build", elevate:"elevate", external:"external"};
+const REACH = {team:"my team", lateral:"lateral", up:"upward", external:"industry"};
 const PILLAR = {big:"big-picture", exec:"execution", level:"leveling-up"};
 const WEEKS = ["W35","W36","W37","W38","W39","W40","W41","W42"];
 const REVIEWS = [28,19,22,27,17,27,15,10];
 
 const REFS = {
-  clarify:{title:"Clarificar", items:[
-    {q:"The highest-leverage work I do is to provide technical clarity to the organization", who:"Sean Goedecke, Staff Engineer no GitHub", url:"https://www.seangoedecke.com/clarity/"},
+  clarify:{title:"Clarify", items:[
+    {q:"The highest-leverage work I do is to provide technical clarity to the organization", who:"Sean Goedecke, Staff Engineer at GitHub", url:"https://www.seangoedecke.com/clarity/"},
     {q:"Illuminate and clarify", who:"Amazon, Principal Engineering Tenets", url:"https://www.amazon.jobs/content/en/teams/principal-engineering/tenets"},
     {q:"Where a Product Manager focuses on the 'What', the Tech Lead focuses on the 'How.'", who:"Pat Kua", url:"https://www.patkua.com/blog/the-definition-of-a-tech-lead/"}]},
-  prevent:{title:"Evitar o build errado", items:[
-    {q:"Often the most impactful things I do is convince someone not to write a new thing.", who:"Silvia Botros, Senior Principal na Twilio", url:"https://staffeng.com/stories/silvia-botros/"},
+  prevent:{title:"Prevent the wrong build", items:[
+    {q:"Often the most impactful things I do is convince someone not to write a new thing.", who:"Silvia Botros, Senior Principal at Twilio", url:"https://staffeng.com/stories/silvia-botros/"},
     {q:"A surprising number of projects are one small change away from succeeding", who:"Will Larson, Work on what matters", url:"https://staffeng.com/guides/work-on-what-matters/"}]},
-  solve:{title:"Resolver o que não tem dono", items:[
+  solve:{title:"Solve what has no owner", items:[
     {q:"The Solver digs deep into arbitrarily complex problems and finds an appropriate path forward.", who:"Will Larson, Staff archetypes", url:"https://staffeng.com/guides/staff-archetypes/"},
     {q:"at the senior levels, we are expected to identify problems that match business opportunities", who:"Camille Fournier", url:"https://www.elidedbranches.com/2023/07/the-next-larger-context.html"}]},
-  build:{title:"Construir com escopo de empresa", items:[
+  build:{title:"Build at company scope", items:[
     {q:"I own and deliver org/company-wide multi-year, multi-team goals", who:"Dropbox, IC6 Principal", url:"https://dropbox.github.io/dbx-career-framework/ic6_principal_software_engineer.html"},
-    {q:"Principal Engineers are hands-on and lead by example.", who:"Amazon, Exemplary practitioner", warn:"repost no Hacker News, não é a página oficial", url:"https://news.ycombinator.com/item?id=26004088"},
+    {q:"Principal Engineers are hands-on and lead by example.", who:"Amazon, Exemplary practitioner", warn:"Hacker News repost, not the official page", url:"https://news.ycombinator.com/item?id=26004088"},
     {q:"Solves technical problems of the highest scope, complexity, and ambiguity for their sub-department.", who:"GitLab, Principal Engineer", url:"https://handbook.gitlab.com/job-families/engineering/development/management/principal-engineer/"}]},
-  elevate:{title:"Elevar pessoas", items:[
+  elevate:{title:"Elevate people", items:[
     {q:"To sponsor someone is to feel on the hook to help get someone promoted.", who:"Lara Hogan", url:"https://larahogan.me/blog/what-sponsorship-looks-like/"},
     {q:"our job isn't to do the code, but to help others do it with growth and the long-term in mind.", who:"Silvia Botros", url:"https://staffeng.com/stories/silvia-botros/"},
     {q:"Who have you mentored and through what accomplishments?", who:"Will Larson, Promo packets", url:"https://lethain.com/promo-packets/"}]},
-  external:{title:"Presença na indústria", items:[
-    {q:"She is an approver for the OpenTelemetry Go SIG, wrote vendor exporters for Go and Python", who:"Liz Fong-Jones, candidatura ao OTel GC 2020", url:"https://github.com/open-telemetry/community/blob/main/elections/2020/governance-committee-candidates.md"},
+  external:{title:"Industry presence", items:[
+    {q:"She is an approver for the OpenTelemetry Go SIG, wrote vendor exporters for Go and Python", who:"Liz Fong-Jones, OTel GC 2020 candidacy", url:"https://github.com/open-telemetry/community/blob/main/elections/2020/governance-committee-candidates.md"},
     {q:"As a GC member, I actively mediate community conflicts.", who:"Juraci Paixão Kröhling", url:"https://grafana.com/blog/2024/08/16/behind-the-scenes-of-the-opentelemetry-governance-committee/"},
     {q:"Interact with customers and other external stakeholders as a consultant and spokesperson", who:"GitLab, Principal Engineer", url:"https://handbook.gitlab.com/job-families/engineering/development/management/principal-engineer/"}]},
   glue:{title:"Glue work", items:[
     {q:"Glue work is the difference between a project that succeeds and one that fails.", who:"Tanya Reilly, Being Glue", url:"https://noidea.dog/glue"},
     {q:"If you only do glue, you will only get better at glue.", who:"Tanya Reilly", url:"https://noidea.dog/glue"},
     {q:"You should do this kind of extra work for the projects you lead", who:"Sean Goedecke", url:"https://www.seangoedecke.com/glue-work-considered-harmful/"}]},
-  counterfactual:{title:"Sem mim, teria acontecido?", items:[
+  counterfactual:{title:"Without you, would it have happened?", items:[
     {q:"things that simply won't happen if you don't do them are your biggest opportunity to work on something that matters", who:"Will Larson", url:"https://staffeng.com/guides/work-on-what-matters/"},
     {q:"you won't get promoted if your company's leadership doesn't know who you are.", who:"Will Larson, Getting the title where you are", url:"https://staffeng.com/guides/getting-the-title-where-you-are/"}]},
-  scope:{title:"Escopo de Principal", items:[
+  scope:{title:"Principal scope", items:[
     {q:"While a senior engineer typically works across a team, a Staff or Principal engineer usually works across a larger organization.", who:"Gergely Orosz", url:"https://newsletter.pragmaticengineer.com/p/engineering-career-paths"},
     {q:"Principal Engineers and Senior Directors of Engineering primarily focus on the engineering output of multiple groups", who:"Mike McQuaid", url:"https://mikemcquaid.com/what-is-a-staff-plus-principal-engineer/"},
     {q:"I deliver results against a strategic company-level business objective", who:"Dropbox, IC6", url:"https://dropbox.github.io/dbx-career-framework/ic6_principal_software_engineer.html"}]},
-  tracking:{title:"Registrar o trabalho", items:[
+  tracking:{title:"Track the work", items:[
     {q:"So if your manager is going to effectively advocate for you, they need help.", who:"Julia Evans, Brag documents", url:"https://jvns.ca/blog/brag-documents/"},
     {q:"Engineers who know all their work have an easier way of saying no to new work", who:"Gergely Orosz, Work log", url:"https://blog.pragmaticengineer.com/work-log-template-for-software-engineers/"},
     {q:"can take on massive ambiguous cross-org projects and make them succeed despite the difficulty.", who:"Tanya Reilly, The Staff Engineer's Path", url:"https://noidea.dog/staff"}]},
@@ -441,7 +549,7 @@ function countUp(root){
 /* HOME */
 function renderHome(){
   const ups = ITEMS.filter(i=>i.reach==="up").length;
-  $("#home-p").innerHTML = `<b>${ITEMS.length}</b> itens, <b>${REC.length}</b> reconhecimentos públicos, <b>${ups}</b> itens que chegaram à liderança. Dados das notas Evidence.`;
+  $("#home-p").innerHTML = `<b>${ITEMS.length}</b> items, <b>${REC.length}</b> public recognitions, <b>${ups}</b> items that reached leadership. Data from the Evidence notes.`;
 
   // rings: share of items per goal
   const by = cnt(ITEMS, goalOf), n = ITEMS.length;
@@ -449,30 +557,30 @@ function renderHome(){
   $("#rings").innerHTML = GOALS.map((g,i)=>`
     <circle cx="120" cy="120" r="${R[i]}" fill="none" stroke="var(--s3)" stroke-width="16"/>
     <circle class="ring" data-v="${(by[g.id]||0)/n*100}" cx="120" cy="120" r="${R[i]}" fill="none" stroke="${g.color}" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="${100-(by[g.id]||0)/n*100}" transform="rotate(-90 120 120)" style="filter:drop-shadow(0 0 6px color-mix(in srgb,${g.color} 60%,transparent))"/>`).join("")
-    + `<text x="120" y="124" text-anchor="middle"><tspan data-count="${n-(by.null||0)}">${n-(by.null||0)}</tspan>/${n}</text><text class="sub" x="120" y="142" text-anchor="middle">COM OBJETIVO</text>`;
-  $("#glist").innerHTML = GOALS.map(g=>`<li><button data-goal="${g.id}"><i class="dot" style="background:${g.color};margin-top:5px"></i><span class="gt">${esc(g.title)}</span><span class="gp num">${Math.round((by[g.id]||0)/n*100)}%</span><span class="gs">${by[g.id]||0} itens · ${Object.values(PROJECTS).filter(P=>P.goal===g.id).length} projetos · ${ITEMS.filter(i=>goalOf(i)===g.id&&i.reach==="up").length} para cima</span></button></li>`).join("")
-    + `<li><button data-goal="none"><i class="dot" style="background:var(--line-2);margin-top:5px"></i><span class="gt" style="color:var(--ink-2)">Sem objetivo</span><span class="gp num" style="color:var(--ink-3)">${Math.round((by.null||0)/n*100)}%</span><span class="gs">pode ser normal, ou glue sem dono · <a class="ref" href="#" data-ref="glue">glue work</a></span></button></li>`;
+    + `<text x="120" y="124" text-anchor="middle"><tspan data-count="${n-(by.null||0)}">${n-(by.null||0)}</tspan>/${n}</text><text class="sub" x="120" y="142" text-anchor="middle">WITH A GOAL</text>`;
+  $("#glist").innerHTML = GOALS.map(g=>`<li><button data-goal="${g.id}"><i class="dot" style="background:${g.color};margin-top:5px"></i><span class="gt">${esc(g.title)}</span><span class="gp num">${Math.round((by[g.id]||0)/n*100)}%</span><span class="gs">${by[g.id]||0} items · ${Object.values(PROJECTS).filter(P=>P.goal===g.id).length} projects · ${ITEMS.filter(i=>goalOf(i)===g.id&&i.reach==="up").length} upward</span></button></li>`).join("")
+    + `<li><button data-goal="none"><i class="dot" style="background:var(--line-2);margin-top:5px"></i><span class="gt" style="color:var(--ink-2)">No goal</span><span class="gp num" style="color:var(--ink-3)">${Math.round((by.null||0)/n*100)}%</span><span class="gs">can be normal, or glue with no owner · <a class="ref" href="#" data-ref="glue">glue work</a></span></button></li>`;
 
   // one big thing (Oura)
   const big = ITEMS.find(i=>i.id===HIGHLIGHT.item), r = REC[big.rec];
-  $("#bigthing").innerHTML = `<div class="th"><span class="lbl">Destaque da semana · ${WEEKS[big.w]}</span><span class="chip" style="cursor:default"><i class="dot" style="background:${mc(modeOf(big))}"></i>${MODES[modeOf(big)]}</span></div>
+  $("#bigthing").innerHTML = `<div class="th"><span class="lbl">Highlight of the week · ${WEEKS[big.w]}</span><span class="chip" style="cursor:default"><i class="dot" style="background:${mc(modeOf(big))}"></i>${MODES[modeOf(big)]}</span></div>
     <p class="oneline">${esc(big.title)}</p>
     <p class="big-q">${esc(r.t)}</p>
     <span class="by">${esc(r.who)} · ${esc(r.where)} · ${HIGHLIGHT.when}</span>
-    <div style="margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><button class="chip" data-item="${big.id}">abrir evidência →</button><a class="ref" href="#" data-ref="solve">por que conta: resolver o que não tem dono</a></div>`;
+    <div style="margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><button class="chip" data-item="${big.id}">open evidence →</button><a class="ref" href="#" data-ref="solve">why it counts: solve what has no owner</a></div>`;
 
   // mix
   const m = cnt(ITEMS, modeOf), mx = Math.max(...Object.values(m));
-  $("#t-mix").innerHTML = `<div class="th"><span class="lbl">Como entrego</span><a class="ref" href="#" data-v="trace">trace →</a></div>
+  $("#t-mix").innerHTML = `<div class="th"><span class="lbl">How I deliver</span><a class="ref" href="#" data-v="trace">trace →</a></div>
     <div class="mixbars">${Object.keys(MODES).map(k=>`<div class="mb"><a class="ref" style="color:var(--ink-2);font-size:12.5px;font-family:var(--f-body)" href="#" data-ref="${k}">${MODES[k]}</a><span class="tr"><i style="width:${(m[k]||0)/mx*100}%;background:${mc(k)}"></i></span><span class="n">${m[k]||0}</span></div>`).join("")}</div>`;
 
   // reach graph
   const rc = cnt(ITEMS, i=>i.reach);
   const pos = {up:[130,22], lateral:[226,80], external:[34,80], team:[130,140]};
-  $("#t-reach").innerHTML = `<div class="th"><span class="lbl">Até onde chega</span><a class="ref" href="#" data-ref="scope">escopo →</a></div>
-    <svg viewBox="0 0 260 162" role="img" aria-label="Itens por alcance: ${Object.keys(REACH).map(k=>REACH[k]+" "+(rc[k]||0)).join(", ")}">
+  $("#t-reach").innerHTML = `<div class="th"><span class="lbl">How far it reaches</span><a class="ref" href="#" data-ref="scope">scope →</a></div>
+    <svg viewBox="0 0 260 162" role="img" aria-label="Items by reach: ${Object.keys(REACH).map(k=>REACH[k]+" "+(rc[k]||0)).join(", ")}">
       ${Object.keys(pos).map(k=>`<line class="edge" x1="130" y1="80" x2="${pos[k][0]}" y2="${pos[k][1]}" stroke="var(--accent)" stroke-opacity=".7" stroke-width="${1+(rc[k]||0)*.7}"/>`).join("")}
-      <circle cx="130" cy="80" r="17" fill="var(--accent)"/><text x="130" y="84" text-anchor="middle" fill="var(--accent-ink)" style="fill:var(--accent-ink)">EU</text>
+      <circle cx="130" cy="80" r="17" fill="var(--accent)"/><text x="130" y="84" text-anchor="middle" fill="var(--accent-ink)" style="fill:var(--accent-ink)">ME</text>
       ${Object.keys(pos).map(k=>`<circle cx="${pos[k][0]}" cy="${pos[k][1]}" r="${8+(rc[k]||0)*1.6}" fill="var(--s3)" stroke="var(--line-2)"/><text class="cn" x="${pos[k][0]}" y="${pos[k][1]+4.5}" text-anchor="middle">${rc[k]||0}</text>`).join("")}
       <text x="164" y="22">${REACH.up}</text><text x="226" y="112" text-anchor="middle">${REACH.lateral}</text><text x="34" y="112" text-anchor="middle">${REACH.external}</text><text x="164" y="150">${REACH.team}</text>
     </svg>`;
@@ -483,9 +591,9 @@ function renderHome(){
   const avg = REVIEWS.reduce((a,b)=>a+b)/REVIEWS.length;
   const X = i=>12+i*32, Y = v=>78-v/30*62;
   const pts = REVIEWS.map((v,i)=>`${X(i)},${Y(v)}`).join(" ");
-  $("#t-rev").innerHTML = `<div class="th"><span class="lbl">Reviews dados</span><a class="ref" href="#" data-ref="elevate">elevar →</a></div>
-    <div style="display:flex;align-items:baseline;gap:10px"><span class="statn num" data-count="${REVIEWS[7]}">${REVIEWS[7]}</span><span style="font-size:12.5px;color:var(--ink-3)">na W42 · seu normal é ${avg.toFixed(0)}</span></div>
-    <svg class="spark" viewBox="0 0 248 96" width="100%" role="img" aria-label="Reviews por semana: ${REVIEWS.join(", ")}">
+  $("#t-rev").innerHTML = `<div class="th"><span class="lbl">Reviews given</span><a class="ref" href="#" data-ref="elevate">elevate →</a></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="statn num" data-count="${REVIEWS[7]}">${REVIEWS[7]}</span><span style="font-size:12.5px;color:var(--ink-3)">in W42 · your normal is ${avg.toFixed(0)}</span></div>
+    <svg class="spark" viewBox="0 0 248 96" width="100%" role="img" aria-label="Reviews per week: ${REVIEWS.join(", ")}">
       <line x1="12" x2="236" y1="${Y(avg)}" y2="${Y(avg)}" stroke="var(--ink-3)" stroke-dasharray="3 4"/>
       <text x="236" y="${Y(avg)-5}" text-anchor="end">NORMAL ${avg.toFixed(0)}</text>
       <polygon points="12,78 ${pts} ${X(7)},78" fill="var(--accent)" fill-opacity=".16"/>
@@ -494,50 +602,26 @@ function renderHome(){
       ${WEEKS.map((w,i)=>`<text x="${X(i)}" y="93" text-anchor="middle">${w.slice(1)}</text>`).join("")}
     </svg>`;
 
-  // without me
-  const done = ITEMS.filter(i=>answers[i.id]?.wm).length;
-  $("#t-wm").innerHTML = `<div class="th"><span class="lbl">Sem mim, teria acontecido?</span><span class="ref">só você responde</span></div>
-    <div style="display:flex;align-items:end;gap:20px;flex-wrap:wrap"><span class="statn num"><span data-count="${done}">${done}</span><small>/ ${ITEMS.length}</small></span>
-    <div style="display:grid;gap:8px;flex:1;min-width:200px"><div class="prog">${ITEMS.map(i=>`<i class="${answers[i.id]?.wm?"d":""}"></i>`).join("")}</div>
-    <span class="keys"><span>abrir review →</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> responder</span><span><kbd>J</kbd><kbd>K</kbd> navegar</span></span></div></div>`;
+  renderWm();
 
   // recap
   $("#t-recap").innerHTML = `<div class="th"><span class="lbl">Recap · Q3 → Q4</span><span class="play" aria-hidden="true">▶</span></div>
-    <p class="oneline">Suas 8 semanas,<br>em ${PHASES.length+4} telas</p><span style="font-size:13px;opacity:.85">No estilo Wrapped. Use ← → ou toque nas laterais.</span>`;
+    <p class="oneline">Your 8 weeks,<br>in ${PHASES.length+4} screens</p><span style="font-size:13px;opacity:.85">Wrapped style. Use ← → or tap the sides.</span>`;
 
   if(G){
-    G.from(".bento .tile",{y:14,opacity:0,duration:.5,stagger:.05,ease:"power2.out",clearProps:"all"});
+    // fromTo, not from: renderHome runs twice on load, and a second from() would start at half opacity and stay there.
+    G.fromTo(".bento .tile",{y:14,opacity:0},{y:0,opacity:1,duration:.5,stagger:.05,ease:"power2.out",clearProps:"all"});
     document.querySelectorAll("#rings .ring").forEach((c,i)=>G.fromTo(c,{attr:{"stroke-dashoffset":100}},{attr:{"stroke-dashoffset":100-c.dataset.v},duration:1.4,delay:.2+i*.15,ease:"power3.out"}));
-    G.from(".mb .tr i",{scaleX:0,duration:.9,stagger:.06,ease:"power3.out",delay:.3});
+    G.fromTo(".mb .tr i",{scaleX:0},{scaleX:1,duration:.9,stagger:.06,ease:"power3.out",delay:.3});
     countUp($("#v-home"));
   }
 }
 function renderRec(){
   const r = REC[recI];
-  $("#t-rec").innerHTML = `<div class="th"><span class="lbl">★ ${REC.length} reconhecimentos</span><div class="rec-nav"><button data-rec="-1" aria-label="anterior">‹</button><button data-rec="1" aria-label="próximo">›</button></div></div>
+  $("#t-rec").innerHTML = `<div class="th"><span class="lbl">★ ${REC.length} recognitions</span><div class="rec-nav"><button data-rec="-1" aria-label="previous">‹</button><button data-rec="1" aria-label="next">›</button></div></div>
     <p style="margin:0;font-size:14px;line-height:1.45">“${esc(r.t)}”</p>
     <span class="by" style="margin-top:auto">${esc(r.who)}${r.role?` · ${esc(r.role)}`:""} · ${WEEKS[r.w]}</span>
     <div class="rec-dots">${REC.map((_,i)=>`<i class="${i===recI?"on":""}"></i>`).join("")}</div>`;
-}
-
-/* PROJECTS */
-function renderProj(){
-  const keys = Object.keys(PROJECTS).filter(k=>PROJECTS[k].done);
-  const mx = Math.max(...keys.flatMap(k=>PROJECTS[k].done));
-  $("#phm").innerHTML = `<div></div>` + WEEKS.map(w=>`<div class="wk">${w}</div>`).join("") + keys.map(k=>{ const P = PROJECTS[k], g = GOALS.find(x=>x.id===P.goal);
-    return `<div class="ml" title="${esc(P.name)}"><i class="dot" style="background:${g?g.color:"var(--line-2)"}"></i><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(P.name)}</span></div>` + P.done.map((n,w)=>`<button class="cell" data-proj="${k}" style="${n?`background:color-mix(in srgb,var(--accent) ${25+n/mx*70}%,var(--s3))`:""}" aria-label="${esc(P.name)} ${WEEKS[w]}: ${n}">${n?`<b>${n}</b>`:""}</button>`).join(""); }).join("");
-  const order = [...GOALS.map(g=>g.id), null];
-  $("#pgrid").innerHTML = Object.entries(PROJECTS).sort((a,b)=>order.indexOf(a[1].goal)-order.indexOf(b[1].goal)).map(([k,P])=>{
-    const g = GOALS.find(x=>x.id===P.goal), its = ITEMS.filter(i=>i.s===k), tot = P.done ? P.done.reduce((a,b)=>a+b,0) : 0, pm = P.done ? Math.max(1,...P.done) : 1;
-    return `<article class="panel pcard" id="proj-${k}">
-      <div style="display:flex;justify-content:space-between;gap:10px;align-items:start"><h3>${P.url?`<a href="${P.url}" target="_blank" rel="noopener">${esc(P.name)} ↗</a>`:esc(P.name)}</h3>
-        <span style="display:flex;gap:6px">${P.live?`<span class="pill done">ao vivo</span>`:""}<span class="pill ${P.status==="Completed"?"done":""}">${esc(P.status)}</span></span></div>
-      <div class="pmeta"><span>${g?`<i class="dot" style="background:${g.color}"></i> ${esc(g.short)} <span class="ex">exemplo</span>`:"sem objetivo"}</span>${P.lead?`<span>lead: ${esc(P.lead)}${P.lead==="Nicolas Takashi"?" (você)":""}</span>`:""}${P.done?`<span>${tot} issues seus fechados</span>`:""}${P.open?`<span class="${k==="none"?"warn":""}">${P.open} abertos</span>`:""}</div>
-      ${P.done?`<div class="pbars" aria-label="Issues fechados por semana: ${P.done.join(", ")}">${P.done.map(n=>`<i class="${n?"":"z"}" style="height:${n?Math.max(10,n/pm*100):6}%"></i>`).join("")}</div>`:""}
-      ${P.note?`<span class="pill ${k==="none"?"warn":""}" style="justify-self:start;letter-spacing:.02em;text-transform:none;font:500 12px var(--f-body)">${esc(P.note)}</span>`:""}
-      ${P.ms.length?`<div class="sec"><span class="lbl">Milestones</span>${P.ms.map(m=>`<div class="msr"><span>${esc(m.name)}</span><span class="tr"><i style="width:${m.progress||0}%"></i></span><b>${m.progress==null?"—":m.progress+"%"}</b></div>`).join("")}</div>`:""}
-      ${its.length?`<div class="sec"><span class="lbl">Impacto ligado · ${its.length}</span><ul class="pitems">${its.map(i=>`<li><button data-item="${i.id}"><i class="dot" style="background:${mc(modeOf(i))}"></i><span>${esc(i.title)}</span><span class="ref">${WEEKS[i.w]}${i.rec!=null?" ★":""}</span></button></li>`).join("")}</ul></div>`:`<span class="ref">Nenhum item de impacto ligado ainda. Trabalho fechado sem história registrada.</span>`}
-    </article>`; }).join("");
 }
 
 /* TRACE */
@@ -552,9 +636,9 @@ function renderTrace(){
   });
   $("#hm").innerHTML = h;
   const ws = [...sel].sort((a,b)=>a-b);
-  $("#selinfo").textContent = ws.length ? `Seleção: ${ws.map(i=>WEEKS[i]).join(", ")}` : "Nenhuma seleção. Mostrando as 8 semanas.";
+  $("#selinfo").textContent = ws.length ? `Selection: ${ws.map(i=>WEEKS[i]).join(", ")}` : "No selection. Showing all 8 weeks.";
   const inSel = ITEMS.filter(i=>!ws.length || sel.has(i.w)), rest = ITEMS.filter(i=>ws.length && !sel.has(i.w));
-  $("#feedn").textContent = inSel.length + " itens";
+  $("#feedn").textContent = inSel.length + " items";
   $("#feed").innerHTML = inSel.slice().reverse().map(i=>`<li><button data-item="${i.id}"><span class="stripe" style="background:${mc(modeOf(i))}"></span><span><div class="ft">${esc(i.title)}</div><div class="fm">${MODES[modeOf(i)]} · ${REACH[i.reach]}${i.rec!=null?" · ★":""}</div></span><span class="wk">${WEEKS[i.w]}</span></button></li>`).join("");
   const comp = (keys, f, labels) => keys.map(k=>{
     const a = inSel.filter(i=>f(i)===k).length/(inSel.length||1), b = rest.length ? rest.filter(i=>f(i)===k).length/rest.length : null;
@@ -572,18 +656,18 @@ function openItem(id){
   const ref = REFS[m].items[0];
   // flame: item → sources → links
   const srcs = cnt(it.links, l=>l[0]);
-  if(q) srcs[r?"Reconhecimento":"Slack"] = (srcs[r?"Reconhecimento":"Slack"]||0)+1;
+  if(q) srcs[r?"Recognition":"Slack"] = (srcs[r?"Recognition":"Slack"]||0)+1;
   const lv2 = Object.keys(srcs);
-  const flame = `<div class="flame" aria-label="Evidência do item, como flame graph">
+  const flame = `<div class="flame" aria-label="Item evidence, as a flame graph">
     <div class="lv"><span class="sp" style="background:${mc(m)}">${esc(it.id)} · ${MODES[m]}</span></div>
     ${lv2.length?`<div class="lv">${lv2.map(s=>`<span class="sp" style="flex:${srcs[s]};background:color-mix(in srgb,${mc(m)} 62%,var(--s3))">${s} · ${srcs[s]}</span>`).join("")}</div>
     <div class="lv">${lv2.map(s=>{ const ls = it.links.filter(l=>l[0]===s);
-      const extra = (s==="Reconhecimento"||(s==="Slack"&&q&&!r)) ? [`<span class="sp" style="flex:1;background:color-mix(in srgb,${mc(m)} 38%,var(--s3));color:var(--ink)">${s==="Reconhecimento"?"★ "+esc(r.who):"citação"}</span>`] : [];
+      const extra = (s==="Recognition"||(s==="Slack"&&q&&!r)) ? [`<span class="sp" style="flex:1;background:color-mix(in srgb,${mc(m)} 38%,var(--s3));color:var(--ink)">${s==="Recognition"?"★ "+esc(r.who):"quote"}</span>`] : [];
       return ls.map(l=>`<a class="sp" href="${l[2]}" target="_blank" rel="noopener" style="flex:1;background:color-mix(in srgb,${mc(m)} 38%,var(--s3));color:var(--ink)" title="${esc(l[1])}">${esc(l[1])} ↗</a>`).concat(extra).join(""); }).join("")}</div>`:""}
   </div>`;
-  $("#sheet-in").innerHTML = `<button class="x" id="x">fechar <kbd>esc</kbd></button>
-    <div class="crumbs" aria-label="Ligação do item">
-      ${g?`<b class="ex2" style="border-style:dashed"><i class="dot" style="background:${g.color}"></i> ${esc(g.short)}</b>`:`<b class="ex2">sem objetivo</b>`}<span class="sep">▸</span>
+  $("#sheet-in").innerHTML = `<button class="x" id="x">close <kbd>esc</kbd></button>
+    <div class="crumbs" aria-label="Item link chain">
+      ${g?`<b class="ex2" style="border-style:dashed"><i class="dot" style="background:${g.color}"></i> ${esc(g.short)}</b>`:`<b class="ex2">no goal</b>`}<span class="sep">▸</span>
       ${st.url?`<a href="${st.url}" target="_blank" rel="noopener">${esc(st.name)} ↗</a>`:`<b>${esc(st.name)}</b>`}
       ${it.ms?`<span class="sep">▸</span><b>${esc(it.ms)}</b>`:""}<span class="sep">▸</span><b>${it.id} · ${WEEKS[it.w]}</b>
     </div>
@@ -592,40 +676,19 @@ function openItem(id){
       <button class="chip" data-ref="${m}"><i class="dot" style="background:${mc(m)}"></i>${MODES[m]}</button>
       <button class="chip" data-ref="scope">${REACH[it.reach]}</button>
       <button class="chip" data-ref="tracking">${PILLAR[it.pillar]}</button>
-      <span class="chip" style="cursor:default">${g?`<i class="dot" style="background:${g.color}"></i>${esc(g.short)}`:"sem objetivo"}</span>
+      <span class="chip" style="cursor:default">${g?`<i class="dot" style="background:${g.color}"></i>${esc(g.short)}`:"no goal"}</span>
     </div>
-    <div class="sec"><span class="lbl">Evidência</span>${flame}</div>
+    <div class="sec"><span class="lbl">Evidence</span>${flame}</div>
     ${q?`<figure class="qblock"><p>“${esc(q.t)}”</p><figcaption class="by">${esc(q.who)}</figcaption></figure>`:""}
     <div class="two">
-      <div class="why"><span class="lbl">Por que isso conta · ${MODES[m]}</span><p>“${esc(ref.q)}”</p><a class="ref" href="${ref.url}" target="_blank" rel="noopener">${esc(ref.who)} ↗</a><a class="ref" href="#" data-ref="${m}">todas as fontes →</a></div>
-      <div class="sec"><span class="lbl">Sem mim, teria acontecido?</span><div class="wm" style="display:grid;gap:6px">${wmBtns(it)}</div><a class="ref" href="#" data-ref="counterfactual">por que essa pergunta →</a></div>
+      <div class="why"><span class="lbl">Why this counts · ${MODES[m]}</span><p>“${esc(ref.q)}”</p><a class="ref" href="${ref.url}" target="_blank" rel="noopener">${esc(ref.who)} ↗</a><a class="ref" href="#" data-ref="${m}">all sources →</a></div>
+      <div class="sec"><span class="lbl">Without you, would it have happened?</span><div class="wm" style="display:grid;gap:6px">${wmBtns(it)}</div><a class="ref" href="#" data-ref="counterfactual">why this question →</a></div>
     </div>`;
   $("#sheet").hidden = false; $("#x").focus();
   if(G){ G.from("#sheet-in",{y:40,opacity:0,duration:.35,ease:"power3.out",clearProps:"all"}); G.from("#sheet-in .flame .sp",{scaleX:0,duration:.5,stagger:.04,ease:"power2.out",clearProps:"transform"}); }
 }
-const WM = [["wouldnt","não aconteceria"],["slower","mais devagar"],["same","igual"]];
+const WM = [["wouldnt","wouldn't happen"],["slower","slower"],["same","same"]];
 const wmBtns = it => WM.map(([k,l],i)=>`<button class="opt" data-wm="${k}" data-id="${it.id}" aria-pressed="${answers[it.id]?.wm===k}"><kbd>${i+1}</kbd>${l}</button>`).join("");
-
-/* REVIEW */
-function renderReview(){
-  const left = ITEMS.filter(i=>!answers[i.id]?.wm).length;
-  $("#badge").textContent = left; $("#badge").hidden = !left;
-  const it = ITEMS[cur], m = modeOf(it), st = PROJECTS[it.s], r = it.rec!=null ? REC[it.rec] : null, q = it.quote || (r && {t:r.t, who:`${r.who} · ${r.where}`});
-  $("#rcard").innerHTML = `
-    <div class="prog">${ITEMS.map((i,ix)=>`<i class="${answers[i.id]?.wm?"d":ix===cur?"c":""}"></i>`).join("")}</div>
-    <div class="sec"><span class="lbl">${esc(st.name)} · ${WEEKS[it.w]} · ${ITEMS.length-left}/${ITEMS.length} respondidos</span><h2>${esc(it.title)}</h2></div>
-    ${q?`<figure class="qblock" style="margin:0"><p>“${esc(q.t)}”</p><figcaption class="by">${esc(q.who)}</figcaption></figure>`:""}
-    <div class="two">
-      <div class="sec"><span class="lbl">Modo · sugestão simulada</span>
-        ${Object.entries(it.p).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="prob"><span>${MODES[k]}</span><span class="tr"><i style="width:${v*100}%;background:${mc(k)}"></i></span><span class="v">${v.toFixed(2)}</span></div>`).join("")}
-        <div class="chips" style="margin-top:4px">${Object.keys(MODES).map(k=>`<button class="chip" data-mode="${k}" aria-pressed="${m===k}" style="${m===k?`border-color:${mc(k)};box-shadow:0 0 12px -4px ${mc(k)}`:""}"><i class="dot" style="background:${mc(k)}"></i>${MODES[k]}</button>`).join("")}</div>
-      </div>
-      <div class="sec"><span class="lbl">Sem mim, teria acontecido?</span><div style="display:grid;gap:6px">${wmBtns(it)}</div>
-        <span class="lbl" style="margin-top:6px">Alcance · calculado pelo mapa de pessoas</span><span>${REACH[it.reach]}</span></div>
-    </div>
-    <div class="keys"><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> responder e avançar</span><span><kbd>J</kbd><kbd>K</kbd> navegar</span><span><kbd>O</kbd> abrir evidência</span><span><kbd>⌘</kbd><kbd>K</kbd> buscar</span></div>`;
-  $("#queue").innerHTML = ITEMS.map((i,ix)=>`<li><button data-q="${ix}" aria-current="${ix===cur}"><i class="dot" style="background:${mc(modeOf(i))}"></i><span>${esc(i.title)}</span><span class="ok">${answers[i.id]?.wm?"✓":""}</span></button></li>`).join("");
-}
 
 /* REFS */
 function renderRefs(){
@@ -639,25 +702,25 @@ let sI = 0;
 const ph = (a,b)=>ITEMS.filter(i=>i.w>=a&&i.w<=b);
 const PHASE_BG = ["linear-gradient(160deg,#2a1406,#ff7a45)","linear-gradient(160deg,#ff7a45,#c8326a)","linear-gradient(160deg,#2a2406,#c9a400 70%,#ffe37a)","linear-gradient(160deg,#0d1a2a,#5b47d6 60%,#b3a1ff)","linear-gradient(160deg,#5b47d6,#ff4d52)"];
 const SLIDES = [
-  {bg:"linear-gradient(160deg,#16161d,#3a0d12 60%,#ff4d52)", html:()=>`<span class="k">W35 – W42 · 2026</span><span class="huge num">8</span><p class="h">semanas de trabalho, com rastro</p>`},
-  {bg:"linear-gradient(160deg,#2a0b1a,#ff4f8f)", html:()=>`<span class="k">No total</span><span class="huge num">${ITEMS.length}</span><p class="h">itens com evidência. ${REC.length} reconhecimentos públicos.</p>`},
+  {bg:"linear-gradient(160deg,#16161d,#3a0d12 60%,#ff4d52)", html:()=>`<span class="k">W35 – W42 · 2026</span><span class="huge num">8</span><p class="h">weeks of work, with a trace</p>`},
+  {bg:"linear-gradient(160deg,#2a0b1a,#ff4f8f)", html:()=>`<span class="k">In total</span><span class="huge num">${ITEMS.length}</span><p class="h">items with evidence. ${REC.length} public recognitions.</p>`},
   ...PHASES.map((p,n)=>({bg:PHASE_BG[n%PHASE_BG.length], html:()=>p.rec!=null
     ? `<span class="k">${esc(p.k)}</span><p class="q">“${esc(REC[p.rec].t)}”</p><span class="by">${esc(REC[p.rec].who)}${REC[p.rec].role?" · "+esc(REC[p.rec].role):""}</span>`
     : `<span class="k">${esc(p.k)}</span><p class="h">${esc(p.h)}</p><div class="rowx">${ph(p.from,p.to).map(i=>`<span class="pill">${esc(i.title)}</span>`).join("")}</div>`})),
   {bg:"linear-gradient(160deg,#08230f,#12854a 60%,#7dffa8)", html:()=>{ const m = cnt(ITEMS, modeOf), mx = Math.max(...Object.values(m));
-    return `<span class="k">Como você entregou</span><div class="bars2">${Object.keys(MODES).map(k=>`<div><span>${MODES[k]}</span><span class="t"><i style="width:${(m[k]||0)/mx*100}%"></i></span><span>${m[k]||0}</span></div>`).join("")}</div>`}},
+    return `<span class="k">How you delivered</span><div class="bars2">${Object.keys(MODES).map(k=>`<div><span>${MODES[k]}</span><span class="t"><i style="width:${(m[k]||0)/mx*100}%"></i></span><span>${m[k]||0}</span></div>`).join("")}</div>`}},
   {bg:"linear-gradient(160deg,#16161d,#2c2c38)", html:()=>{ const d = ITEMS.filter(i=>answers[i.id]?.wm).length;
-    return `<span class="k">A pergunta que falta</span><p class="h">Sem você, quais destes teriam acontecido?</p><p class="by" style="font-size:15px">${d} de ${ITEMS.length} respondidos. Só você sabe a resposta.</p><div class="rowx"><button class="pill" data-story-go="review" style="cursor:pointer;color:#fff">Abrir review →</button></div>`}},
+    return `<span class="k">The open question</span><p class="h">Without you, which of these would have happened?</p><p class="by" style="font-size:15px">${d} of ${ITEMS.length} answered. Only you know the answer.</p><div class="rowx"><button class="pill" data-story-go="review" style="cursor:pointer;color:#fff">Open review →</button></div>`}},
 ];
 function openStory(){ sI = 0; $("#story").hidden = false; drawStory(); }
 function drawStory(){
   const s = SLIDES[sI];
   $("#story").innerHTML = `<div class="bg" style="background:${s.bg}"></div>
     <div class="bars">${SLIDES.map((_,i)=>`<i class="${i<sI?"done":""}"><b ${i===sI?'id="curbar"':""}></b></i>`).join("")}</div>
-    <button class="close" id="story-x">fechar · esc</button>
-    <button class="tap l" data-step="-1" aria-label="anterior"></button><button class="tap r" data-step="1" aria-label="próximo"></button>
+    <button class="close" id="story-x">close · esc</button>
+    <button class="tap l" data-step="-1" aria-label="previous"></button><button class="tap r" data-step="1" aria-label="next"></button>
     <div class="slide" id="slide">${s.html()}</div>
-    <div class="hint">← → ou toque nas laterais · ${sI+1}/${SLIDES.length}</div>`;
+    <div class="hint">← → or tap the sides · ${sI+1}/${SLIDES.length}</div>`;
   const bar = $("#curbar");
   if(G){
     G.from("#slide > *",{y:30,opacity:0,duration:.6,stagger:.08,ease:"power3.out",clearProps:"all"});
@@ -670,32 +733,42 @@ function step(d){ sI = Math.max(0, Math.min(SLIDES.length-1, sI+d)); drawStory()
 
 /* CMDK */
 let cmdSel = 0, cmdRes = [];
-const VIEWS = [["home","Norte"],["proj","Projetos"],["trace","Trace"],["review","Review"],["refs","Referências"]];
+const VIEWS = [["home","North"],["projects","Projects"],["trace","Trace"],["review","Review"],["refs","References"]];
 function openCmd(){ $("#cmdk").hidden = false; $("#cmdk-input").value=""; filterCmd(); $("#cmdk-input").focus(); }
 function filterCmd(){
   const q = $("#cmdk-input").value.toLowerCase();
-  cmdRes = [...VIEWS.map(([v,l])=>({t:"tela", label:"Ir para "+l, v})), {t:"recap", label:"Abrir recap (Wrapped)", story:1},
+  cmdRes = [...VIEWS.map(([v,l])=>({t:"view", label:"Go to "+l, v})), {t:"recap", label:"Open recap (Wrapped)", story:1},
     ...ITEMS.map(i=>({t:WEEKS[i.w], label:i.title, item:i.id, m:modeOf(i), hay:(i.title+" "+PROJECTS[i.s].name+" "+(i.quote?.who||"")+" "+(i.rec!=null?REC[i.rec].who:"")).toLowerCase()}))]
     .filter(r=>!q || (r.hay||r.label.toLowerCase()).includes(q)).slice(0,12);
   cmdSel = 0; drawCmd();
 }
 function drawCmd(){
-  $("#cmdk-list").innerHTML = cmdRes.map((r,i)=>`<li><button role="option" data-cmd="${i}" aria-selected="${i===cmdSel}"><i class="dot" style="background:${r.m?mc(r.m):"var(--line-2)"}"></i><span>${esc(r.label)}</span><span class="k">${esc(r.t)}</span></button></li>`).join("") || `<li style="padding:14px;color:var(--ink-3)">Nada encontrado. Tente o nome de uma pessoa ou de um stream.</li>`;
+  $("#cmdk-list").innerHTML = cmdRes.map((r,i)=>`<li><button role="option" data-cmd="${i}" aria-selected="${i===cmdSel}"><i class="dot" style="background:${r.m?mc(r.m):"var(--line-2)"}"></i><span>${esc(r.label)}</span><span class="k">${esc(r.t)}</span></button></li>`).join("") || `<li style="padding:14px;color:var(--ink-3)">Nothing found. Try a person or a stream name.</li>`;
 }
 function runCmd(i){ const r = cmdRes[i]; if(!r) return; $("#cmdk").hidden = true; if(r.v) show(r.v); else if(r.story) openStory(); else openItem(r.item); }
 
-/* NAV */
-function show(v){
+/* NAV: one page, the address says which view. #/review?week=…&key=… opens one thread. */
+function display(v){
   document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected", b.dataset.v===v));
   document.querySelectorAll("section.view").forEach(s=>s.hidden = s.id!=="v-"+v);
   $("#sheet").hidden = true; window.scrollTo(0,0);
   if(v==="home") renderHome();
-  if(G && v!=="home") G.from(`#v-${v} .panel, #v-${v} .refc, #v-${v} .pcard`,{y:12,opacity:0,duration:.4,stagger:.04,clearProps:"all"});
+  const els = document.querySelectorAll(`#v-${v} .panel, #v-${v} .refc, #v-${v} .pcard`);
+  if(G && els.length) G.fromTo(els,{y:12,opacity:0},{y:0,opacity:1,duration:.4,stagger:.04,clearProps:"all"});
 }
-function renderAll(){ renderTrace(); renderReview(); renderProj(); }
+function route(){
+  const [path, qs] = location.hash.replace(/^#\/?/, "").split("?");
+  const v = VIEWS.some(([k]) => k === path) ? path : "home", p = new URLSearchParams(qs);
+  display(v);
+  if(v === "review") RV.open(p.get("week"), p.get("key"), p.get("from"));
+  if(v === "projects") GV.open(p.get("p"));
+}
+function show(v){ if(location.hash.split("?")[0] !== "#/"+v) history.pushState(null, "", "#/"+v); route(); }
+addEventListener("hashchange", route);
+function renderAll(){ renderTrace(); }
 
 document.addEventListener("click", e=>{
-  const t = e.target.closest("button,a,[data-wk]"); if(!t) return;
+  const t = e.target.closest("button,a,[data-wk]"); if(!t || t.closest("#v-review, #v-projects")) return;
   const d = t.dataset;
   if(d.storyGo){ $("#story").hidden = true; show(d.storyGo); return; }
   if(d.step){ step(+d.step); return; }
@@ -707,12 +780,9 @@ document.addEventListener("click", e=>{
   if(d.ref){ e.preventDefault(); show("refs"); const el = document.getElementById("ref-"+d.ref); if(el){ el.scrollIntoView({block:"center"}); document.querySelectorAll(".refc").forEach(x=>x.classList.toggle("hl", x===el)); } return; }
   if(d.goal){ sel.clear(); ITEMS.filter(i=>(goalOf(i)??"none")===d.goal).forEach(i=>sel.add(i.w)); renderTrace(); show("trace"); return; }
   if(d.item){ openItem(d.item); return; }
-  if(d.proj){ document.getElementById("proj-"+d.proj)?.scrollIntoView({block:"center",behavior:RM?"auto":"smooth"}); return; }
   if(t.id==="x"){ $("#sheet").hidden = true; return; }
   if(d.rec){ recI = (recI + +d.rec + REC.length) % REC.length; renderRec(); return; }
   if(d.wm){ answers[d.id] = {...answers[d.id], wm:d.wm}; save(); renderAll(); if(!$("#sheet").hidden) openItem(d.id); return; }
-  if(d.mode){ const id = ITEMS[cur].id; answers[id] = {...answers[id], mode:d.mode}; save(); renderAll(); return; }
-  if(d.q){ cur = +d.q; renderReview(); return; }
   if(t.id==="clearsel"){ sel.clear(); renderTrace(); return; }
 });
 $("#sheet").addEventListener("click", e=>{ if(e.target.id==="sheet") $("#sheet").hidden = true; });
@@ -737,16 +807,10 @@ document.addEventListener("keydown", e=>{
   if(!$("#story").hidden){ if(e.key==="ArrowRight"||e.key===" ") { e.preventDefault(); step(1); } else if(e.key==="ArrowLeft") step(-1); else if(e.key==="Escape") $("#story").hidden = true; return; }
   if(e.key==="Escape"){ $("#sheet").hidden = true; return; }
   const inSheet = !$("#sheet").hidden;
-  if(["1","2","3"].includes(e.key) && (inSheet || !$("#v-review").hidden)){
-    const id = inSheet ? $("#sheet-in [data-wm]")?.dataset.id : ITEMS[cur].id; if(!id) return;
-    answers[id] = {...answers[id], wm:WM[+e.key-1][0]}; save();
-    if(inSheet){ renderAll(); openItem(id); } else { cur = Math.min(cur+1, ITEMS.length-1); renderAll(); }
-    return;
+  if(["1","2","3"].includes(e.key) && inSheet){
+    const id = $("#sheet-in [data-wm]")?.dataset.id; if(!id) return;
+    answers[id] = {...answers[id], wm:WM[+e.key-1][0]}; save(); renderAll(); openItem(id);
   }
-  if($("#v-review").hidden || inSheet) return;
-  if(e.key==="j"){ cur = Math.min(cur+1, ITEMS.length-1); renderReview(); }
-  else if(e.key==="k"){ cur = Math.max(cur-1, 0); renderReview(); }
-  else if(e.key==="o"){ openItem(ITEMS[cur].id); }
 });
 
 // Live data from the local SQLite, when served by app/server.ts. Static values stay as the fallback.
@@ -760,8 +824,311 @@ async function hydrate(){
     if(a.ms.length) P.ms = a.ms.map(m=>({name:m.name, progress:m.progress}));
   }
   Object.assign(PROJECTS.none, {done:api.none.done, open:api.none.open, live:true});
-  $("#proto").textContent = `Projetos ao vivo do SQLite · ${api.collected_at?.slice(0,16).replace("T"," ") ?? "sem coleta"}. Objetivos e probabilidades são exemplos.`;
   renderAll(); renderHome();
 }
-renderRefs(); renderHome(); renderAll(); hydrate();
+/* PENDING: your undecided threads per week, for the nav badge and the home tile. */
+let PENDING = {};
+function renderWm(){
+  const ws = Object.keys(PENDING).sort(), left = ws.reduce((a,w)=>a+PENDING[w],0), done = ws.filter(w=>!PENDING[w]).length;
+  $("#badge").textContent = left; $("#badge").hidden = !left;
+  $("#t-wm").innerHTML = `<div class="th"><span class="lbl">Without you, would it have happened?</span><span class="ref">only you can answer</span></div>
+    <div style="display:flex;align-items:end;gap:20px;flex-wrap:wrap"><span class="statn num">${left}<small>threads to review</small></span>
+    <div style="display:grid;gap:8px;flex:1;min-width:200px"><div class="prog">${ws.map(w=>`<i class="${PENDING[w]?"":"d"}" title="${w}: ${PENDING[w] ? PENDING[w]+" left" : "done"}"></i>`).join("")}</div>
+    <span class="keys"><span>${done} of ${ws.length} weeks done</span><span>open review →</span></span></div></div>`;
+}
+const loadPending = () => fetch("/api/pending").then(r => r.ok ? r.json() : {}).then(p => { PENDING = p; renderWm(); }).catch(() => {});
+
+/* REVIEW: real threads from SQLite. Your decisions are the gold set. */
+const RV = (() => {
+const MODE_KEYS = ["a","s","d","f","g","h"], PILLAR_KEYS = ["z","x","c"];
+const KIND = {pr_merged:"PR merged", pr_open:"PR open", issue_completed:"issue done", issue_open:"issue open",
+  review_comment:"review received", reviews_given:"reviews given", slack_message:"Slack", slack_mention:"mention",
+  meeting:"meeting", doc_created:"doc created", doc_edited:"doc edited"};
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const post = (url, body) => fetch(url, {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
+let data = null, cur = 0, draft = {}, from = null, all = false, keys = false;
+
+async function load(week){
+  data = await (await fetch("/api/review" + (week ? `?week=${week}` : ""))).json();
+  // Claude's "probably routine" go last, so the work that needs you comes first.
+  data.threads.sort((a, b) => routine(a) - routine(b));
+  cur = Math.max(0, data.threads.findIndex(t => !t.human.without_me));
+}
+// Called by the router. Keeps your place when you come back to the tab.
+async function open(week, key, fromGroup){
+  from = fromGroup;
+  if(!data || (week && week !== data.week)){ draft = {}; await load(week); }
+  if(key){ const i = data.threads.findIndex(t => t.key === key); if(i >= 0) cur = i; }
+  render();
+}
+
+const routine = t => t.claude.without_me === "discard" && !t.human.without_me ? 1 : 0;
+// Pending only hides what you decided, but keeps the open thread so the card does not jump away.
+const shown = i => $("#rv-show").value === "all" || !data.threads[i].human.without_me || i === cur;
+function pick(t){
+  return draft[t.key] ??= {title: t.human.title ?? t.claude.title ?? "", summary: t.human.summary ?? t.claude.summary ?? "", mode: t.human.mode ?? t.claude.mode, pillar: t.human.pillar ?? t.claude.pillar};
+}
+
+function stats(){
+  const decided = data.threads.filter(t => t.human.without_me);
+  data.pending[data.week] = data.threads.length - decided.length;
+  PENDING = {...data.pending}; renderWm();
+  $("#rv-week").innerHTML = data.weeks.map(w => `<option value="${w}" ${w===data.week?"selected":""}>${w} · ${data.pending[w] ? `${data.pending[w]} left` : "done"}</option>`).join("");
+  $("#rv-done").textContent = `${decided.length}/${data.threads.length}`;
+}
+
+function render(){
+  stats();
+  const ts = data.threads;
+  if(!ts.length){ $("#rv-queue").innerHTML = ""; $("#rv-card").innerHTML = `<div class="empty">No suggested threads yet. Run <code>./run.sh</code> to collect the week and suggest labels.</div>`; return; }
+  const firstRoutine = ts.findIndex((t,i) => routine(t) && shown(i)), nRoutine = ts.filter(routine).length;
+  $("#rv-queue").innerHTML = ts.map((t,i) => { if(!shown(i)) return ""; const d = pick(t); return `${i===firstRoutine?`<li class="sep"><span class="lbl">Probably routine · ${nRoutine}</span><button id="discard-all">discard all <kbd>⇧0</kbd></button></li>`:""}<li><button data-i="${i}" aria-current="${i===cur}" class="${t.human.without_me==="discard"?"gone":""}">
+    <i class="dot" style="background:${mc(d.mode)}"></i><span class="t">${esc(d.title)}</span>
+    <span class="n ${t.human.without_me?"done":""}">${t.human.without_me==="discard"?"✕":t.human.without_me?"✓":t.events.length}</span></button></li>`; }).join("");
+  const t = ts[cur], d = pick(t), ev = new Set(JSON.parse(t.claude.evidence ?? "[]"));
+  // The address follows the open thread, so reload and back keep your place.
+  if(!$("#v-review").hidden) history.replaceState(null, "", `#/review?week=${data.week}&key=${encodeURIComponent(t.key)}${from ? `&from=${encodeURIComponent(from)}` : ""}`);
+  const back = from && data.groups.find(g => g.id === from), group = t.projects[0];
+  // Claude's evidence first.
+  const evs = [...t.events].sort((a, b) => ev.has(b.id) - ev.has(a.id));
+  const kinds = Object.entries(t.events.reduce((a,e) => (a[KIND[e.kind]??e.kind] = (a[KIND[e.kind]??e.kind]||0)+1, a), {})).map(([k,n]) => `${n} ${k}`).join(" · ");
+  $("#rv-card").innerHTML = `
+    <div class="r-prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.without_me==="discard"?"g":x.human.without_me?"d":i===cur?"c":""}"></i>`).join("")}</div>
+    <div class="gwrap">
+      ${back ? `<a class="crumb" href="#/projects?p=${encodeURIComponent(back.id)}">← ${esc(back.name)}</a>` : ""}
+      <button class="gbtn" id="gopen" aria-haspopup="listbox" aria-expanded="false" title="Change project (P)">${t.projects.length ? t.projects.map(p => esc(p.name) + (p.by === "claude" ? ` <span class="ai" title="Claude placed this thread here">Claude</span>` : "")).join(", ") : "no project"} ▾</button>
+      ${t.projects.some(p => p.by === "claude") ? `<button class="undo" id="unassign">wrong project ✕</button>` : ""}
+      ${group && group.id !== from ? `<a class="crumb" href="#/projects?p=${encodeURIComponent(group.id)}">across weeks →</a>` : ""}
+      <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}" title="Not your impact: routine, noise, or someone else's work (0)"><kbd>0</kbd>discard${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button>
+      <div class="gpop" id="gpop" hidden><input id="gq" placeholder="Find a project, or type a new topic" autocomplete="off" aria-label="Project"><ul id="gl-list" role="listbox"></ul></div></div>
+    <div class="r-sec">
+      <input class="r-title" id="rv-title" value="${esc(d.title)}" aria-label="Thread title">
+      <textarea class="r-summary" id="rv-summary" rows="2" aria-label="Summary of what you did" placeholder="No summary yet">${esc(d.summary)}</textarea></div>
+    <div class="r-sec">
+      <button class="r-more" id="all" aria-expanded="${all}"><span>${kinds}</span><span class="lbl">${all ? "hide" : "evidence"} ${all ? "▴" : "▾"}</span></button>
+      ${all ? `<ul class="r-events">${evs.map(e => `<li class="${ev.has(e.id)?"ev":""}">
+      <span class="k">${KIND[e.kind]??e.kind}</span>
+      <span class="ev-x">${e.url?`<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title ?? e.id)} ↗</a>`:esc(e.title ?? e.id)}
+      ${e.author && e.kind!=="pr_merged" && e.kind!=="pr_open" ? ` <span class="lbl">${esc(e.author)}</span>`:""}
+      ${e.text?`<small>${esc(e.text)}</small>`:""}</span></li>`).join("")}</ul>` : ""}</div>
+    <div class="r-fields">
+      <span class="lbl">Mode</span><div class="seg" role="group" aria-label="Mode">${Object.keys(MODES).map((k,i) => seg("mode", k, MODES[k], MODE_KEYS[i], d, t, mc(k))).join("")}</div>
+      <span class="lbl">Pillar</span><div class="seg" role="group" aria-label="Pillar">${Object.keys(PILLAR).map((k,i) => seg("pillar", k, PILLAR[k], PILLAR_KEYS[i], d, t)).join("")}</div>
+      <span></span><span class="legend"><i class="sug-dot"></i> Claude's pick</span>
+    </div>
+    <div class="r-ask"><span class="q">Without you?</span>
+      <div class="r-wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}</div></div>
+    <div class="r-keys" ${keys ? "" : "hidden"}><span><kbd>A</kbd>–<kbd>H</kbd> mode</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> pillar</span>
+      <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> without you, save</span><span><kbd>0</kbd> discard</span><span><kbd>⇧0</kbd> discard all routine</span><span><kbd>J</kbd><kbd>K</kbd> move</span>
+      <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>V</kbd> evidence</span><span><kbd>O</kbd> open evidence</span><span><kbd>P</kbd> project</span><span><kbd>?</kbd> hide</span></div>`;
+  $("#rv-queue [aria-current=true]")?.scrollIntoView({block:"nearest"});
+}
+
+// One segment per value. Yours is filled; Claude's pick has a dot.
+function seg(field, k, label, key, d, t, color){
+  const sug = t.claude[field] === k;
+  return `<button data-${field}="${k}" aria-pressed="${d[field]===k}" class="${sug ? "sug" : ""}" style="${color ? `--c:${color}` : ""}" title="${label} (${key.toUpperCase()})${sug ? " · Claude's pick" : ""}">
+    ${color ? `<i class="dot" style="background:${color}"></i>` : ""}${label}<kbd>${key.toUpperCase()}</kbd></button>`;
+}
+
+function set(field, v){ pick(data.threads[cur])[field] = v; render(); }
+function go(i){ cur = Math.min(Math.max(i,0), data.threads.length-1); all = false; render(); }
+// J/K step over threads the filter hides.
+function step(dir){ for(let i = cur + dir; i >= 0 && i < data.threads.length; i += dir) if(shown(i)) return go(i); }
+function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
+// When a week has nothing left, open the next week that does.
+async function nextWeek(){
+  const w = data.weeks.find(w => w !== data.week && data.pending[w] > 0);
+  if(!w){ toast("All weeks done"); return render(); }
+  toast(`${data.week} done · opening ${w}`); draft = {}; await load(w); render();
+}
+function after(){
+  const next = data.threads.findIndex((x,i) => i > cur && !x.human.without_me), any = data.threads.findIndex(x => !x.human.without_me);
+  if(next >= 0) go(next); else if(any >= 0) go(any); else if($("#rv-show").value === "pending") nextWeek(); else render();
+}
+
+async function decide(wm){
+  const t = data.threads[cur], d = pick(t);
+  d.title = $("#rv-title").value.trim() || d.title;
+  d.summary = $("#rv-summary").value.trim();
+  const labels = wm === "discard" ? {without_me: wm} : {title: d.title, mode: d.mode, pillar: d.pillar, without_me: wm, ...(d.summary && {summary: d.summary})};
+  const r = await post("/api/labels", {week: data.week, key: t.key, labels});
+  if(!r.ok){ toast(`Not saved: ${await r.text()}`); return; }
+  Object.assign(t.human, labels);
+  toast(wm === "discard" ? "Discarded" : "Saved");
+  after();
+}
+
+// One decision for every thread Claude marked routine and you have not decided.
+async function discardAll(){
+  const todo = data.threads.filter(routine);
+  for(const t of todo){
+    const r = await post("/api/labels", {week: data.week, key: t.key, labels:{without_me:"discard"}});
+    if(!r.ok){ toast(`Stopped: ${await r.text()}`); break; }
+    t.human.without_me = "discard";
+  }
+  toast(`Discarded ${todo.filter(t => t.human.without_me === "discard").length}`);
+  after();
+}
+
+// Project picker: existing projects first, then "create" for a new topic.
+let gSel = 0, gRes = [];
+function gRender(){
+  const q = $("#gq").value.trim().toLowerCase();
+  gRes = data.groups.filter(g => g.name.toLowerCase().includes(q));
+  if(q && !data.groups.some(g => g.name.toLowerCase() === q)) gRes.push({create: $("#gq").value.trim()});
+  gSel = Math.min(gSel, Math.max(gRes.length-1, 0));
+  $("#gl-list").innerHTML = gRes.map((g,i) => `<li><button role="option" data-g="${i}" aria-selected="${i===gSel}">
+    <span>${g.create ? `Create “${esc(g.create)}”` : esc(g.name)}</span><span class="k">${g.create ? "new topic" : g.kind === "topic" ? "topic" : "linear"}</span></button></li>`).join("")
+    || `<li class="lbl" style="padding:8px 10px">No projects yet. Type a name to create a topic.</li>`;
+}
+function gOpen(){ $("#gpop").hidden = false; $("#gopen").setAttribute("aria-expanded","true"); $("#gq").value = ""; gSel = 0; gRender(); $("#gq").focus(); }
+function gClose(){ $("#gpop").hidden = true; $("#gopen")?.setAttribute("aria-expanded","false"); }
+// After a regroup the thread's key can change, so find it again by one of its events.
+async function reloadAt(eventId){
+  draft = {}; await load(data.week);
+  const i = data.threads.findIndex(t => t.events.some(e => e.id === eventId));
+  go(i >= 0 ? i : cur);
+}
+async function gChoose(i){
+  const g = gRes[i]; if(!g) return;
+  const t = data.threads[cur];
+  const r = await post("/api/group", {week: data.week, key: t.key, ...(g.create ? {name: g.create} : {group_id: g.id})});
+  if(!r.ok){ toast(`Not moved: ${await r.text()}`); return; }
+  gClose(); await reloadAt(t.events[0].id); toast(g.create ? `Created ${g.create}` : `Moved to ${g.name}`);
+}
+async function unassign(){
+  const t = data.threads[cur];
+  const r = await post("/api/unassign", {week: data.week, key: t.key});
+  if(!r.ok){ toast(`Not undone: ${await r.text()}`); return; }
+  await reloadAt(t.events[0].id); toast("Project removed");
+}
+
+$("#v-review").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.i) go(+b.dataset.i);
+  else if(b.dataset.mode) set("mode", b.dataset.mode);
+  else if(b.dataset.pillar) set("pillar", b.dataset.pillar);
+  else if(b.dataset.wm) decide(b.dataset.wm);
+  else if(b.id === "unassign") unassign();
+  else if(b.id === "discard-all") discardAll();
+  else if(b.id === "all"){ all = !all; render(); }
+  else if(b.id === "gopen") $("#gpop").hidden ? gOpen() : gClose();
+  else if(b.dataset.g) gChoose(+b.dataset.g);
+});
+$("#v-review").addEventListener("input", e => {
+  if(e.target.id === "gq"){ gSel = 0; gRender(); }
+  else if(e.target.id === "rv-title" || e.target.id === "rv-summary") pick(data.threads[cur])[e.target.id.slice(3)] = e.target.value;
+});
+$("#rv-week").addEventListener("change", async e => { draft = {}; await load(e.target.value); render(); });
+$("#rv-show").addEventListener("change", () => render());
+document.addEventListener("keydown", e => {
+  // Only while review is the open view and nothing sits on top of it.
+  if(!data || $("#v-review").hidden || !$("#cmdk").hidden || !$("#sheet").hidden || !$("#story").hidden) return;
+  if(e.target.id === "gq"){
+    if(e.key === "Escape"){ e.preventDefault(); gClose(); }
+    else if(e.key === "ArrowDown"){ e.preventDefault(); gSel = Math.min(gSel+1, gRes.length-1); gRender(); }
+    else if(e.key === "ArrowUp"){ e.preventDefault(); gSel = Math.max(gSel-1, 0); gRender(); }
+    else if(e.key === "Enter"){ e.preventDefault(); gChoose(gSel); }
+    return;
+  }
+  if(e.target.id === "rv-title" || e.target.id === "rv-summary"){ if(e.key === "Escape" || (e.key === "Enter" && !e.shiftKey)){ e.preventDefault(); e.target.blur(); } return; }
+  if(e.target.tagName === "SELECT" || e.metaKey || e.ctrlKey || e.altKey || !data.threads.length) return;
+  const k = e.key.toLowerCase();
+  if(MODE_KEYS.includes(k)) set("mode", Object.keys(MODES)[MODE_KEYS.indexOf(k)]);
+  else if(PILLAR_KEYS.includes(k)) set("pillar", Object.keys(PILLAR)[PILLAR_KEYS.indexOf(k)]);
+  else if(["1","2","3"].includes(k)) decide(WM[+k-1][0]);
+  else if(e.code === "Digit0" && e.shiftKey) discardAll();
+  else if(k === "0") decide("discard");
+  else if(k === "j") step(1);
+  else if(k === "k") step(-1);
+  else if(k === "t"){ $("#rv-title").focus(); $("#rv-title").select(); }
+  else if(k === "e"){ const s = $("#rv-summary"); s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
+  else if(k === "p") gOpen();
+  else if(e.key === "?"){ keys = !keys; render(); }
+  else if(k === "v"){ all = !all; render(); }
+  else if(k === "o"){ const a = $(".r-events li.ev a") ?? $(".r-events a"); if(a) window.open(a.href, "_blank", "noopener"); }
+  else return;
+  e.preventDefault();
+});
+// Threads change when projects merge, so the next visit loads them again.
+return {open, reset: () => { data = null; }};
+})();
+
+/* PROJECTS: every project across weeks. A thread opens in review, with a way back here. */
+const GV = (() => {
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let data = null, linear = new Map(), filter = "all", focus = null;
+const opened = new Set();
+async function open(g){
+  focus = g; if(g) opened.add(g);
+  // Always fresh: decisions made in review change the ticks here.
+  const [g1, l1] = await Promise.all([fetch("/api/groups").then(r => r.json()), fetch("/api/projects?weeks=").then(r => r.ok ? r.json() : {projects: []}).catch(() => ({projects: []}))]);
+  data = g1; linear = new Map(l1.projects.map(x => [x.id, x]));
+  render();
+  if(g) document.querySelector(`#v-projects [data-gid="${CSS.escape(g)}"]`)?.scrollIntoView({block:"start", behavior: RM ? "auto" : "smooth"});
+}
+// From Linear: status, lead, open issues. A topic is yours only, so it says that.
+function facts(g){
+  const L = linear.get(g.id);
+  if(g.kind === "topic" || !L) return `<span class="facts">topic · yours</span>`;
+  return `<span class="facts">${L.url ? `<a href="${esc(L.url)}" target="_blank" rel="noopener">Linear ↗</a>` : "Linear"}${L.status ? ` · ${esc(L.status)}` : ""}${L.open ? ` · ${L.open} open` : ""}${L.lead ? ` · lead ${esc(L.lead)}` : ""}</span>`;
+}
+function milestones(g){
+  const ms = linear.get(g.id)?.ms ?? [];
+  return ms.length ? `<div class="ms">${ms.map(m => `<div class="msr"><span>${esc(m.name)}</span><span class="tr"><i style="width:${m.progress||0}%"></i></span><b>${m.progress==null?"—":m.progress+"%"}</b></div>`).join("")}</div>` : "";
+}
+// Merge another project into this one. Pick it, then press the button that names it.
+function mergeRow(g, gs){
+  const others = gs.filter(x => x.id !== g.id);
+  return `<div class="mrow">
+    ${g.merged.map(m => `<span class="mchip">includes ${esc(m.name)}<button data-unmerge="${esc(m.id)}" aria-label="Split ${esc(m.name)} out again">✕</button></span>`).join("")}
+    ${others.length ? `<select data-pick="${esc(g.id)}" aria-label="Project to merge into ${esc(g.name)}"><option value="">Merge another project in…</option>${others.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("")}</select>
+    <button class="undo" data-merge="${esc(g.id)}" hidden></button>` : ""}</div>`;
+}
+const post = (url, body) => fetch(url, {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
+function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
+async function act(url, body, done){
+  const r = await post(url, body);
+  if(!r.ok){ toast(await r.text()); return; }
+  RV.reset(); toast(done); await open(focus);
+}
+function render(){
+  const gs = data.groups.filter(g => filter === "all" || g.kind === filter)
+    .map(g => ({...g, total: Object.values(g.weeks).reduce((a, ts) => a + ts.length, 0)}))
+    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+  const max = Math.max(1, ...gs.flatMap(g => Object.values(g.weeks).map(ts => ts.length)));
+  const n = data.weeks.length;
+  $("#grp-list").innerHTML = gs.map(g => { const todo = Object.values(g.weeks).flat().filter(t => !t.decided).length;
+    return `<section class="grp ${g.id === focus ? "on" : ""}" data-gid="${esc(g.id)}" aria-label="${esc(g.name)}">
+    <button class="gh" data-toggle="${esc(g.id)}" aria-expanded="${opened.has(g.id)}"><h2>${esc(g.name)}</h2>${todo ? `<span class="todo">${todo} to review</span>` : ""}<span class="chev">${opened.has(g.id) ? "▴" : "▾"}</span></button>
+    ${facts(g)}
+    <div class="strip" style="--n:${n}">${data.weeks.map(w => { const c = (g.weeks[w] ?? []).length;
+      return `<i class="${c ? "on" : ""}" style="--v:${c / max}" title="${w}: ${c}">${c || ""}</i>`; }).join("")}${data.weeks.map(w => `<span>${w.slice(5)}</span>`).join("")}</div>
+    ${opened.has(g.id) ? milestones(g) + mergeRow(g, gs) : ""}
+    <div class="weeks" ${opened.has(g.id) ? "" : "hidden"}>${data.weeks.filter(w => g.weeks[w]).map(w => `<div class="wk"><span class="lbl">${w.slice(5)}</span><ul>
+      ${g.weeks[w].map(t => `<li><a href="#/review?week=${w}&key=${encodeURIComponent(t.key)}&from=${encodeURIComponent(g.id)}"><b>${esc(t.title ?? "Untitled")}</b><span class="n">${t.events}</span>${t.decided ? `<span class="ok" title="You decided this">✓</span>` : `<span class="todo">to review</span>`}
+</a></li>`).join("")}</ul></div>`).join("")
+      || `<span class="lbl">No threads yet. Pick this project for a thread in review with P.</span>`}</div></section>`; }).join("")
+    || `<div class="empty">No projects yet. In review, press P on a thread to pick one or create a topic.</div>`;
+}
+$("#v-projects").addEventListener("click", e => {
+  const mb = e.target.closest("[data-merge]"), ub = e.target.closest("[data-unmerge]");
+  if(mb){ const from = mb.dataset.from, into = mb.dataset.merge; return act("/api/merge", {from, into}, `Merged ${mb.dataset.name}`); }
+  if(ub){ return act("/api/unmerge", {from: ub.dataset.unmerge}, "Split out again"); }
+  const tg = e.target.closest("[data-toggle]");
+  if(tg){ const id = tg.dataset.toggle; opened.has(id) ? opened.delete(id) : opened.add(id); return render(); }
+  const b = e.target.closest("[data-f]"); if(!b) return;
+  filter = b.dataset.f; document.querySelectorAll("#v-projects [data-f]").forEach(x => x.setAttribute("aria-pressed", x === b)); render(); });
+// Picking a project shows a button that says exactly what will happen.
+$("#v-projects").addEventListener("change", e => {
+  const sel = e.target.closest("[data-pick]"); if(!sel) return;
+  const btn = sel.parentElement.querySelector("[data-merge]"), name = sel.selectedOptions[0].textContent;
+  btn.hidden = !sel.value; btn.dataset.from = sel.value; btn.dataset.name = name;
+  btn.textContent = `merge ${name} in`;
+});
+return {open};
+})();
+
+renderRefs(); renderAll(); route(); loadPending(); hydrate();
 </script>

@@ -32,7 +32,7 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   writeFileSync(join(dir, "github.run.json"), wrap({
     week: "2026-W42", reviews_given: 10, review_comments_received: [], prs_open: [],
     prs_merged: [{ repo: "acme/api", number: 101, title: "feat: delete", url: "https://github.com/acme/api/pull/101",
-      at: "2026-10-14T07:50:00Z", linear_refs: ["ACME-41"] }],
+      at: "2026-10-14T07:50:00Z", linear_refs: ["ACME-41", "WEST-1", "UTF-8"] }],
   }));
   writeFileSync(join(dir, "github.expected"), "2\n");
   writeFileSync(join(dir, "slack_own_3.run.json"), wrap({
@@ -87,13 +87,45 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
     .toEqual([{ id: "calendar:sync", to_ref: "gdoc:D1" }]);
   expect(db.query("SELECT kind, l.to_ref FROM events e JOIN links l ON l.from_id = e.id WHERE e.source = 'drive' ORDER BY 1").all())
     .toEqual([{ kind: "doc_created", to_ref: "gdoc:D2" }, { kind: "doc_edited", to_ref: "gdoc:D1" }]);
-  // The PR, its issue and the Slack message share refs; the meeting joins D1, its notes doc.
+  // The PR, its issue and the Slack message share refs; ACME-40 joins through the Exports project.
+  // The meeting joins D1, its notes doc.
   expect(threads(db, ["2026-W42"])[0].sort())
-    .toEqual(["github:acme/api#101", "linear:ACME-41", "slack:C1/1791833652.842769"]);
+    .toEqual(["github:acme/api#101", "linear:ACME-40", "linear:ACME-41", "slack:C1/1791833652.842769"]);
   expect(threads(db, ["2026-W42"]).find((t) => t.includes("calendar:sync"))?.sort()).toEqual(["calendar:sync", "drive:D1:2026-W42"]);
   expect(db.query("SELECT project_id, milestone_id, week FROM events WHERE id = 'linear:ACME-41'").get())
     .toEqual({ project_id: "P-ACME-1", milestone_id: "m1", week: "2026-W42" });
   expect(db.query("SELECT to_ref FROM links WHERE from_id = 'linear:ACME-41'").all()).toEqual([{ to_ref: "github:acme/api#101" }]);
+  // eu-west-1 and UTF-8 are not issues: only known team keys link.
+  expect(db.query("SELECT to_ref FROM links WHERE from_id = 'github:acme/api#101'").all()).toEqual([{ to_ref: "linear:ACME-41" }]);
+});
+
+test("threads merge by main project, and a bridge between projects does not merge them", () => {
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  const ev = db.query("INSERT INTO events (id, source, kind, week, project_id, payload, run_id) VALUES (?, 'x', 'k', '2026-W42', ?, '{}', 'r')");
+  for (const [id, p] of [["linear:A-1", "P1"], ["linear:A-2", "P1"], ["linear:B-1", "P2"], ["linear:B-2", "P2"], ["github:x/y#1", null], ["github:x/y#2", null]]) ev.run(id, p);
+  const link = db.query("INSERT INTO links VALUES (?, ?, 'mentions')");
+  link.run("github:x/y#1", "linear:A-1");
+  link.run("github:x/y#1", "linear:A-2");
+  // PR 2 cites one issue of each project: a bridge.
+  link.run("github:x/y#2", "linear:A-2");
+  link.run("github:x/y#2", "linear:B-1");
+  const t = threads(db, ["2026-W42"]).map((g) => g.sort());
+  expect(t).toEqual([["github:x/y#1", "github:x/y#2", "linear:A-1", "linear:A-2", "linear:B-1"], ["linear:B-2"]]);
+});
+
+test("a Slack message citing two unrelated PRs attaches to one and joins neither", () => {
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  const ev = db.query("INSERT INTO events (id, source, kind, week, payload, run_id) VALUES (?, ?, 'k', '2026-W42', '{}', 'r')");
+  for (const [id, src] of [["github:x/a#1", "github"], ["github:x/a#2", "github"], ["github:x/b#9", "github"], ["slack:C/1", "slack"]]) ev.run(id, src);
+  const link = db.query("INSERT INTO links VALUES (?, ?, 'mentions')");
+  link.run("github:x/a#2", "github:x/a#1");
+  link.run("slack:C/1", "github:x/a#1");
+  link.run("slack:C/1", "github:x/b#9");
+  const t = threads(db, ["2026-W42"]).map((g) => g.sort());
+  // The message goes with the bigger thread it cites; b#9 stays alone.
+  expect(t).toEqual([["github:x/a#1", "github:x/a#2", "slack:C/1"], ["github:x/b#9"]]);
 });
 
 test("references normalize across sources", () => {
