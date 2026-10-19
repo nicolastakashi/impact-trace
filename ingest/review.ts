@@ -11,13 +11,14 @@ import { open, ROOT, threads } from "./ingest";
 const SOLO = new Set(["slack_mention", "doc_created", "pr_merged"]);
 
 export function reviewThreads(db: Database, week: string) {
-  const get = db.query("SELECT id, kind, title, url, author, payload FROM events WHERE id = ?");
+  const get = db.query("SELECT id, kind, title, url, author, (SELECT name FROM projects WHERE id = project_id) project, payload FROM events WHERE id = ?");
   return threads(db, [week]).flatMap((ids) => {
     const events = ids.map((id) => get.get(id) as any);
     if (ids.length === 1 && !SOLO.has(events[0].kind)) return [];
     return [{
       key: `${week}:${[...ids].sort()[0]}`,
-      events: events.map(({ payload, ...e }) => ({ ...e, text: JSON.parse(payload).text?.slice(0, 400) })),
+      projects: [...new Set(events.map((e) => e.project).filter(Boolean))],
+      events: events.map(({ payload, project, ...e }) => ({ ...e, text: JSON.parse(payload).text?.slice(0, 400) })),
     }];
   });
 }

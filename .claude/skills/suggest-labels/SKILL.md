@@ -6,6 +6,7 @@ argument-hint: "<YYYY-WNN>"
 
 The input is a JSON list of work threads for week `$ARGUMENTS`. Each thread has a `key`
 and its `events`: PRs, issues, Slack messages, meetings and docs, with short text.
+`projects` names the Linear projects the thread's issues belong to, when known.
 Nicolas is a Principal Engineer. Label each thread once, using only what the events show.
 
 ## Fields

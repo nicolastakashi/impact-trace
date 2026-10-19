@@ -174,7 +174,7 @@ function render(){
   const kinds = Object.entries(t.events.reduce((a,e) => (a[e.kind]=(a[e.kind]||0)+1, a), {})).map(([k,n]) => `${n} ${KIND[k]??k}`).join(" · ");
   $("#card").innerHTML = `
     <div class="prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.without_me==="discard"?"x":x.human.without_me?"d":i===cur?"c":""}"></i>`).join("")}</div>
-    <div class="sec"><span class="lbl">${esc(data.week)} · ${kinds}</span>
+    <div class="sec"><span class="lbl">${esc(data.week)}${t.projects?.length?` · ${t.projects.map(esc).join(", ")}`:""} · ${kinds}</span>
       <input class="title" id="title" value="${esc(d.title)}" aria-label="Thread title">
       <textarea class="summary" id="summary" rows="2" aria-label="Summary of what you did" placeholder="No summary yet">${esc(d.summary)}</textarea></div>
     <div class="sec"><span class="lbl">Evidence</span><ul class="events">${t.events.map(e => `<li class="${ev.has(e.id)?"ev":""}">
