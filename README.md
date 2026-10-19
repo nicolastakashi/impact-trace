@@ -12,6 +12,11 @@ claude -p (skills) ━▶ data/raw/<week>/*.json ━▶ ingest ━▶ data/impac
 North and Trace show the threads you kept in review, the last 8 weeks. Before your first
 review they show fictional example data, marked as such.
 
+Feedback reads the Slack messages you wrote in the last 8 weeks and names patterns in how you
+show up, with your own words quoted and a stronger version. It runs once a week, after the week
+ends. The code drops any quote it cannot find in your messages and makes every count, so the
+one experiment it proposes is measured the next week.
+
 `data/` holds your work data and `config.json`. It is git-ignored and must never be pushed.
 
 ## Before you start
@@ -48,5 +53,5 @@ weekend included; the other days collect this week so far.
 clone with its own `data/` to try the setup from scratch.
 
 One week cost $0.67 on 2026-10-19: collection with Haiku, projects and labels with Sonnet.
-Each scheduled run costs about that, so weekdays add up to about $3.35 a week. `ingest` exits 2 when a source failed or when
+Each scheduled run costs about that, so weekdays add up to about $3.35 a week. Feedback adds $0.66, once a week. `ingest` exits 2 when a source failed or when
 Claude returned fewer GitHub PRs than `gh` counts on its own.
