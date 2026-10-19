@@ -1,11 +1,11 @@
 ---
 name: collect-slack
-description: Collect Nicolas's Slack messages (pass own) or the messages that mention him (pass mention) for one ISO week, as JSON for impact-trace. Read-only.
-argument-hint: "<YYYY-MM-DD of the Monday> <own DAY|mention>"
+description: Collect your Slack messages (pass own) or the messages that mention you (pass mention) for one ISO week, as JSON for impact-trace. Read-only.
+argument-hint: "<YYYY-MM-DD of the Monday> <own DAY|mention NAME>"
 ---
 
 `$ARGUMENTS` is the Monday that starts the week, then the pass: `own` with one day
-(`YYYY-MM-DD`), or `mention`.
+(`YYYY-MM-DD`), or `mention` with your full name (`NAME`, the rest of the arguments).
 Run only that pass. Collect facts, copy, never interpret. Copy, never interpret.
 Do not judge which messages matter: the ingest step does that in code. Copy `text`
 exactly as the tool returns it, links and mentions included.
@@ -32,7 +32,7 @@ Stopping early is the mistake that matters: the rows on later pages are lost.
 
 ## 3. Pass `mention`: what others wrote about you
 
-Run this only when the pass is `mention`. Same call with `keywords: ["\"Nicolas Takashi\""]` and `filters: "after:AFTER before:BEFORE"`,
+Run this only when the pass is `mention`. Same call with `keywords: ["\"NAME\""]` and `filters: "after:AFTER before:BEFORE"`,
 paged to the end the same way. Bots stay excluded (the default).
 
 ## 4. Rows

@@ -5,7 +5,7 @@ import type { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { open, PROJECT, ROOT, threads } from "./ingest";
+import { config, open, PROJECT, ROOT, threads } from "./ingest";
 
 // Alone, these say something; a lone Slack message or meeting rarely does.
 const SOLO = new Set(["slack_mention", "doc_created", "pr_merged"]);
@@ -83,7 +83,7 @@ export function saveSuggestions(db: Database, week: string, run: any, promptVers
 if (import.meta.main) {
   const [cmd, week, file] = process.argv.slice(2);
   const db = open();
-  if (cmd === "emit") console.log(JSON.stringify({ examples: examples(db), threads: reviewThreads(db, week) }));
+  if (cmd === "emit") console.log(JSON.stringify({ level: config().level, examples: examples(db), threads: reviewThreads(db, week) }));
   else if (cmd === "save") {
     const skill = readFileSync(join(ROOT, ".claude/skills/suggest-labels/SKILL.md"));
     const version = createHash("sha256").update(skill).digest("hex").slice(0, 8);

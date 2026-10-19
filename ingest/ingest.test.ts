@@ -5,6 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ingestWeek, isoWeek, migrate, refOf, refsIn, threads } from "./ingest";
 
+const ME = { name: "Riley Chen", github: "rchen", orgs: ["acme"], level: "Senior Engineer" };
+
 test("isoWeek handles year edges", () => {
   expect(isoWeek("2026-10-12T09:00:00Z")).toBe("2026-W42");
   expect(isoWeek("2026-10-18T23:00:00Z")).toBe("2026-W42");
@@ -72,8 +74,8 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   const db = new Database(":memory:", { strict: true });
   db.exec("PRAGMA foreign_keys = ON");
   migrate(db);
-  const first = ingestWeek(db, dir, "2026-W42");
-  ingestWeek(db, dir, "2026-W42");
+  const first = ingestWeek(db, dir, "2026-W42", ME);
+  ingestWeek(db, dir, "2026-W42", ME);
 
   // ACME-40 is in the window but Claude did not pick it: flagged, and still ingested from the raw rows.
   expect(first).toEqual({ linear: "count_mismatch", github: "count_mismatch", slack_own_3: "ok", calendar: "ok", drive: "ok" });
