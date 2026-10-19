@@ -225,11 +225,13 @@ function ingestGithub(out: any, week: string, runId: string, event: any, link: a
 // An event's project: Linear's, else an assignment (yours over Claude's; yours may say none).
 export const PROJECT = `coalesce(project_id, (SELECT a.project_id FROM assignments a WHERE a.event_id = events.id ORDER BY a.source = 'human' DESC LIMIT 1))`;
 
-// Work threads: events joined through the PRs, issues and docs they share. Raw URLs do not join.
-// Then threads with the same main Linear project merge: PRs that cite different issues of one
-// project are one piece of work; so are threads you or Claude placed in it. Only the main project counts, so one PR that cites two
-// projects cannot merge both whole projects.
-// ponytail: one hub ref (an epic named everywhere) merges its threads; cap by degree if that shows up.
+// Work threads. Strong links join events: a PR and its issues, a review and its PR, a doc and
+// itself. Then threads with the same main Linear project merge (yours or Claude's placement
+// counts for events Linear leaves out); only the main project counts, so one PR that cites
+// two projects cannot merge both. Slack messages and meetings are weak: they attach to the one
+// thread they cite most, and never join two threads, because one "PTAL #1 #2 #3" would.
+// Raw URLs do not join.
+const WEAK = new Set(["slack", "calendar"]);
 export function threads(db: Database, weeks: string[]) {
   const parent = new Map<string, string>();
   const find = (x: string): string => {
@@ -240,24 +242,39 @@ export function threads(db: Database, weeks: string[]) {
     return r;
   };
   const marks = weeks.map(() => "?").join(",");
-  const events = db.query(`SELECT id FROM events WHERE week IN (${marks})`).all(...weeks) as { id: string }[];
+  const events = db.query(`SELECT id, source, ${PROJECT} p FROM events WHERE week IN (${marks})`).all(...weeks) as any[];
   const links = db.query(`SELECT from_id, to_ref FROM links JOIN events ON events.id = from_id
     WHERE week IN (${marks}) AND (to_ref LIKE 'github:%' OR to_ref LIKE 'linear:%' OR to_ref LIKE 'gdoc:%')`).all(...weeks) as any[];
-  for (const l of links) parent.set(find(l.from_id), find(l.to_ref));
-  const groups = new Map<string, string[]>();
-  for (const { id } of events) groups.set(find(id), [...(groups.get(find(id)) ?? []), id]);
+  const weak = new Set(events.filter((e) => WEAK.has(e.source)).map((e) => e.id));
+  for (const l of links) if (!weak.has(l.from_id)) parent.set(find(l.from_id), find(l.to_ref));
 
-  const project = new Map((db.query(`SELECT id, ${PROJECT} p FROM events WHERE week IN (${marks}) AND p IS NOT NULL`)
-    .all(...weeks) as any[]).map((e) => [e.id, e.p as string]));
-  const byProject = new Map<string, string[]>();
+  const groups = new Map<string, string[]>();
+  for (const e of events) if (!weak.has(e.id)) groups.set(find(e.id), [...(groups.get(find(e.id)) ?? []), e.id]);
+  const project = new Map(events.filter((e) => e.p).map((e) => [e.id, e.p as string]));
   const out: string[][] = [];
-  for (const ids of groups.values()) {
+  const byProject = new Map<string, string[]>();
+  const home = new Map<string, string[]>(); // group root → its thread
+  for (const [root, ids] of groups) {
     const n = new Map<string, number>();
     for (const id of ids) if (project.has(id)) n.set(project.get(id)!, (n.get(project.get(id)!) ?? 0) + 1);
     // Most issues wins; a tie goes to the smaller id so the result does not depend on order.
     const main = [...n].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0];
-    if (main) byProject.set(main, [...(byProject.get(main) ?? []), ...ids]);
-    else out.push(ids);
+    let t: string[];
+    if (main) { if (!byProject.has(main)) byProject.set(main, []); t = byProject.get(main)!; t.push(...ids); }
+    else { t = [...ids]; out.push(t); }
+    home.set(root, t);
+  }
+
+  const cites = new Map<string, string[]>();
+  for (const l of links) if (weak.has(l.from_id)) cites.set(l.from_id, [...(cites.get(l.from_id) ?? []), l.to_ref]);
+  for (const id of weak) {
+    const hit = new Map<string[], number>();
+    for (const r of cites.get(id) ?? []) { const t = home.get(find(r)); if (t) hit.set(t, (hit.get(t) ?? 0) + 1); }
+    // Most cited wins; a tie goes to the bigger thread.
+    const best = [...hit].sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0]?.[0];
+    if (best) best.push(id);
+    else if (project.has(id)) { if (!byProject.has(project.get(id)!)) byProject.set(project.get(id)!, []); byProject.get(project.get(id)!)!.push(id); }
+    else out.push([id]);
   }
   return [...out, ...byProject.values()].sort((a, b) => b.length - a.length);
 }

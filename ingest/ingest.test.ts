@@ -112,6 +112,20 @@ test("threads merge by main project, and a bridge between projects does not merg
   expect(t).toEqual([["github:x/y#1", "github:x/y#2", "linear:A-1", "linear:A-2", "linear:B-1"], ["linear:B-2"]]);
 });
 
+test("a Slack message citing two unrelated PRs attaches to one and joins neither", () => {
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  const ev = db.query("INSERT INTO events (id, source, kind, week, payload, run_id) VALUES (?, ?, 'k', '2026-W42', '{}', 'r')");
+  for (const [id, src] of [["github:x/a#1", "github"], ["github:x/a#2", "github"], ["github:x/b#9", "github"], ["slack:C/1", "slack"]]) ev.run(id, src);
+  const link = db.query("INSERT INTO links VALUES (?, ?, 'mentions')");
+  link.run("github:x/a#2", "github:x/a#1");
+  link.run("slack:C/1", "github:x/a#1");
+  link.run("slack:C/1", "github:x/b#9");
+  const t = threads(db, ["2026-W42"]).map((g) => g.sort());
+  // The message goes with the bigger thread it cites; b#9 stays alone.
+  expect(t).toEqual([["github:x/a#1", "github:x/a#2", "slack:C/1"], ["github:x/b#9"]]);
+});
+
 test("references normalize across sources", () => {
   expect(refOf("https://github.com/acme/api/pull/101/files")).toBe("github:acme/api#101");
   expect(refOf("https://linear.app/acme/issue/ACME-41/some-title")).toBe("linear:ACME-41");
