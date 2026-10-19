@@ -6,7 +6,6 @@ import { reviewThreads } from "../ingest/review";
 
 const db = open();
 const page = join(import.meta.dir, "index.html");
-const reviewPage = join(import.meta.dir, "review.html");
 // Real data stays in the git-ignored data/ folder; the repo ships only fictional samples.
 const local = join(import.meta.dir, "../data/prototype-data.js");
 const sample = join(import.meta.dir, "sample-data.js");
@@ -131,8 +130,8 @@ const server = Bun.serve({
   async fetch(req) {
     const url = new URL(req.url);
     if (url.pathname === "/") return new Response(Bun.file(page));
-    if (url.pathname === "/review") return new Response(Bun.file(reviewPage));
-    if (url.pathname === "/groups") return new Response(Bun.file(join(import.meta.dir, "groups.html")));
+    // Old addresses: review and groups now live inside the one page.
+    if (url.pathname === "/review" || url.pathname === "/groups") return new Response(null, { status: 302, headers: { location: `/#${url.pathname}${url.search}` } });
     if (url.pathname === "/api/groups") return Response.json(groups());
     if (url.pathname === "/api/pending") return Response.json(pending());
     if (url.pathname === "/api/review") {
