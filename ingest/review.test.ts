@@ -23,7 +23,7 @@ test("review keeps threads that say something and saves only known keys", () => 
     labels: [{ key: t[0].key, ...label }, { key: "2026-W42:made-up", ...label }] } };
   expect(saveSuggestions(db, "2026-W42", run, "v1")).toEqual({ saved: 1, unknown: 1, missing: 0 });
   expect(db.query("SELECT field, model, prompt_version FROM labels ORDER BY 1").all()).toEqual(
-    ["evidence", "mode", "pillar", "summary", "title", "without_me"].map((field) => ({ field, model: "claude-x", prompt_version: "v1" })));
+    ["discard", "evidence", "mode", "pillar", "summary", "title"].map((field) => ({ field, model: "claude-x", prompt_version: "v1" })));
 });
 
 test("an assignment places a thread in a project, and yours overrides Claude's", () => {

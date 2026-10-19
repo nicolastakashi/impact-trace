@@ -315,7 +315,13 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .wk .todo{font:500 10px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-left:6px}
 }
 @media (max-width:560px){ #v-projects .wk{grid-template-columns:1fr;gap:4px} }
-#v-projects .grp{text-decoration:none;color:inherit}
+#v-projects .grp-a{display:grid;gap:14px;text-decoration:none;color:inherit;border-radius:12px}
+#v-projects .grp-a:focus-visible{outline:2px solid var(--accent);outline-offset:6px}
+#v-projects .grp-act{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:12px;border-top:1px solid var(--line);font-size:13.5px;color:var(--ink-2)}
+#v-projects .grp-act select{font:500 11.5px var(--f-mono);color:var(--ink-2);background:none;border:1px dashed var(--line-2);border-radius:6px;padding:2px 6px;cursor:pointer}
+#v-projects .grp-act .undo{font:500 11.5px var(--f-mono);color:var(--ink-2);background:none;border:1px dashed var(--line-2);border-radius:6px;padding:2px 8px;cursor:pointer}
+#v-projects .grp-act .del{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+#v-projects .grp-act .end{margin-left:auto}
 #v-projects .grp-deleted ul{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}
 #v-projects .grp-deleted li{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink-2)}
 #v-projects .grp-deleted summary{cursor:pointer}
@@ -916,7 +922,7 @@ async function load(week){
   data = await (await fetch("/api/review" + (week ? `?week=${week}` : ""))).json();
   // Claude's "probably routine" go last, so the work that needs you comes first.
   data.threads.sort((a, b) => routine(a) - routine(b));
-  cur = Math.max(0, data.threads.findIndex(t => !t.human.without_me));
+  cur = Math.max(0, data.threads.findIndex(t => !t.human.discard));
 }
 // Called by the router. Keeps your place when you come back to the tab.
 async function open(week, key, fromGroup){
@@ -926,15 +932,15 @@ async function open(week, key, fromGroup){
   render();
 }
 
-const routine = t => t.claude.without_me === "discard" && !t.human.without_me ? 1 : 0;
+const routine = t => t.claude.discard === "yes" && !t.human.discard ? 1 : 0;
 // Pending only hides what you decided, but keeps the open thread so the card does not jump away.
-const shown = i => $("#rv-show").value === "all" || !data.threads[i].human.without_me || i === cur;
+const shown = i => $("#rv-show").value === "all" || !data.threads[i].human.discard || i === cur;
 function pick(t){
   return draft[t.key] ??= {title: t.human.title ?? t.claude.title ?? "", summary: t.human.summary ?? t.claude.summary ?? "", mode: t.human.mode ?? t.claude.mode, pillar: t.human.pillar ?? t.claude.pillar};
 }
 
 function stats(){
-  const decided = data.threads.filter(t => t.human.without_me);
+  const decided = data.threads.filter(t => t.human.discard);
   data.pending[data.week] = data.threads.length - decided.length;
   PENDING = {...data.pending}; renderWm();
   $("#rv-week").innerHTML = data.weeks.map(w => `<option value="${w}" ${w===data.week?"selected":""}>${w} · ${data.pending[w] ? `${data.pending[w]} left` : "done"}</option>`).join("");
@@ -946,9 +952,9 @@ function render(){
   const ts = data.threads;
   if(!ts.length){ $("#rv-queue").innerHTML = ""; $("#rv-card").innerHTML = `<div class="empty">No suggested threads yet. Run <code>./run.sh</code> to collect the week and suggest labels.</div>`; return; }
   const firstRoutine = ts.findIndex((t,i) => routine(t) && shown(i)), nRoutine = ts.filter(routine).length;
-  $("#rv-queue").innerHTML = ts.map((t,i) => { if(!shown(i)) return ""; const d = pick(t); return `${i===firstRoutine?`<li class="sep"><span class="lbl">Probably routine · ${nRoutine}</span><button id="discard-all">discard all <kbd>⇧0</kbd></button></li>`:""}<li><button data-i="${i}" aria-current="${i===cur}" class="${t.human.without_me==="discard"?"gone":""}">
+  $("#rv-queue").innerHTML = ts.map((t,i) => { if(!shown(i)) return ""; const d = pick(t); return `${i===firstRoutine?`<li class="sep"><span class="lbl">Probably routine · ${nRoutine}</span><button id="discard-all">discard all <kbd>⇧0</kbd></button></li>`:""}<li><button data-i="${i}" aria-current="${i===cur}" class="${t.human.discard==="yes"?"gone":""}">
     <i class="dot" style="background:${mc(d.mode)}"></i><span class="t">${esc(d.title)}</span>
-    <span class="n ${t.human.without_me?"done":""}">${t.human.without_me==="discard"?"✕":t.human.without_me?"✓":t.events.length}</span></button></li>`; }).join("");
+    <span class="n ${t.human.discard?"done":""}">${t.human.discard==="yes"?"✕":t.human.discard?"✓":t.events.length}</span></button></li>`; }).join("");
   const t = ts[cur], d = pick(t), ev = new Set(JSON.parse(t.claude.evidence ?? "[]"));
   // The address follows the open thread, so reload and back keep your place.
   if(!$("#v-review").hidden) history.replaceState(null, "", `#/review?week=${data.week}&key=${encodeURIComponent(t.key)}${from ? `&from=${encodeURIComponent(from)}` : ""}`);
@@ -957,13 +963,13 @@ function render(){
   const evs = [...t.events].sort((a, b) => ev.has(b.id) - ev.has(a.id));
   const kinds = Object.entries(t.events.reduce((a,e) => (a[KIND[e.kind]??e.kind] = (a[KIND[e.kind]??e.kind]||0)+1, a), {})).map(([k,n]) => `${n} ${k}`).join(" · ");
   $("#rv-card").innerHTML = `
-    <div class="r-prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.without_me==="discard"?"g":x.human.without_me?"d":i===cur?"c":""}"></i>`).join("")}</div>
+    <div class="r-prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.discard==="yes"?"g":x.human.discard?"d":i===cur?"c":""}"></i>`).join("")}</div>
     <div class="gwrap">
       ${back ? `<a class="crumb" href="#/project?id=${encodeURIComponent(back.id)}">← ${esc(back.name)}</a>` : ""}
       <button class="gbtn" id="gopen" aria-haspopup="listbox" aria-expanded="false" title="Change project (P)">${t.projects.length ? t.projects.map(p => esc(p.name) + (p.by === "claude" ? ` <span class="ai" title="Claude placed this thread here">Claude</span>` : "")).join(", ") : "no project"} ▾</button>
       ${t.projects.some(p => p.by === "claude") ? `<button class="undo" id="unassign">wrong project ✕</button>` : ""}
       ${group && group.id !== from ? `<a class="crumb" href="#/project?id=${encodeURIComponent(group.id)}">across weeks →</a>` : ""}
-      <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}" title="Not your impact: routine, noise, or someone else's work (0)"><kbd>0</kbd>discard${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button>
+      <button class="discard" data-wm="discard" aria-pressed="${t.human.discard==="yes"}" title="Not your impact: routine, noise, or someone else's work (0)"><kbd>0</kbd>discard${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button>
       <div class="gpop" id="gpop" hidden><input id="gq" placeholder="Find a project, or type a new topic" autocomplete="off" aria-label="Project"><ul id="gl-list" role="listbox"></ul></div></div>
     <div class="r-sec">
       <input class="r-title" id="rv-title" value="${esc(d.title)}" aria-label="Thread title">
@@ -981,7 +987,7 @@ function render(){
       <span></span><span class="legend"><i class="sug-dot"></i> Claude's pick</span>
     </div>
     <div class="r-ask"><span class="q">Without you?</span>
-      <div class="r-wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}</div></div>
+      <div class="r-wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.discard==="no" && t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}</div></div>
     <div class="r-keys" ${keys ? "" : "hidden"}><span><kbd>A</kbd>–<kbd>H</kbd> mode</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> pillar</span>
       <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> without you, save</span><span><kbd>0</kbd> discard</span><span><kbd>⇧0</kbd> discard all routine</span><span><kbd>J</kbd><kbd>K</kbd> move</span>
       <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>V</kbd> evidence</span><span><kbd>O</kbd> open evidence</span><span><kbd>P</kbd> project</span><span><kbd>?</kbd> hide</span></div>`;
@@ -1007,7 +1013,7 @@ async function nextWeek(){
   toast(`${data.week} done · opening ${w}`); draft = {}; await load(w); render();
 }
 function after(){
-  const next = data.threads.findIndex((x,i) => i > cur && !x.human.without_me), any = data.threads.findIndex(x => !x.human.without_me);
+  const next = data.threads.findIndex((x,i) => i > cur && !x.human.discard), any = data.threads.findIndex(x => !x.human.discard);
   if(next >= 0) go(next); else if(any >= 0) go(any); else if($("#rv-show").value === "pending") nextWeek(); else render();
 }
 
@@ -1015,7 +1021,7 @@ async function decide(wm){
   const t = data.threads[cur], d = pick(t);
   d.title = $("#rv-title").value.trim() || d.title;
   d.summary = $("#rv-summary").value.trim();
-  const labels = wm === "discard" ? {without_me: wm} : {title: d.title, mode: d.mode, pillar: d.pillar, without_me: wm, ...(d.summary && {summary: d.summary})};
+  const labels = wm === "discard" ? {discard: "yes"} : {title: d.title, mode: d.mode, pillar: d.pillar, without_me: wm, discard: "no", ...(d.summary && {summary: d.summary})};
   const r = await post("/api/labels", {week: data.week, key: t.key, labels});
   if(!r.ok){ toast(`Not saved: ${await r.text()}`); return; }
   Object.assign(t.human, labels);
@@ -1027,11 +1033,11 @@ async function decide(wm){
 async function discardAll(){
   const todo = data.threads.filter(routine);
   for(const t of todo){
-    const r = await post("/api/labels", {week: data.week, key: t.key, labels:{without_me:"discard"}});
+    const r = await post("/api/labels", {week: data.week, key: t.key, labels:{discard:"yes"}});
     if(!r.ok){ toast(`Stopped: ${await r.text()}`); break; }
-    t.human.without_me = "discard";
+    t.human.discard = "yes";
   }
-  toast(`Discarded ${todo.filter(t => t.human.without_me === "discard").length}`);
+  toast(`Discarded ${todo.filter(t => t.human.discard === "yes").length}`);
   after();
 }
 
@@ -1122,11 +1128,11 @@ return {open, reset: () => { data = null; }};
 /* PROJECTS: every project across weeks. A thread opens in review, with a way back here. */
 const GV = (() => {
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let data = null, linear = new Map(), filter = "all";
+let data = null, linear = new Map(), filter = "all", ask = null;
 async function open(){
   // Always fresh: decisions made in review change the counts here.
   const [g1, l1] = await Promise.all([fetch("/api/groups").then(r => r.json()), fetch("/api/projects?weeks=").then(r => r.ok ? r.json() : {projects: []}).catch(() => ({projects: []}))]);
-  data = g1; linear = new Map(l1.projects.map(x => [x.id, x]));
+  data = g1; linear = new Map(l1.projects.map(x => [x.id, x])); ask = null;
   render();
 }
 function render(){
@@ -1135,15 +1141,42 @@ function render(){
     .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
   const max = Math.max(1, ...gs.flatMap(g => Object.values(g.weeks).map(ts => ts.length)));
   $("#grp-list").innerHTML = gs.map(g => { const todo = Object.values(g.weeks).flat().filter(t => !t.decided).length;
-    return `<a class="grp" href="#/project?id=${encodeURIComponent(g.id)}" aria-label="${esc(g.name)}">
+    return `<div class="grp"><a class="grp-a" href="#/project?id=${encodeURIComponent(g.id)}" aria-label="${esc(g.name)}">
     <span class="gh"><h2>${esc(g.name)}</h2>${todo ? `<span class="todo">${todo} to review</span>` : ""}<span class="chev">→</span></span>
     ${sourceLine(g, linear.get(g.id))}
-    ${strip(data.weeks, w => (g.weeks[w] ?? []).length, max)}</a>`; }).join("")
+    ${strip(data.weeks, w => (g.weeks[w] ?? []).length, max)}</a>
+    <div class="grp-act">${actions(g, gs)}</div></div>`; }).join("")
     || `<div class="empty">No projects yet. In review, press P on a thread to pick one or create a topic.</div>`;
   $("#grp-deleted").innerHTML = data.deleted.length ? `<details><summary class="lbl">Deleted · ${data.deleted.length}</summary><ul>${data.deleted.map(p =>
     `<li><i class="src ${p.kind}"></i>${esc(p.name)}<button class="undo" data-restore="${esc(p.id)}">restore</button></li>`).join("")}</ul></details>` : "";
 }
+// Merge and delete from the list. Each asks once, inline, and names what will happen.
+function actions(g, gs){
+  if(ask?.id === g.id && ask.into){ const to = gs.find(x => x.id === ask.into) ?? data.groups.find(x => x.id === ask.into);
+    return `Merge ${esc(g.name)} into ${esc(to.name)}? Its ${g.total} thread${g.total === 1 ? "" : "s"} move there. You can split it out again.
+      <span class="end"><button class="undo" data-go="merge">merge</button> <button class="undo" data-go="no">cancel</button></span>`; }
+  if(ask?.id === g.id) return `Delete ${esc(g.name)}? ${g.total} thread${g.total === 1 ? "" : "s"} will have no project${g.merged?.length ? ", and the merged projects stand alone again" : ""}. You can restore it below.
+      <span class="end"><button class="undo del" data-go="delete">delete</button> <button class="undo" data-go="no">cancel</button></span>`;
+  return `<select data-into="${esc(g.id)}" aria-label="Merge ${esc(g.name)} into another project"><option value="">merge into…</option>${data.groups.filter(x => x.id !== g.id).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("")}</select>
+    <button class="undo del end" data-del="${esc(g.id)}">delete</button>`;
+}
+async function go(url, body){
+  const r = await fetch(url, {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
+  if(!r.ok){ toast(await r.text()); return; }
+  RV.reset(); toast(url === "/api/merge" ? "Merged" : "Deleted"); await open();
+}
+function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
+$("#v-projects").addEventListener("change", e => {
+  const s = e.target.closest("[data-into]"); if(!s || !s.value) return;
+  ask = {id: s.dataset.into, into: s.value}; render(); });
 $("#v-projects").addEventListener("click", async e => {
+  const del = e.target.closest("[data-del]"), g = e.target.closest("[data-go]");
+  if(del){ ask = {id: del.dataset.del}; render(); return; }
+  if(g){ const a = ask; ask = null;
+    if(g.dataset.go === "merge") await go("/api/merge", {from: a.id, into: a.into});
+    else if(g.dataset.go === "delete") await go("/api/delete", {id: a.id});
+    else render();
+    return; }
   const rs = e.target.closest("[data-restore]");
   if(rs){ const r = await fetch("/api/restore", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({id: rs.dataset.restore})});
     if(r.ok){ RV.reset(); await open(); } return; }
