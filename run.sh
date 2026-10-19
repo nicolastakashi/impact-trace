@@ -42,6 +42,8 @@ collect github "$github_tools" "$login ${orgs:--}"
 # call: a busy week (338 rows) was too long for one answer.
 for i in 0 1 2 3 4 5 6; do
   day=$(python3 -c 'import datetime as d,sys; print(d.date.fromisoformat(sys.argv[1])+d.timedelta(int(sys.argv[2])))' "$monday" "$i")
+  # A day that has not happened has no messages; Haiku answered those with today's.
+  [[ "$day" > "$(date +%F)" ]] && continue
   collect "slack_own_$((i + 1))" "$slack_tools" "own $day"
 done
 collect slack_mention "$slack_tools" "mention $name"
