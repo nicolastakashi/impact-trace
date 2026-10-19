@@ -186,7 +186,9 @@ function setup(guess: boolean) {
   const config = existsSync(CONFIG) ? JSON.parse(readFileSync(CONFIG, "utf8")) : null;
   if (!guess) return Response.json({ config });
   const [github = "", name = ""] = sh("gh", "api", "user", "--jq", '.login + "\t" + (.name // "")').split("\t");
-  return Response.json({ config, checks: { gh: !!github, claude: !!sh("claude", "--version") },
+  // In the container the tools live on the host, where run.sh runs: this side cannot see them.
+  const host = !!process.env.COLLECT_ON_HOST;
+  return Response.json({ config, checks: { host, gh: host ? null : !!github, claude: host ? null : !!sh("claude", "--version") },
     guess: { github, name: name || sh("git", "config", "user.name"), orgs: sh("gh", "api", "user/orgs", "--jq", ".[].login").split("\n").filter(Boolean) } });
 }
 const LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
@@ -205,8 +207,9 @@ function saveSetup(b: any) {
 const server = Bun.serve({
   // PORT lets a second copy, with its own data/, run next to yours.
   port: Number(process.env.PORT ?? 4317),
-  // Your Dash0 data and a write endpoint: never reachable from the network.
-  hostname: "127.0.0.1",
+  // Your work data and a write endpoint: never reachable from the network. In the container
+  // HOST is 0.0.0.0 and compose publishes the port on 127.0.0.1 only.
+  hostname: process.env.HOST ?? "127.0.0.1",
   async fetch(req) {
     const url = new URL(req.url);
     if (url.pathname === "/") return new Response(Bun.file(page));

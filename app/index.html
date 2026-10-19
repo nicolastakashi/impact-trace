@@ -838,12 +838,13 @@ function waiting(){
 async function open(){ if(!s) waiting(); s = await (await fetch("/api/setup?guess=1")).json(); render(); }
 function render(){
   const c = s.config ?? {}, g = s.guess, v = (k) => esc(c[k] ?? g[k] ?? "");
-  const mark = (ok) => ok ? `<span class="ok">✓</span>` : `<span class="no">✕</span>`;
+  const mark = (ok) => ok == null ? `<span class="unk">?</span>` : ok ? `<span class="ok">✓</span>` : `<span class="no">✕</span>`;
   $("#su").innerHTML = `
     <li class="${s.checks.gh && s.checks.claude ? "done" : ""}"><h2>Tools</h2>
       <ul class="checks">
-        <li>${mark(s.checks.claude)} Claude Code ${s.checks.claude ? "" : "· install it, then reload"}</li>
-        <li>${mark(s.checks.gh)} GitHub CLI, logged in ${s.checks.gh ? "" : "· run <code>gh auth login</code>, then reload"}</li>
+        ${s.checks.host ? `<li>This app runs in a container. Check these on the machine that runs <code>./run.sh</code>:</li>` : ""}
+        <li>${mark(s.checks.claude)} Claude Code ${s.checks.claude === false ? "· install it, then reload" : ""}</li>
+        <li>${mark(s.checks.gh)} GitHub CLI, logged in ${s.checks.gh === false ? "· run <code>gh auth login</code>, then reload" : ""}</li>
         <li><span class="unk">?</span> In Claude, connect Linear, Slack, Google Calendar and Google Drive. This page cannot check them.</li></ul></li>
     <li class="${s.config ? "done" : ""}"><h2>About you</h2>
       <form id="su-form">
