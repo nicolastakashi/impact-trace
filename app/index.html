@@ -1180,6 +1180,9 @@ function fbToast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden =
 function renderFeedback(anim = true){
   const f = FB[fbW];
   if(!f){ $("#fb-lead").textContent = ""; $("#fb").innerHTML = `<div class="panel empty">Your first feedback comes with the next collection, on Monday at 18:00. Claude reads the Slack messages you wrote that week and the 7 before it.</div>`; return; }
+  const weeksNav = FB.length > 1 ? `<div class="fb-weeks" role="group" aria-label="Feedback week">${FB.map((x, k) => `<button data-fbw="${k}" aria-pressed="${k === fbW}">${wk(x.week)}</button>`).join("")}</div>` : "";
+  if(!f.messages.at(-1) && !f.patterns.length){ $("#fb-lead").textContent = "";
+    $("#fb").innerHTML = `${weeksNav}<div class="panel empty">You wrote no Slack messages in ${wk(f.week)}, so there is no feedback for it.</div>`; return; }
   const total = f.messages.reduce((a, b) => a + b, 0), e = f.experiment, items = fbItems(f);
   fbP = Math.min(fbP, items.length - 1);
   $("#fb-lead").textContent = `From ${total} Slack messages you wrote, ${wk(f.weeks[0])} to ${wk(f.weeks.at(-1))}. Every quote below is one of them.`;
@@ -1192,7 +1195,7 @@ function renderFeedback(anim = true){
       <div class="fb-ax" style="--n:${n}">${f.weeks.map(w => `<span>${wk(w)}</span>`).join("")}<span class="next">${nextWeek(f.week)}</span></div></div>` : "";
   const it = items[fbP];
   $("#fb").innerHTML = `
-    ${FB.length > 1 ? `<div class="fb-weeks" role="group" aria-label="Feedback week">${FB.map((x, k) => `<button data-fbw="${k}" aria-pressed="${k === fbW}">${wk(x.week)}</button>`).join("")}</div>` : ""}
+    ${weeksNav}
     ${prev}
     ${e ? `<div class="panel fb-try${vdOf(f, "experiment") === "reject" ? " rej" : ""}"><div><span class="lbl">Try this week</span><p class="fb-do">${esc(e.do)}</p>
         <div class="fb-tag"><span>Measured by</span><span class="fb-mk">${e.markers.map(m => `<code>${esc(m)}</code>`).join("")}</span></div>
