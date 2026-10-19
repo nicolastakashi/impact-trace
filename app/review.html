@@ -134,6 +134,7 @@ header .back{margin-left:auto;font:500 12px var(--f-mono);color:var(--ink-2)}
 <header>
   <h1>Review</h1>
   <label class="stat"><span class="lbl">Week</span><select id="week" aria-label="Week"></select></label>
+  <label class="stat"><span class="lbl">Show</span><select id="show" aria-label="Show"><option value="pending">Pending</option><option value="all">All</option></select></label>
   <div class="stat"><span class="lbl">Decided</span><b id="done">–</b></div>
   <div class="stat"><span class="lbl">Claude matches you · mode</span><b id="agree">–</b></div>
   <a class="back" href="/groups">groups →</a>
@@ -164,7 +165,6 @@ async function load(week){
   data = await r.json();
   // Claude's "probably routine" go last, so the work that needs you comes first.
   data.threads.sort((a, b) => routine(a) - routine(b));
-  $("#week").innerHTML = data.weeks.map(w => `<option ${w===data.week?"selected":""}>${w}</option>`).join("");
   cur = Math.max(0, data.threads.findIndex(t => !t.human.without_me));
   // A link from the groups page opens that thread.
   const want = new URLSearchParams(location.search).get("key");
@@ -180,8 +180,13 @@ function pick(t){
   return d;
 }
 
+// Pending only hides what you decided, but keeps the open thread so the card does not jump away.
+const shown = i => $("#show").value === "all" || !data.threads[i].human.without_me || i === cur;
+
 function stats(){
   const decided = data.threads.filter(t => t.human.without_me);
+  data.pending[data.week] = data.threads.length - decided.length;
+  $("#week").innerHTML = data.weeks.map(w => `<option value="${w}" ${w===data.week?"selected":""}>${w} · ${data.pending[w] ? `${data.pending[w]} left` : "done"}</option>`).join("");
   // A discarded thread has no mode to agree on.
   const both = decided.filter(t => t.claude.mode && t.human.without_me !== "discard");
   $("#done").textContent = `${decided.length}/${data.threads.length}`;
@@ -191,8 +196,8 @@ function stats(){
 function render(){
   stats();
   const ts = data.threads;
-  const firstRoutine = ts.findIndex(routine), nRoutine = ts.filter(routine).length;
-  $("#queue").innerHTML = ts.map((t,i) => { const d = pick(t); return `${i===firstRoutine?`<li class="sep"><span class="lbl">Probably routine · ${nRoutine}</span><button id="discard-all">discard all <kbd>⇧0</kbd></button></li>`:""}<li><button data-i="${i}" aria-current="${i===cur}" class="${t.human.without_me==="discard"?"gone":""}">
+  const firstRoutine = ts.findIndex((t,i) => routine(t) && shown(i)), nRoutine = ts.filter(routine).length;
+  $("#queue").innerHTML = ts.map((t,i) => { if(!shown(i)) return ""; const d = pick(t); return `${i===firstRoutine?`<li class="sep"><span class="lbl">Probably routine · ${nRoutine}</span><button id="discard-all">discard all <kbd>⇧0</kbd></button></li>`:""}<li><button data-i="${i}" aria-current="${i===cur}" class="${t.human.without_me==="discard"?"gone":""}">
     <i class="dot" style="background:${mc(d.mode)}"></i><span class="t">${esc(d.title)}</span>
     <span class="n ${t.human.without_me?"done":""}">${t.human.without_me==="discard"?"✕":t.human.without_me?"✓":t.events.length}</span></button></li>`; }).join("");
   if(!ts.length){ $("#card").innerHTML = `<div class="empty">No suggested threads yet. Run <code>./run.sh</code> to collect the week and suggest labels.</div>`; return; }
@@ -232,6 +237,13 @@ function chip(field, k, label, key, d, t, color){
 
 function set(field, v){ pick(data.threads[cur])[field] = v; render(); }
 function go(i){ cur = Math.min(Math.max(i,0), data.threads.length-1); render(); }
+// J/K step over threads the filter hides.
+function step(dir){ for(let i = cur + dir; i >= 0 && i < data.threads.length; i += dir) if(shown(i)) return go(i); }
+// When a week has nothing left, open the next week that does.
+function nextWeek(){
+  const w = data.weeks.find(w => w !== data.week && data.pending[w] > 0);
+  if(w){ toast(`${data.week} done · opening ${w}`); draft = {}; load(w); } else toast("All weeks done");
+}
 function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
 
 async function save(wm){
@@ -244,7 +256,8 @@ async function save(wm){
   Object.assign(t.human, labels);
   toast(wm === "discard" ? "Discarded" : "Saved");
   const next = data.threads.findIndex((x,i) => i > cur && !x.human.without_me);
-  go(next >= 0 ? next : cur);
+  const any = data.threads.findIndex(x => !x.human.without_me);
+  if(next >= 0) go(next); else if(any >= 0) go(any); else if($("#show").value === "pending") nextWeek(); else go(cur);
 }
 
 // The thread splits back into its parts, so reload the week and stay near the same place.
@@ -285,7 +298,7 @@ async function discardAll(){
   }
   toast(`Discarded ${todo.filter(t => t.human.without_me === "discard").length}`);
   const next = data.threads.findIndex(x => !x.human.without_me);
-  go(next >= 0 ? next : cur);
+  if(next >= 0) go(next); else if($("#show").value === "pending") nextWeek(); else go(cur);
 }
 
 async function unassign(){
@@ -324,8 +337,8 @@ document.addEventListener("keydown", e => {
   else if(["1","2","3"].includes(k)) save(WM[+k-1][0]);
   else if(e.code === "Digit0" && e.shiftKey) discardAll();
   else if(k === "0") save("discard");
-  else if(k === "j") go(cur+1);
-  else if(k === "k") go(cur-1);
+  else if(k === "j") step(1);
+  else if(k === "k") step(-1);
   else if(k === "t"){ e.preventDefault(); $("#title").focus(); $("#title").select(); }
   else if(k === "e"){ e.preventDefault(); const s = $("#summary"); s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
   else if(k === "p"){ e.preventDefault(); gOpen(); }
@@ -334,6 +347,7 @@ document.addEventListener("keydown", e => {
   e.preventDefault();
 });
 $("#week").addEventListener("change", e => { draft = {}; load(e.target.value); });
+$("#show").addEventListener("change", () => render());
 load(new URLSearchParams(location.search).get("week"));
 </script>
 </body>

@@ -35,6 +35,13 @@ function projects(weeks: string[]) {
 const WEEK = /^\d{4}-W\d{2}$/;
 const FIELDS = { title: null, summary: null, mode: ["clarify", "prevent", "solve", "build", "elevate", "external"], pillar: ["big", "exec", "level"], without_me: ["wouldnt", "slower", "same", "discard"] } as Record<string, string[] | null>;
 
+// Threads you have not decided yet, per week. Review opens on the latest week that has some.
+function pending() {
+  const weeks = (db.query("SELECT DISTINCT week FROM labels ORDER BY 1 DESC").all() as any[]).map((r) => r.week);
+  const done = db.query("SELECT 1 FROM labels WHERE thread_key = ? AND field = 'without_me' AND source = 'human'");
+  return Object.fromEntries(weeks.map((w) => [w, reviewThreads(db, w).filter((t) => !done.get(t.key)).length]));
+}
+
 function review(week: string) {
   const rows = db.query("SELECT thread_key, field, value, source FROM labels WHERE week = ?").all(week) as any[];
   const by = (key: string, source: string) => Object.fromEntries(rows.filter((r) => r.thread_key === key && r.source === source).map((r) => [r.field, r.value]));
@@ -43,6 +50,7 @@ function review(week: string) {
     weeks: (db.query("SELECT DISTINCT week FROM labels ORDER BY 1 DESC").all() as any[]).map((r) => r.week),
     threads: reviewThreads(db, week).map((t) => ({ ...t, claude: by(t.key, "claude"), human: by(t.key, "human") })),
     groups: db.query("SELECT id, name, kind FROM projects ORDER BY name").all(),
+    pending: pending(),
   };
 }
 
@@ -126,8 +134,10 @@ const server = Bun.serve({
     if (url.pathname === "/review") return new Response(Bun.file(reviewPage));
     if (url.pathname === "/groups") return new Response(Bun.file(join(import.meta.dir, "groups.html")));
     if (url.pathname === "/api/groups") return Response.json(groups());
+    if (url.pathname === "/api/pending") return Response.json(pending());
     if (url.pathname === "/api/review") {
-      const week = url.searchParams.get("week") ?? (db.query("SELECT max(week) w FROM labels").get() as any).w;
+      const left = Object.entries(pending()).find(([, n]) => n > 0);
+      const week = url.searchParams.get("week") ?? left?.[0] ?? (db.query("SELECT max(week) w FROM labels").get() as any).w;
       return WEEK.test(week ?? "") ? Response.json(review(week)) : Response.json({ week: null, weeks: [], threads: [] });
     }
     // A JSON content type forces a CORS preflight, so other sites cannot post here.
