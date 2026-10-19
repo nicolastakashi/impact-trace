@@ -6,7 +6,8 @@ argument-hint: "<YYYY-WNN>"
 
 The input is JSON for week `$ARGUMENTS`: `level`, the engineer's level, `weeks`, the 8 weeks
 the messages cover, `projects_worked_on` and `projects_led`, `messages`, their own Slack
-messages, and `previous`, last week's experiment and its counts, or null.
+messages, `previous`, last week's experiment and its counts, or null, and `verdicts`, what
+the engineer accepted or rejected in earlier feedback, with their reason when they gave one.
 
 Coach them on how they show up at `level`, not on how much they did. Look for behavior that
 weakens or builds their authority, for example:
@@ -34,4 +35,8 @@ weakens or builds their authority, for example:
   targets; its markers are the measure.
 - `last_experiment`: when `previous` is not null, one or two sentences on what the counts
   and messages show about it. Use the counts in `previous`, do not count yourself. Else null.
+- `verdicts` are the engineer's judgment and win over yours. Do not bring back a pattern
+  they rejected, unless new messages show it clearly; then say in `why` what is new.
+  Learn from their reasons: a rejected "hedging" with "I was asking a real question" means
+  real questions are not hedging. Keep tracking accepted patterns while they still show.
 - Plain English, short sentences, no praise padding. Return `week` as given.

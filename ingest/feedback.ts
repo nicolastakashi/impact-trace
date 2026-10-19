@@ -39,7 +39,8 @@ export function emit(db: Database, week: string) {
   for (const w of weeks) for (const t of reviewThreads(db, w)) for (const p of t.projects) worked.add(p.name);
   const led = (db.query("SELECT name FROM projects WHERE lead = ?").all(me.name) as any[]).map((r) => r.name);
   return { week, level: me.level, weeks, projects_worked_on: [...worked], projects_led: led,
-    messages: msgs.map((m) => ({ week: m.week, at: m.at, channel: m.channel, text: m.text })), previous: previous(db, week, weeks, msgs) };
+    messages: msgs.map((m) => ({ week: m.week, at: m.at, channel: m.channel, text: m.text })), previous: previous(db, week, weeks, msgs),
+    verdicts: db.query("SELECT week, item, verdict, why FROM feedback_verdicts WHERE week < ? ORDER BY week DESC LIMIT 40").all(week) };
 }
 
 export function verify(db: Database, week: string, out: any) {
