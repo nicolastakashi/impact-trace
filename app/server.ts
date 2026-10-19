@@ -33,7 +33,7 @@ function projects(weeks: string[]) {
 }
 
 const WEEK = /^\d{4}-W\d{2}$/;
-const FIELDS = { title: null, mode: ["clarify", "prevent", "solve", "build", "elevate", "external"], pillar: ["big", "exec", "level"], without_me: ["wouldnt", "slower", "same"] } as Record<string, string[] | null>;
+const FIELDS = { title: null, mode: ["clarify", "prevent", "solve", "build", "elevate", "external"], pillar: ["big", "exec", "level"], without_me: ["wouldnt", "slower", "same", "discard"] } as Record<string, string[] | null>;
 
 function review(week: string) {
   const rows = db.query("SELECT thread_key, field, value, source FROM labels WHERE week = ?").all(week) as any[];
@@ -46,6 +46,7 @@ function review(week: string) {
 }
 
 // Your decision on one thread. Only known fields and values: this is the gold set.
+// without_me = discard means the thread is not impact at all (a routine ticket): skip it downstream.
 function decide(body: any) {
   const t = WEEK.test(body?.week) && reviewThreads(db, body.week).find((x) => x.key === body.key);
   if (!t) return new Response("Unknown thread for that week", { status: 400 });
