@@ -222,9 +222,6 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .crumb:hover{color:var(--accent)}
   .r-more{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center;font:500 12px var(--f-mono);color:var(--ink-3);padding:10px 12px;border:1px solid var(--line);border-radius:12px}
   .r-more:hover,.r-more:focus-visible{color:var(--ink-2);border-color:var(--line-2)}
-  .r-label{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:15px}
-  .r-label b{font-weight:500}
-  .r-label .sep{color:var(--ink-3)}
   .r-ask{display:grid;gap:12px;padding-top:20px;border-top:1px solid var(--line)}
   .r-ask .q{font:700 22px/1 var(--f-num);text-transform:uppercase;letter-spacing:.02em}
   .undo{font:500 11px var(--f-mono);letter-spacing:.04em;color:var(--ink-2);background:none;border:1px dashed var(--line-2);border-radius:6px;padding:1px 6px;cursor:pointer}
@@ -254,11 +251,15 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .r-events .ev-x{min-width:0;overflow-wrap:anywhere}
   .r-events .ev-x small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;color:var(--ink-3);font-size:12.5px;margin-top:2px}
 
-  .r-chips{display:flex;flex-wrap:wrap;gap:8px}
-  .r-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 10px 7px 7px;background:var(--s2);border:1px solid var(--line);border-radius:10px;cursor:pointer;font:400 13.5px var(--f-body);color:var(--ink)}
-  .r-chip:hover{border-color:var(--line-2)}
-  .r-chip[aria-pressed="true"]{background:var(--s1);border-color:var(--c,var(--ink));box-shadow:0 0 0 1px var(--c,var(--ink)), 0 0 14px -6px var(--c,var(--ink))}
-  .r-two{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .r-fields{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px 16px;align-items:center}
+  .seg{display:flex;flex-wrap:wrap;width:fit-content;max-width:100%;background:var(--s2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px}
+  .seg button{position:relative;display:inline-flex;align-items:center;gap:7px;border:0;background:none;border-radius:9px;padding:7px 12px;cursor:pointer;font-size:13.5px;color:var(--ink-2)}
+  .seg button:hover{color:var(--ink);background:var(--s3)}
+  .seg button[aria-pressed="true"]{background:var(--s1);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--c,var(--ink-2)), 0 0 14px -6px var(--c,var(--ink-2))}
+  .seg kbd{min-width:16px;height:16px;padding:0 3px;font-size:9.5px;border-bottom-width:1px;opacity:.55}
+  .seg button.sug::after,.sug-dot{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink-3);display:inline-block}
+  .seg button.sug::after{position:absolute;top:4px;right:4px}
+  .legend{display:flex;align-items:center;gap:6px;font:500 11px var(--f-mono);color:var(--ink-3)}
 
   .r-wm{display:grid;grid-template-columns:repeat(3,1fr) auto;gap:8px}
   .r-wm button{display:flex;align-items:center;gap:10px;padding:12px;background:var(--s2);border:1px solid var(--line);border-radius:12px;cursor:pointer;text-align:left}
@@ -273,7 +274,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .r-keys span{display:inline-flex;align-items:center;gap:4px}
 }
 @media (max-width:820px){ #v-review .rv-grid{grid-template-columns:1fr} #v-review .r-queue{max-height:220px;position:static} }
-@media (max-width:620px){ #v-review .r-two{grid-template-columns:1fr} }
+@media (max-width:620px){ #v-review .r-fields{grid-template-columns:1fr} #v-review .r-fields > span:empty{display:none} }
 @media (max-width:720px){ #v-review .r-wm{grid-template-columns:1fr 1fr} }
 @media (max-width:520px){ #v-review .r-wm{grid-template-columns:1fr} #v-review .r-events li{grid-template-columns:1fr;gap:2px} }
 
@@ -882,7 +883,7 @@ const KIND = {pr_merged:"PR merged", pr_open:"PR open", issue_completed:"issue d
   meeting:"meeting", doc_created:"doc created", doc_edited:"doc edited"};
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const post = (url, body) => fetch(url, {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
-let data = null, cur = 0, draft = {}, from = null, all = false, keys = false, edit = false;
+let data = null, cur = 0, draft = {}, from = null, all = false, keys = false;
 
 async function load(week){
   data = await (await fetch("/api/review" + (week ? `?week=${week}` : ""))).json();
@@ -928,8 +929,6 @@ function render(){
   // Claude's evidence first.
   const evs = [...t.events].sort((a, b) => ev.has(b.id) - ev.has(a.id));
   const kinds = Object.entries(t.events.reduce((a,e) => (a[KIND[e.kind]??e.kind] = (a[KIND[e.kind]??e.kind]||0)+1, a), {})).map(([k,n]) => `${n} ${k}`).join(" · ");
-  // Claude already suggests mode and pillar; the chips show only when you want to change them, or when there is no suggestion.
-  const chips = edit || !d.mode || !d.pillar, same = d.mode === t.claude.mode && d.pillar === t.claude.pillar;
   $("#rv-card").innerHTML = `
     <div class="r-prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.without_me==="discard"?"g":x.human.without_me?"d":i===cur?"c":""}"></i>`).join("")}</div>
     <div class="gwrap">
@@ -948,10 +947,11 @@ function render(){
       <span class="ev-x">${e.url?`<a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.title ?? e.id)} ↗</a>`:esc(e.title ?? e.id)}
       ${e.author && e.kind!=="pr_merged" && e.kind!=="pr_open" ? ` <span class="lbl">${esc(e.author)}</span>`:""}
       ${e.text?`<small>${esc(e.text)}</small>`:""}</span></li>`).join("")}</ul>` : ""}</div>
-    ${chips ? `<div class="r-two">
-      <div class="r-sec"><span class="lbl">Mode</span><div class="r-chips">${Object.keys(MODES).map((k,i) => chip("mode", k, MODES[k], MODE_KEYS[i], d, t, mc(k))).join("")}</div></div>
-      <div class="r-sec"><span class="lbl">Pillar</span><div class="r-chips">${Object.keys(PILLAR).map((k,i) => chip("pillar", k, PILLAR[k], PILLAR_KEYS[i], d, t)).join("")}</div></div>
-    </div>` : `<div class="r-label"><i class="dot" style="background:${mc(d.mode)}"></i><b>${MODES[d.mode]}</b><span class="sep">·</span><b>${PILLAR[d.pillar]}</b>${same ? `<span class="ai">Claude</span>` : ""}<button class="undo" id="edit">change</button></div>`}
+    <div class="r-fields">
+      <span class="lbl">Mode</span><div class="seg" role="group" aria-label="Mode">${Object.keys(MODES).map((k,i) => seg("mode", k, MODES[k], MODE_KEYS[i], d, t, mc(k))).join("")}</div>
+      <span class="lbl">Pillar</span><div class="seg" role="group" aria-label="Pillar">${Object.keys(PILLAR).map((k,i) => seg("pillar", k, PILLAR[k], PILLAR_KEYS[i], d, t)).join("")}</div>
+      <span></span><span class="legend"><i class="sug-dot"></i> Claude's pick</span>
+    </div>
     <div class="r-ask"><span class="q">Without you?</span>
       <div class="r-wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}
       <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}"><kbd>0</kbd>discard${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button></div></div>
@@ -961,14 +961,15 @@ function render(){
   $("#rv-queue [aria-current=true]")?.scrollIntoView({block:"nearest"});
 }
 
-function chip(field, k, label, key, d, t, color){
-  const ai = t.claude[field] === k ? `<span class="ai" title="Claude's suggestion">Claude</span>` : "";
-  return `<button class="r-chip" data-${field}="${k}" aria-pressed="${d[field]===k}" style="${color?`--c:${color}`:""}">
-    <kbd>${key.toUpperCase()}</kbd>${color?`<i class="dot" style="background:${color}"></i>`:""}${label}${ai}</button>`;
+// One segment per value. Yours is filled; Claude's pick has a dot.
+function seg(field, k, label, key, d, t, color){
+  const sug = t.claude[field] === k;
+  return `<button data-${field}="${k}" aria-pressed="${d[field]===k}" class="${sug ? "sug" : ""}" style="${color ? `--c:${color}` : ""}" title="${label} (${key.toUpperCase()})${sug ? " · Claude's pick" : ""}">
+    ${color ? `<i class="dot" style="background:${color}"></i>` : ""}${label}<kbd>${key.toUpperCase()}</kbd></button>`;
 }
 
 function set(field, v){ pick(data.threads[cur])[field] = v; render(); }
-function go(i){ cur = Math.min(Math.max(i,0), data.threads.length-1); all = false; edit = false; render(); }
+function go(i){ cur = Math.min(Math.max(i,0), data.threads.length-1); all = false; render(); }
 // J/K step over threads the filter hides.
 function step(dir){ for(let i = cur + dir; i >= 0 && i < data.threads.length; i += dir) if(shown(i)) return go(i); }
 function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
@@ -1049,7 +1050,6 @@ $("#v-review").addEventListener("click", e => {
   else if(b.id === "unassign") unassign();
   else if(b.id === "discard-all") discardAll();
   else if(b.id === "all"){ all = !all; render(); }
-  else if(b.id === "edit"){ edit = true; render(); }
   else if(b.id === "gopen") $("#gpop").hidden ? gOpen() : gClose();
   else if(b.dataset.g) gChoose(+b.dataset.g);
 });
@@ -1072,8 +1072,8 @@ document.addEventListener("keydown", e => {
   if(e.target.id === "rv-title" || e.target.id === "rv-summary"){ if(e.key === "Escape" || (e.key === "Enter" && !e.shiftKey)){ e.preventDefault(); e.target.blur(); } return; }
   if(e.target.tagName === "SELECT" || e.metaKey || e.ctrlKey || e.altKey || !data.threads.length) return;
   const k = e.key.toLowerCase();
-  if(MODE_KEYS.includes(k)){ edit = true; set("mode", Object.keys(MODES)[MODE_KEYS.indexOf(k)]); }
-  else if(PILLAR_KEYS.includes(k)){ edit = true; set("pillar", Object.keys(PILLAR)[PILLAR_KEYS.indexOf(k)]); }
+  if(MODE_KEYS.includes(k)) set("mode", Object.keys(MODES)[MODE_KEYS.indexOf(k)]);
+  else if(PILLAR_KEYS.includes(k)) set("pillar", Object.keys(PILLAR)[PILLAR_KEYS.indexOf(k)]);
   else if(["1","2","3"].includes(k)) decide(WM[+k-1][0]);
   else if(e.code === "Digit0" && e.shiftKey) discardAll();
   else if(k === "0") decide("discard");
