@@ -32,12 +32,12 @@ function projects(weeks: string[]) {
 }
 
 const WEEK = /^\d{4}-W\d{2}$/;
-const FIELDS = { title: null, summary: null, mode: ["clarify", "prevent", "solve", "build", "elevate", "external"], pillar: ["big", "exec", "level"], without_me: ["wouldnt", "slower", "same", "discard"] } as Record<string, string[] | null>;
+const FIELDS = { title: null, summary: null, mode: ["clarify", "prevent", "solve", "build", "elevate", "external"], pillar: ["big", "exec", "level"], without_me: ["wouldnt", "slower", "same"], discard: ["yes", "no"] } as Record<string, string[] | null>;
 
 // Threads you have not decided yet, per week. Review opens on the latest week that has some.
 function pending() {
   const weeks = (db.query("SELECT DISTINCT week FROM labels ORDER BY 1 DESC").all() as any[]).map((r) => r.week);
-  const done = (t: any) => labelsOf(db, t).some((r) => r.field === "without_me" && r.source === "human");
+  const done = (t: any) => labelsOf(db, t).some((r) => r.field === "discard" && r.source === "human");
   return Object.fromEntries(weeks.map((w) => [w, reviewThreads(db, w).filter((t) => !done(t)).length]));
 }
 
@@ -53,7 +53,7 @@ function review(week: string) {
 }
 
 // Your decision on one thread. Only known fields and values: this is the gold set.
-// without_me = discard means the thread is not impact at all (a routine ticket): skip it downstream.
+// discard = yes means the thread is not impact at all (a routine ticket): skip it downstream.
 function decide(body: any) {
   const t = WEEK.test(body?.week) && reviewThreads(db, body.week).find((x) => x.key === body.key);
   if (!t) return new Response("Unknown thread for that week", { status: 400 });
@@ -151,8 +151,9 @@ function groups() {
     if (!g) continue;
     const l = labelsOf(db, t);
     const v = (f: string) => (l.find((r) => r.field === f && r.source === "human") ?? l.find((r) => r.field === f && r.source === "claude"))?.value;
-    if (v("without_me") === "discard" && l.some((r) => r.field === "without_me" && r.source === "human")) continue;
-    (g.weeks[week] ??= []).push({ key: t.key, title: v("title"), summary: v("summary"), events: t.events.length, decided: l.some((r) => r.source === "human" && r.field === "without_me") });
+    const d = l.find((r) => r.field === "discard" && r.source === "human")?.value;
+    if (d === "yes") continue;
+    (g.weeks[week] ??= []).push({ key: t.key, title: v("title"), summary: v("summary"), events: t.events.length, decided: !!d });
   }
   return { weeks, groups: [...by.values()].filter((g) => Object.keys(g.weeks).length || g.kind === "topic"),
     deleted: db.query("SELECT p.id, p.name, p.kind FROM project_deletions d JOIN projects p ON p.id = d.id ORDER BY d.at DESC").all() };
@@ -171,8 +172,8 @@ function project(id: string) {
   const threads = weeks.flatMap((week) => reviewThreads(db, week).filter((t) => t.projects.some((x) => x.id === id)).map((t) => {
     const l = labelsOf(db, t);
     const v = (f: string) => (l.find((r) => r.field === f && r.source === "human") ?? l.find((r) => r.field === f && r.source === "claude"))?.value;
-    const wm = l.find((r) => r.field === "without_me" && r.source === "human")?.value;
-    return { week, key: t.key, title: v("title"), summary: v("summary"), decided: !!wm, discarded: wm === "discard",
+    const d = l.find((r) => r.field === "discard" && r.source === "human")?.value;
+    return { week, key: t.key, title: v("title"), summary: v("summary"), decided: !!d, discarded: d === "yes",
       events: t.events.map((e) => ({ id: e.id, kind: e.kind, title: e.title, url: e.url, source: (src.get(e.id) as any)?.s })) };
   }));
   return Response.json({ project: p, deleted: !!db.query("SELECT 1 FROM project_deletions WHERE id = ?").get(id), sources, weeks, threads, ms: db.query("SELECT name, progress FROM milestones WHERE project_id = ? ORDER BY name").all(id),

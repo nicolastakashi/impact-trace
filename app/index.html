@@ -916,7 +916,7 @@ async function load(week){
   data = await (await fetch("/api/review" + (week ? `?week=${week}` : ""))).json();
   // Claude's "probably routine" go last, so the work that needs you comes first.
   data.threads.sort((a, b) => routine(a) - routine(b));
-  cur = Math.max(0, data.threads.findIndex(t => !t.human.without_me));
+  cur = Math.max(0, data.threads.findIndex(t => !t.human.discard));
 }
 // Called by the router. Keeps your place when you come back to the tab.
 async function open(week, key, fromGroup){
@@ -926,15 +926,15 @@ async function open(week, key, fromGroup){
   render();
 }
 
-const routine = t => t.claude.without_me === "discard" && !t.human.without_me ? 1 : 0;
+const routine = t => t.claude.discard === "yes" && !t.human.discard ? 1 : 0;
 // Pending only hides what you decided, but keeps the open thread so the card does not jump away.
-const shown = i => $("#rv-show").value === "all" || !data.threads[i].human.without_me || i === cur;
+const shown = i => $("#rv-show").value === "all" || !data.threads[i].human.discard || i === cur;
 function pick(t){
   return draft[t.key] ??= {title: t.human.title ?? t.claude.title ?? "", summary: t.human.summary ?? t.claude.summary ?? "", mode: t.human.mode ?? t.claude.mode, pillar: t.human.pillar ?? t.claude.pillar};
 }
 
 function stats(){
-  const decided = data.threads.filter(t => t.human.without_me);
+  const decided = data.threads.filter(t => t.human.discard);
   data.pending[data.week] = data.threads.length - decided.length;
   PENDING = {...data.pending}; renderWm();
   $("#rv-week").innerHTML = data.weeks.map(w => `<option value="${w}" ${w===data.week?"selected":""}>${w} · ${data.pending[w] ? `${data.pending[w]} left` : "done"}</option>`).join("");
@@ -946,9 +946,9 @@ function render(){
   const ts = data.threads;
   if(!ts.length){ $("#rv-queue").innerHTML = ""; $("#rv-card").innerHTML = `<div class="empty">No suggested threads yet. Run <code>./run.sh</code> to collect the week and suggest labels.</div>`; return; }
   const firstRoutine = ts.findIndex((t,i) => routine(t) && shown(i)), nRoutine = ts.filter(routine).length;
-  $("#rv-queue").innerHTML = ts.map((t,i) => { if(!shown(i)) return ""; const d = pick(t); return `${i===firstRoutine?`<li class="sep"><span class="lbl">Probably routine · ${nRoutine}</span><button id="discard-all">discard all <kbd>⇧0</kbd></button></li>`:""}<li><button data-i="${i}" aria-current="${i===cur}" class="${t.human.without_me==="discard"?"gone":""}">
+  $("#rv-queue").innerHTML = ts.map((t,i) => { if(!shown(i)) return ""; const d = pick(t); return `${i===firstRoutine?`<li class="sep"><span class="lbl">Probably routine · ${nRoutine}</span><button id="discard-all">discard all <kbd>⇧0</kbd></button></li>`:""}<li><button data-i="${i}" aria-current="${i===cur}" class="${t.human.discard==="yes"?"gone":""}">
     <i class="dot" style="background:${mc(d.mode)}"></i><span class="t">${esc(d.title)}</span>
-    <span class="n ${t.human.without_me?"done":""}">${t.human.without_me==="discard"?"✕":t.human.without_me?"✓":t.events.length}</span></button></li>`; }).join("");
+    <span class="n ${t.human.discard?"done":""}">${t.human.discard==="yes"?"✕":t.human.discard?"✓":t.events.length}</span></button></li>`; }).join("");
   const t = ts[cur], d = pick(t), ev = new Set(JSON.parse(t.claude.evidence ?? "[]"));
   // The address follows the open thread, so reload and back keep your place.
   if(!$("#v-review").hidden) history.replaceState(null, "", `#/review?week=${data.week}&key=${encodeURIComponent(t.key)}${from ? `&from=${encodeURIComponent(from)}` : ""}`);
@@ -957,13 +957,13 @@ function render(){
   const evs = [...t.events].sort((a, b) => ev.has(b.id) - ev.has(a.id));
   const kinds = Object.entries(t.events.reduce((a,e) => (a[KIND[e.kind]??e.kind] = (a[KIND[e.kind]??e.kind]||0)+1, a), {})).map(([k,n]) => `${n} ${k}`).join(" · ");
   $("#rv-card").innerHTML = `
-    <div class="r-prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.without_me==="discard"?"g":x.human.without_me?"d":i===cur?"c":""}"></i>`).join("")}</div>
+    <div class="r-prog" aria-hidden="true">${ts.map((x,i) => `<i class="${x.human.discard==="yes"?"g":x.human.discard?"d":i===cur?"c":""}"></i>`).join("")}</div>
     <div class="gwrap">
       ${back ? `<a class="crumb" href="#/project?id=${encodeURIComponent(back.id)}">← ${esc(back.name)}</a>` : ""}
       <button class="gbtn" id="gopen" aria-haspopup="listbox" aria-expanded="false" title="Change project (P)">${t.projects.length ? t.projects.map(p => esc(p.name) + (p.by === "claude" ? ` <span class="ai" title="Claude placed this thread here">Claude</span>` : "")).join(", ") : "no project"} ▾</button>
       ${t.projects.some(p => p.by === "claude") ? `<button class="undo" id="unassign">wrong project ✕</button>` : ""}
       ${group && group.id !== from ? `<a class="crumb" href="#/project?id=${encodeURIComponent(group.id)}">across weeks →</a>` : ""}
-      <button class="discard" data-wm="discard" aria-pressed="${t.human.without_me==="discard"}" title="Not your impact: routine, noise, or someone else's work (0)"><kbd>0</kbd>discard${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button>
+      <button class="discard" data-wm="discard" aria-pressed="${t.human.discard==="yes"}" title="Not your impact: routine, noise, or someone else's work (0)"><kbd>0</kbd>discard${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button>
       <div class="gpop" id="gpop" hidden><input id="gq" placeholder="Find a project, or type a new topic" autocomplete="off" aria-label="Project"><ul id="gl-list" role="listbox"></ul></div></div>
     <div class="r-sec">
       <input class="r-title" id="rv-title" value="${esc(d.title)}" aria-label="Thread title">
@@ -981,7 +981,7 @@ function render(){
       <span></span><span class="legend"><i class="sug-dot"></i> Claude's pick</span>
     </div>
     <div class="r-ask"><span class="q">Without you?</span>
-      <div class="r-wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}</div></div>
+      <div class="r-wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.discard==="no" && t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}</div></div>
     <div class="r-keys" ${keys ? "" : "hidden"}><span><kbd>A</kbd>–<kbd>H</kbd> mode</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> pillar</span>
       <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> without you, save</span><span><kbd>0</kbd> discard</span><span><kbd>⇧0</kbd> discard all routine</span><span><kbd>J</kbd><kbd>K</kbd> move</span>
       <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>V</kbd> evidence</span><span><kbd>O</kbd> open evidence</span><span><kbd>P</kbd> project</span><span><kbd>?</kbd> hide</span></div>`;
@@ -1007,7 +1007,7 @@ async function nextWeek(){
   toast(`${data.week} done · opening ${w}`); draft = {}; await load(w); render();
 }
 function after(){
-  const next = data.threads.findIndex((x,i) => i > cur && !x.human.without_me), any = data.threads.findIndex(x => !x.human.without_me);
+  const next = data.threads.findIndex((x,i) => i > cur && !x.human.discard), any = data.threads.findIndex(x => !x.human.discard);
   if(next >= 0) go(next); else if(any >= 0) go(any); else if($("#rv-show").value === "pending") nextWeek(); else render();
 }
 
@@ -1015,7 +1015,7 @@ async function decide(wm){
   const t = data.threads[cur], d = pick(t);
   d.title = $("#rv-title").value.trim() || d.title;
   d.summary = $("#rv-summary").value.trim();
-  const labels = wm === "discard" ? {without_me: wm} : {title: d.title, mode: d.mode, pillar: d.pillar, without_me: wm, ...(d.summary && {summary: d.summary})};
+  const labels = wm === "discard" ? {discard: "yes"} : {title: d.title, mode: d.mode, pillar: d.pillar, without_me: wm, discard: "no", ...(d.summary && {summary: d.summary})};
   const r = await post("/api/labels", {week: data.week, key: t.key, labels});
   if(!r.ok){ toast(`Not saved: ${await r.text()}`); return; }
   Object.assign(t.human, labels);
@@ -1027,11 +1027,11 @@ async function decide(wm){
 async function discardAll(){
   const todo = data.threads.filter(routine);
   for(const t of todo){
-    const r = await post("/api/labels", {week: data.week, key: t.key, labels:{without_me:"discard"}});
+    const r = await post("/api/labels", {week: data.week, key: t.key, labels:{discard:"yes"}});
     if(!r.ok){ toast(`Stopped: ${await r.text()}`); break; }
-    t.human.without_me = "discard";
+    t.human.discard = "yes";
   }
-  toast(`Discarded ${todo.filter(t => t.human.without_me === "discard").length}`);
+  toast(`Discarded ${todo.filter(t => t.human.discard === "yes").length}`);
   after();
 }
 
