@@ -87,13 +87,29 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
     .toEqual([{ id: "calendar:sync", to_ref: "gdoc:D1" }]);
   expect(db.query("SELECT kind, l.to_ref FROM events e JOIN links l ON l.from_id = e.id WHERE e.source = 'drive' ORDER BY 1").all())
     .toEqual([{ kind: "doc_created", to_ref: "gdoc:D2" }, { kind: "doc_edited", to_ref: "gdoc:D1" }]);
-  // The PR, its issue and the Slack message share refs; the meeting joins D1, its notes doc.
+  // The PR, its issue and the Slack message share refs; ACME-40 joins through the Exports project.
+  // The meeting joins D1, its notes doc.
   expect(threads(db, ["2026-W42"])[0].sort())
-    .toEqual(["github:acme/api#101", "linear:ACME-41", "slack:C1/1791833652.842769"]);
+    .toEqual(["github:acme/api#101", "linear:ACME-40", "linear:ACME-41", "slack:C1/1791833652.842769"]);
   expect(threads(db, ["2026-W42"]).find((t) => t.includes("calendar:sync"))?.sort()).toEqual(["calendar:sync", "drive:D1:2026-W42"]);
   expect(db.query("SELECT project_id, milestone_id, week FROM events WHERE id = 'linear:ACME-41'").get())
     .toEqual({ project_id: "P-ACME-1", milestone_id: "m1", week: "2026-W42" });
   expect(db.query("SELECT to_ref FROM links WHERE from_id = 'linear:ACME-41'").all()).toEqual([{ to_ref: "github:acme/api#101" }]);
+});
+
+test("threads merge by main project, and a bridge between projects does not merge them", () => {
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  const ev = db.query("INSERT INTO events (id, source, kind, week, project_id, payload, run_id) VALUES (?, 'x', 'k', '2026-W42', ?, '{}', 'r')");
+  for (const [id, p] of [["linear:A-1", "P1"], ["linear:A-2", "P1"], ["linear:B-1", "P2"], ["linear:B-2", "P2"], ["github:x/y#1", null], ["github:x/y#2", null]]) ev.run(id, p);
+  const link = db.query("INSERT INTO links VALUES (?, ?, 'mentions')");
+  link.run("github:x/y#1", "linear:A-1");
+  link.run("github:x/y#1", "linear:A-2");
+  // PR 2 cites one issue of each project: a bridge.
+  link.run("github:x/y#2", "linear:A-2");
+  link.run("github:x/y#2", "linear:B-1");
+  const t = threads(db, ["2026-W42"]).map((g) => g.sort());
+  expect(t).toEqual([["github:x/y#1", "github:x/y#2", "linear:A-1", "linear:A-2", "linear:B-1"], ["linear:B-2"]]);
 });
 
 test("references normalize across sources", () => {

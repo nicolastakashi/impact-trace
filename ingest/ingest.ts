@@ -223,6 +223,9 @@ function ingestGithub(out: any, week: string, runId: string, event: any, link: a
 }
 
 // Work threads: events joined through the PRs, issues and docs they share. Raw URLs do not join.
+// Then threads with the same main Linear project merge: PRs that cite different issues of one
+// project are one piece of work. Only the main project counts, so one PR that cites two
+// projects cannot merge both whole projects.
 // ponytail: one hub ref (an epic named everywhere) merges its threads; cap by degree if that shows up.
 export function threads(db: Database, weeks: string[]) {
   const parent = new Map<string, string>();
@@ -240,7 +243,20 @@ export function threads(db: Database, weeks: string[]) {
   for (const l of links) parent.set(find(l.from_id), find(l.to_ref));
   const groups = new Map<string, string[]>();
   for (const { id } of events) groups.set(find(id), [...(groups.get(find(id)) ?? []), id]);
-  return [...groups.values()].sort((a, b) => b.length - a.length);
+
+  const project = new Map((db.query(`SELECT id, project_id FROM events WHERE week IN (${marks}) AND project_id IS NOT NULL`)
+    .all(...weeks) as any[]).map((e) => [e.id, e.project_id as string]));
+  const byProject = new Map<string, string[]>();
+  const out: string[][] = [];
+  for (const ids of groups.values()) {
+    const n = new Map<string, number>();
+    for (const id of ids) if (project.has(id)) n.set(project.get(id)!, (n.get(project.get(id)!) ?? 0) + 1);
+    // Most issues wins; a tie goes to the smaller id so the result does not depend on order.
+    const main = [...n].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0];
+    if (main) byProject.set(main, [...(byProject.get(main) ?? []), ...ids]);
+    else out.push(ids);
+  }
+  return [...out, ...byProject.values()].sort((a, b) => b.length - a.length);
 }
 
 if (import.meta.main) {
