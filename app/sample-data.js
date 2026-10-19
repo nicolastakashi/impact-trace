@@ -1,6 +1,9 @@
 // Fictional example data, so the app works without a local collection.
 const SAMPLE = true;
-// Real data lives in data/prototype-data.js, which is git-ignored.
+// The server builds the real version from the threads you keep in review.
+const WEEKS = ["W35","W36","W37","W38","W39","W40","W41","W42"];
+const REVIEWS = [28,19,22,27,17,27,15,10];
+const PERIOD = "2026-W35 – 2026-W42";
 const GOALS = [
   {id:"o1", short:"Self-serve", title:"Customers manage their whole setup as code", color:"var(--m-solve)"},
   {id:"o2", short:"Trusted alerts", title:"Alerts customers trust", color:"var(--m-clarify)"},
@@ -23,20 +26,20 @@ const REC = [
   {w:7, who:"Riley", role:"peer", where:"#kudos", t:"Worked through the whole offsite to unblock a key customer."},
 ];
 const ITEMS = [
-  {id:"2026-W35-i01", w:0, s:"up", title:"Three upstream PRs in one week", mode:"external", pillar:"big", reach:"external", links:[], p:{external:.9,build:.1}},
-  {id:"2026-W37-i01", w:2, s:"runners", title:"Private runners v0 shipped, shown to a customer the next day", mode:"build", pillar:"exec", reach:"up", rec:0, links:[], p:{build:.85,solve:.15}},
-  {id:"2026-W37-i02", w:2, s:"silences", ms:"Maintenance windows", title:"Challenged the maintenance-window model in review; the decision was reopened", mode:"clarify", pillar:"big", reach:"lateral",
+  {id:"2026-W35-i01", w:0, s:"up", title:"Three upstream PRs in one week", mode:"external", pillar:"big", wm:"wouldnt", links:[], p:{external:.9,build:.1}},
+  {id:"2026-W37-i01", w:2, s:"runners", title:"Private runners v0 shipped, shown to a customer the next day", mode:"build", pillar:"exec", wm:"wouldnt", rec:0, links:[], p:{build:.85,solve:.15}},
+  {id:"2026-W37-i02", w:2, s:"silences", ms:"Maintenance windows", title:"Challenged the maintenance-window model in review; the decision was reopened", mode:"clarify", pillar:"big", wm:"slower",
    quote:{t:"A window should be its own asset that creates and aggregates silences.", who:"Example, design review"}, links:[], p:{clarify:.8,prevent:.2}},
-  {id:"2026-W39-i01", w:4, s:"none", title:"Release animation in the in-app changelog", mode:"build", pillar:"exec", reach:"lateral", rec:1, links:[], p:{build:.9,clarify:.1}},
-  {id:"2026-W40-i01", w:5, s:"none", title:"The memory spike was not what the team assumed", mode:"prevent", pillar:"big", reach:"team",
+  {id:"2026-W39-i01", w:4, s:"none", title:"Release animation in the in-app changelog", mode:"build", pillar:"exec", wm:"slower", rec:1, links:[], p:{build:.9,clarify:.1}},
+  {id:"2026-W40-i01", w:5, s:"none", title:"The memory spike was not what the team assumed", mode:"prevent", pillar:"big", wm:"same",
    quote:{t:"A series cap is not the right tool here. The problem is fat labels.", who:"Example, Slack"}, links:[], p:{prevent:.6,clarify:.4}},
-  {id:"2026-W40-i02", w:5, s:"none", title:"Told a new teammate to push back on anything over-engineered", mode:"elevate", pillar:"level", reach:"team",
+  {id:"2026-W40-i02", w:5, s:"none", title:"Told a new teammate to push back on anything over-engineered", mode:"elevate", pillar:"level", wm:"same",
    quote:{t:"Feel free to push back on whatever you see as overengineered.", who:"Example, Slack"}, links:[], p:{elevate:.9,clarify:.1}},
-  {id:"2026-W40-i03", w:5, s:"access", title:"Finished work on rules that had stalled for months", mode:"build", pillar:"exec", reach:"team", rec:2, links:[], p:{build:.8,solve:.2}},
-  {id:"2026-W41-i01", w:6, s:"exports", title:"Opened the exports project: channel, design and tickets on day one", mode:"solve", pillar:"big", reach:"up", rec:3, links:[], p:{solve:.6,clarify:.4}},
-  {id:"2026-W41-i02", w:6, s:"runners", title:"Review on the operator, praised by a principal on another team", mode:"clarify", pillar:"level", reach:"lateral", rec:4, links:[], p:{clarify:.5,elevate:.5}},
-  {id:"2026-W42-i01", w:7, s:"exports", ms:"Safe delete", title:"Exports API released before a customer escalation", mode:"solve", pillar:"exec", reach:"up", rec:5, links:[], p:{solve:.8,build:.2}},
-  {id:"2026-W42-i02", w:7, s:"up", title:"Conference talk on metric contracts", mode:"external", pillar:"big", reach:"external", links:[], p:{external:.95,clarify:.05}},
+  {id:"2026-W40-i03", w:5, s:"access", title:"Finished work on rules that had stalled for months", mode:"build", pillar:"exec", wm:"same", rec:2, links:[], p:{build:.8,solve:.2}},
+  {id:"2026-W41-i01", w:6, s:"exports", title:"Opened the exports project: channel, design and tickets on day one", mode:"solve", pillar:"big", wm:"wouldnt", rec:3, links:[], p:{solve:.6,clarify:.4}},
+  {id:"2026-W41-i02", w:6, s:"runners", title:"Review on the operator, praised by a principal on another team", mode:"clarify", pillar:"level", wm:"slower", rec:4, links:[], p:{clarify:.5,elevate:.5}},
+  {id:"2026-W42-i01", w:7, s:"exports", ms:"Safe delete", title:"Exports API released before a customer escalation", mode:"solve", pillar:"exec", wm:"wouldnt", rec:5, links:[], p:{solve:.8,build:.2}},
+  {id:"2026-W42-i02", w:7, s:"up", title:"Conference talk on metric contracts", mode:"external", pillar:"big", wm:"wouldnt", links:[], p:{external:.95,clarify:.05}},
 ];
 const HIGHLIGHT = {item:"2026-W42-i01", when:"2026-10-16"};
 const PHASES = [

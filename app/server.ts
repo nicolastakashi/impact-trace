@@ -6,8 +6,7 @@ import { labelsOf, reviewThreads } from "../ingest/review";
 
 const db = open();
 const page = join(import.meta.dir, "index.html");
-// Real data stays in the git-ignored data/ folder; the repo ships only fictional samples.
-const local = join(import.meta.dir, "../data/prototype-data.js");
+// North and Trace read /data.js: built from your decisions, or the fictional sample before you have any.
 const sample = join(import.meta.dir, "sample-data.js");
 
 function projects(weeks: string[]) {
@@ -180,6 +179,56 @@ function project(id: string) {
     open: (db.query("SELECT count(*) n FROM events WHERE kind = 'issue_open' AND project_id = ?").get(id) as any).n });
 }
 
+// North and Trace: the threads you kept in review, the last 8 weeks. Same shape as sample-data.js.
+const SRC: Record<string, string> = { github: "GitHub", linear: "Linear", slack: "Slack", calendar: "Calendar", drive: "Docs" };
+const COLORS = ["var(--m-solve)", "var(--m-clarify)", "var(--m-elevate)"];
+// Slack markup to what a person reads: <@U1|Ana> → @Ana, <url|label> → label, bare links dropped.
+const plain = (t: string) => t.replace(/<@[A-Z0-9]+\|([^>]+)>/g, "@$1").replace(/<@[A-Z0-9]+>/g, "@someone").replace(/<#[A-Z0-9]+\|([^>]*)>/g, "#$1")
+  .replace(/<(?:https?|mailto):[^|>]+\|([^>]+)>/g, "$1").replace(/<(?:https?|mailto):[^>]+>/g, "").replace(/\s+/g, " ").trim();
+function north() {
+  const weeks = (db.query("SELECT DISTINCT week FROM labels ORDER BY 1 DESC LIMIT 8").all() as any[]).map((r) => r.week).reverse();
+  const meta = db.query("SELECT author, occurred_at, payload FROM events WHERE id = ?");
+  const items: any[] = [], rec: any[] = [];
+  weeks.forEach((week, w) => {
+    for (const t of reviewThreads(db, week)) {
+      const l = labelsOf(db, t);
+      const v = (f: string) => (l.find((r) => r.field === f && r.source === "human") ?? l.find((r) => r.field === f && r.source === "claude"))?.value;
+      if (l.find((r) => r.field === "discard" && r.source === "human")?.value !== "no") continue;
+      const it: any = { id: t.key, w, s: t.projects[0]?.id ?? "none", title: v("title") ?? t.events[0].title, summary: v("summary"),
+        mode: v("mode"), pillar: v("pillar"), wm: v("without_me"),
+        links: t.events.filter((e) => e.url).map((e) => [SRC[e.id.split(":")[0]] ?? "Other", e.title ?? e.kind, e.url]) };
+      // Praise others wrote: a Slack mention in a thread you kept, or a review comment marked praise.
+      for (const e of t.events) {
+        const m = meta.get(e.id) as any, p = JSON.parse(m.payload), text = p.text ?? p.body ?? "";
+        const praise = e.kind === "slack_mention" || (e.kind === "review_comment" && /^praise\b/i.test(text.trim()));
+        if (!praise || !text.trim()) continue;
+        it.rec ??= rec.length;
+        rec.push({ w, who: m.author ?? "", where: e.kind === "slack_mention" ? e.title : "PR review", t: plain(text).slice(0, 280), when: (m.occurred_at ?? "").slice(0, 10), item: t.key });
+      }
+      items.push(it);
+    }
+  });
+  if (!items.length) return null;
+  const all = projects(weeks).projects as any[];
+  const count = (s: string) => items.filter((i) => i.s === s).length;
+  const used = [...new Set(items.map((i) => i.s))].filter((s) => s !== "none");
+  // The three projects with the most items are the rings; the rest share "everything else".
+  const top = used.sort((a, b) => count(b) - count(a)).slice(0, 3);
+  const P: any = { none: { name: "No project", url: null, lead: null, status: "—", goal: null, ms: [] } };
+  for (const id of used) { const a = all.find((x) => x.id === id); P[id] = { name: a?.name ?? id, url: a?.url ?? null, lead: a?.lead ?? null, status: a?.status ?? "", goal: top.includes(id) ? id : null, ms: a?.ms ?? [] }; }
+  const reviews = weeks.map((w) => (db.query("SELECT json_extract(payload, '$.count') n FROM events WHERE kind = 'reviews_given' AND week = ?").get(w) as any)?.n ?? 0);
+  const last = items.filter((i) => i.w === weeks.length - 1);
+  const big = [...last.filter((i) => i.wm === "wouldnt" && i.rec != null), ...last.filter((i) => i.rec != null), ...last, ...items.slice().reverse()][0];
+  const js = (k: string, v: any) => `const ${k} = ${JSON.stringify(v)};`;
+  return [js("WEEKS", weeks.map((w) => w.slice(5))), js("REVIEWS", reviews), js("PERIOD", `${weeks[0]} – ${weeks.at(-1)}`),
+    js("GOALS", top.map((id, i) => ({ id, short: P[id].name, title: P[id].name, color: COLORS[i] }))),
+    js("PROJECTS", P), js("REC", rec), js("ITEMS", items), js("HIGHLIGHT", { item: big.id, when: big.rec != null ? rec[big.rec].when : "" }),
+    // One story screen per week: its threads, then its first praise.
+    js("PHASES", weeks.flatMap((wk, w) => { const r = rec.findIndex((x) => x.w === w);
+      return items.some((i) => i.w === w) ? [{ k: wk.slice(5), h: `${items.filter((i) => i.w === w).length} threads kept`, from: w, to: w }, ...(r >= 0 ? [{ k: wk.slice(5), rec: r }] : [])] : []; })),
+  ].join("\n");
+}
+
 // Setup: who you are, so the collectors search for you. ?guess=1 fills the form from the CLIs you already use.
 const sh = (...cmd: string[]) => { try { const p = Bun.spawnSync(cmd, { stderr: "ignore" }); return p.success ? p.stdout.toString().trim() : ""; } catch { return ""; } };
 function setup(guess: boolean) {
@@ -234,7 +283,7 @@ const server = Bun.serve({
     if (url.pathname === "/api/delete" && json) return del(await req.json().catch(() => null));
     if (url.pathname === "/api/restore" && json) return restore(await req.json().catch(() => null));
     if (url.pathname === "/api/unmerge" && json) return unmerge(await req.json().catch(() => null));
-    if (url.pathname === "/data.js") return new Response(Bun.file(existsSync(local) ? local : sample), { headers: { "content-type": "text/javascript" } });
+    if (url.pathname === "/data.js") { const d = north(); return new Response(d ?? Bun.file(sample), { headers: { "content-type": "text/javascript" } }); }
     if (url.pathname === "/api/projects") {
       const weeks = (url.searchParams.get("weeks") ?? "").split(",").filter((w) => /^\d{4}-W\d{2}$/.test(w));
       return Response.json(projects(weeks));
