@@ -27,5 +27,12 @@ bun app/server.ts        # first run opens the setup page: tools, who you are, f
 bun test                 # ingest self-check
 ```
 
+Or run the app in a container. Collection stays on your machine, where your Claude Code
+login and connectors are; both read and write the same `data/`.
+
+```bash
+docker compose up -d --build   # http://127.0.0.1:4317, rebuild after code changes
+```
+
 One week cost $0.67 on 2026-10-19: collection with Haiku, projects and labels with Sonnet. `ingest` exits 2 when a source failed or when
 Claude returned fewer GitHub PRs than `gh` counts on its own.

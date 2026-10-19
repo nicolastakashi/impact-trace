@@ -1,0 +1,11 @@
+# The web app only. Collection (./run.sh) stays on your machine, with your Claude Code
+# login and claude.ai connectors. Your data stays outside: compose mounts ./data.
+FROM oven/bun:1.4.2
+USER bun
+WORKDIR /app
+COPY --chown=bun app app
+COPY --chown=bun ingest ingest
+COPY --chown=bun db db
+ENV HOST=0.0.0.0 COLLECT_ON_HOST=1
+EXPOSE 4317
+CMD ["bun", "app/server.ts"]
