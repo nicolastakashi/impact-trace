@@ -80,7 +80,7 @@ section.view{padding-top:26px;display:grid;gap:22px}
 /* north: four bands, one question each */
 .north{display:grid;gap:12px}
 .tile{position:relative;background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow);overflow:hidden;min-width:0}
-.tile .th{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tile .th{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 8px}
 button.tile{text-align:left;cursor:pointer;font:inherit;color:inherit}
 button.tile:hover{border-color:var(--line-2)}
 .cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -95,16 +95,42 @@ button.tile:hover{border-color:var(--line-2)}
 .recap-btn:hover{border-color:var(--accent)}
 .recap-btn .play{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#111;display:grid;place-items:center;font-size:11px}
 
-.rings-wrap{display:grid;grid-template-columns:minmax(180px,240px) minmax(0,640px);gap:20px;align-items:center;flex:1}
-.rings{width:100%;height:auto;aspect-ratio:1;max-width:240px}
-.rings text{fill:var(--ink);font:800 34px var(--f-num)}
-.rings .sub{fill:var(--ink-3);font:600 10px var(--f-num);letter-spacing:.14em}
-.glist{display:grid;gap:14px;margin:0;padding:0;list-style:none}
-.glist button{all:unset;cursor:pointer;display:grid;grid-template-columns:12px 1fr auto;gap:10px;align-items:start;border-radius:8px;padding:4px}
-.glist button:focus-visible{outline:2px solid var(--accent)}
-.glist .gt{font-size:14px;line-height:1.3}
-.glist .gp{font:700 22px/1 var(--f-num)}
-.glist .gs{font-size:12px;color:var(--ink-3);grid-column:2/-1}
+/* Charts. One scale per chart, gridlines on round numbers, labels in the theme's ink.
+   Hue is for goals only; modes and answers use ink and accent so no color means two things. */
+.cap{margin:-6px 0 0;font-size:13px;color:var(--ink-3)}
+.wg{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,360px);gap:32px;align-items:start}
+.plot{position:relative;margin-left:30px}
+.plot .tick{position:absolute;left:0;right:0;border-top:1px solid var(--line)}
+.plot .tick.z{border-top-color:var(--line-2)}
+.plot .tick span{position:absolute;right:100%;margin-right:8px;transform:translateY(-50%);font:600 11px/1 var(--f-num);color:var(--ink-3);font-variant-numeric:tabular-nums}
+.plot .bars{position:relative;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:clamp(4px,1.4vw,14px);height:100%;align-items:end}
+.plot .stack{display:flex;flex-direction:column-reverse;height:100%;width:100%;max-width:56px;justify-self:center;transform-origin:bottom}
+.plot .stack i{display:block;flex:none;background:var(--c);border-top:2px solid var(--s1);transition:opacity .2s}
+.plot .stack i:last-child{border-radius:4px 4px 0 0}
+.plot .stack i.p{background:repeating-linear-gradient(135deg,var(--c) 0 4px,color-mix(in srgb,var(--c) 35%,transparent) 4px 7px)}
+.plot i.dim,.wg-t tr.dim{opacity:.22}
+/* "Serves no goal" is the rest, not a series: an outline keeps the total without taking the eye. */
+.plot .stack i.o,.sw.o{background:var(--s2);box-shadow:inset 0 0 0 1px var(--line-2)}
+.xax{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:clamp(4px,1.4vw,14px);margin:8px 0 0 30px;font:600 11px/1 var(--f-num);color:var(--ink-3);text-align:center}
+.xax .now{color:var(--ink)}
+.wg-t{width:100%;border-collapse:collapse}
+.wg-t th{font:600 11px/1 var(--f-num);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);text-align:right;padding:0 0 10px 10px;border-bottom:1px solid var(--line-2)}
+.wg-t th:first-child{text-align:left;padding-left:0}
+.wg-t td{padding:10px 0 10px 10px;border-bottom:1px solid var(--line);text-align:right;font:600 16px/1 var(--f-num);font-variant-numeric:tabular-nums;transition:opacity .2s}
+.wg-t td:first-child{text-align:left;padding-left:0}
+.wg-t button{all:unset;cursor:pointer;display:flex;gap:9px;align-items:center;font:400 13.5px/1.3 var(--f-body);color:var(--ink)}
+.wg-t button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wg-t .none button{color:var(--ink-2)}
+.sw.p{background:repeating-linear-gradient(135deg,var(--c) 0 2px,transparent 2px 4px);box-shadow:inset 0 0 0 1.5px var(--c)}
+.hb{display:grid;grid-template-columns:76px minmax(0,1fr) 26px;gap:10px;align-items:center;font-size:12.5px;color:var(--ink-2)}
+.hb .tr{height:8px;border-radius:2px;background:var(--s3)}
+.hb .tr i{display:block;height:100%;border-radius:2px;background:var(--ink-2);transform-origin:left}
+.hb .n{font:600 14px/1 var(--f-num);text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.part{display:flex;height:12px;border-radius:3px;overflow:hidden;gap:2px}
+.part i{display:block;background:var(--c);transform-origin:left}
+.pleg{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.pleg li{display:grid;grid-template-columns:14px 34px 1fr;gap:10px;align-items:center;font-size:12.5px;color:var(--ink-2)}
+.pleg b{font:600 16px/1 var(--f-num);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
 .ex{font:500 9.5px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);border:1px dashed var(--line-2);border-radius:4px;padding:3px 5px}
 
 .big-q{font:700 clamp(19px,2vw,24px)/1.28 var(--f-body);letter-spacing:-.01em;margin:0;text-wrap:balance}
@@ -118,16 +144,10 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .statn{font:800 64px/.85 var(--f-num)}
 .statn small{font-size:20px;color:var(--ink-3);margin-left:4px}
 
-.mixbars{display:grid;gap:7px}
-.mb{display:grid;grid-template-columns:74px 1fr 18px;gap:8px;align-items:center;font-size:12.5px;color:var(--ink-2)}
-.mb .tr{height:7px;border-radius:4px;background:var(--s3);overflow:hidden}
-.mb .tr i{display:block;height:100%;border-radius:4px;transform-origin:left}
-.mb .n{font:700 14px var(--f-num);text-align:right;color:var(--ink)}
 
 .edge{stroke-dasharray:3 7;animation:flow 1.6s linear infinite}
 @keyframes flow{to{stroke-dashoffset:-20}}
 
-.spark text{fill:var(--ink-3);font:600 10px var(--f-num)}
 .rec-nav{display:flex;gap:6px;align-items:center}
 .rec-nav button{border:1px solid var(--line);background:var(--s2);border-radius:8px;width:28px;height:28px;cursor:pointer;color:var(--ink-2)}
 
@@ -748,8 +768,8 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 .story .hint{position:absolute;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font:500 11px var(--f-mono);opacity:.7;z-index:2}
 
 @media (max-width:980px){ .split{grid-template-columns:1fr} }
-@media (max-width:860px){ .cols{grid-template-columns:1fr;gap:18px} .cols>div{border-left:0;padding:0} .cols>div+div{border-top:1px solid var(--line);padding-top:18px} }
-@media (max-width:620px){ .rings-wrap{grid-template-columns:1fr} .rings{max-width:200px;justify-self:center} .two{grid-template-columns:1fr} }
+@media (max-width:860px){ .wg{grid-template-columns:1fr} .cols{grid-template-columns:1fr;gap:18px} .cols>div{border-left:0;padding:0} .cols>div+div{border-top:1px solid var(--line);padding-top:18px} }
+@media (max-width:620px){ .two{grid-template-columns:1fr} }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
 </style>
 
@@ -782,10 +802,8 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   <div class="north">
     <div class="tile t-rings">
       <div class="th"><span class="lbl">Where the work goes</span><span id="rings-h"></span></div>
-      <div class="rings-wrap">
-        <svg class="rings" viewBox="0 0 240 240" role="img" aria-label="Share of items that serve each goal" id="rings"></svg>
-        <ul class="glist" id="glist"></ul>
-      </div>
+      <p class="cap" id="wg-cap"></p>
+      <div class="wg" id="wg"></div>
     </div>
     <div class="tile">
       <div class="th"><span class="lbl">How you delivered</span><a class="ref" href="#" data-v="trace">trace →</a></div>
@@ -937,6 +955,10 @@ const byGoals = typeof GOALS_FROM === "undefined" || GOALS_FROM === "goals";
 const mc = m => `var(--m-${m})`;
 const esc = s => String(s).replace(/[&<>"]/g, ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
 const $ = s => document.querySelector(s);
+// Count axis: a step of 1, 2 or 5 times a power of ten, at most 5 gridlines above zero.
+const axis = max => { const r = Math.max(1, max) / 5, p = 10 ** Math.floor(Math.log10(r)), f = r / p;
+  const st = Math.max(1, (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p), top = Math.ceil(Math.max(1, max) / st) * st;
+  return {top, ticks: Array.from({length: top/st + 1}, (_,i) => i*st)}; };
 const cnt = (arr, f) => arr.reduce((o,x)=>{const k=f(x); o[k]=(o[k]||0)+1; return o},{});
 let sel = new Set(), cur = 0, recI = Math.max(0, REC.length-1);
 
@@ -955,49 +977,63 @@ function renderHome(){
   $("#home-h").innerHTML = `${esc(WEEKS[0])}–${esc(WEEKS[LAST])} <em>·</em> ${WEEKS.length} weeks`;
   $("#home-p").innerHTML = `<b>${ITEMS.length}</b> threads you kept, <b>${REC.length}</b> mentions and praise, <b>${ups}</b> that would not have happened without you.`;
 
-  // rings: share of threads per goal. A thread can serve two goals, so the shares can add up to more than 100%.
-  const by = Object.fromEntries(GOALS.map(g => [g.id, ITEMS.filter(i => goalsOf(i).includes(g.id)).length])), n = ITEMS.length;
-  const none = ITEMS.filter(i => !goalsOf(i).length).length, R = [96,74,52];
-  // Most served first: only the top 3 get a ring.
-  const GS = [...GOALS].sort((a,b) => by[b.id] - by[a.id]);
-  $("#rings").innerHTML = GS.slice(0, 3).map((g,i)=>`
-    <circle cx="120" cy="120" r="${R[i]}" fill="none" stroke="var(--s3)" stroke-width="16" ${g.kind === "personal" ? `stroke-dasharray="3 3" pathLength="100"` : ""}/>
-    <circle class="ring" data-v="${by[g.id]/n*100}" cx="120" cy="120" r="${R[i]}" fill="none" stroke="${g.color}" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="${100-by[g.id]/n*100}" transform="rotate(-90 120 120)" style="filter:drop-shadow(0 0 6px color-mix(in srgb,${g.color} 60%,transparent))"/>`).join("")
-    + `<text x="120" y="124" text-anchor="middle"><tspan data-count="${n-none}">${n-none}</tspan>/${n}</text><text class="sub" x="120" y="142" text-anchor="middle">${byGoals ? "SERVE A GOAL" : `IN THE TOP ${GOALS.length}`}</text>`;
-  $("#glist").innerHTML = GS.map(g=>`<li><button data-goal="${g.id}"><i class="dot" style="${g.kind === "personal" ? `border:2px solid ${g.color}` : `background:${g.color}`};margin-top:5px"></i><span class="gt">${esc(g.title)}${g.kind === "personal" ? ` <span class="lbl">personal</span>` : ""}</span><span class="gp num">${Math.round(by[g.id]/n*100)}%</span><span class="gs">${by[g.id]} thread${by[g.id] === 1 ? "" : "s"} · ${ITEMS.filter(i=>goalsOf(i).includes(g.id)&&i.wm==="wouldnt").length} wouldn't happen without you</span></button></li>`).join("")
-    + `<li><button data-goal="none"><i class="dot" style="background:var(--line-2);margin-top:5px"></i><span class="gt" style="color:var(--ink-2)">${byGoals ? "Serves no goal" : "Everything else"}</span><span class="gp num" style="color:var(--ink-3)">${Math.round(none/n*100)}%</span><span class="gs">can be normal, or glue with no owner · <a class="ref" href="#" data-ref="glue">glue work</a></span></button></li>`;
-  $("#rings-h").innerHTML = byGoals ? `<a class="ref" href="#/goals">goals →</a>` : `<a class="ref" href="#/goals">top projects for now · add your goals →</a>`;
+  // Where the work goes: threads per week, stacked by goal. A thread that serves two goals
+  // counts once, in the goal that is served most, so every bar adds up to its week.
+  const n = ITEMS.length, served = g => ITEMS.filter(i => goalsOf(i).includes(g.id)).length;
+  const GS = [...GOALS].sort((a,b) => served(b) - served(a));
+  const first = i => GS.find(g => goalsOf(i).includes(g.id))?.id ?? "none";
+  const S = [...GS.map(g => ({id:g.id, name:g.title, c:g.color, p:g.kind === "personal"})),
+    {id:"none", name: byGoals ? "Serves no goal" : "Everything else", c:"var(--line-2)", o:true}]
+    .map(x => ({...x, its: ITEMS.filter(i => first(i) === x.id)}));
+  const per = WEEKS.map((_,w) => S.map(x => x.its.filter(i => i.w === w).length));
+  const {top, ticks: yt} = axis(Math.max(...per.map(c => c.reduce((a,b) => a+b, 0))));
+  const H = 220, fit = S.filter(x => x.id !== "none").reduce((a,x) => a + x.its.length, 0);
+  $("#wg-cap").textContent = `Threads you kept each week, by the ${byGoals ? "goal" : "project"} they serve.`;
+  $("#wg").innerHTML = `<figure style="margin:0">
+      <div class="plot" style="height:${H}px" role="img" aria-label="Threads per week by ${byGoals ? "goal" : "project"}">
+        ${yt.map(v => `<div class="tick${v ? "" : " z"}" style="top:${(1 - v/top)*100}%"><span>${v}</span></div>`).join("")}
+        <div class="bars" style="--n:${WEEKS.length}">${per.map((c,w) => `<div class="stack" title="${WEEKS[w]}: ${c.reduce((a,b)=>a+b,0)} threads${S.map((x,k) => c[k] ? `\n${x.name}: ${c[k]}` : "").join("")}">${S.map((x,k) => c[k] ? `<i data-s="${x.id}" class="${x.p ? "p" : x.o ? "o" : ""}" style="height:${c[k]/top*H}px;--c:${x.c}"></i>` : "").join("")}</div>`).join("")}</div>
+      </div>
+      <div class="xax" style="--n:${WEEKS.length}">${WEEKS.map((w,i) => `<span class="${i === LAST ? "now" : ""}">${w}</span>`).join("")}</div>
+    </figure>
+    <table class="wg-t">
+      <thead><tr><th>${byGoals ? "Goal" : "Project"}</th><th>Threads</th><th>Share</th><th title="You said it would not happen without you">Critical</th></tr></thead>
+      <tbody>${S.map(x => `<tr data-s="${x.id}" class="${x.id === "none" ? "none" : ""}">
+        <td><button data-goal="${x.id}"><i class="sw${x.p ? " p" : x.o ? " o" : ""}" style="--c:${x.c}"></i>${esc(x.name)}</button></td>
+        <td>${x.its.length}</td><td>${n ? Math.round(x.its.length/n*100) : 0}%</td><td>${x.its.filter(i => i.wm === "wouldnt").length}</td></tr>`).join("")}</tbody>
+    </table>`;
+  $("#rings-h").innerHTML = `<span class="ref">${n ? Math.round(fit/n*100) : 0}% serve a ${byGoals ? "goal" : "top project"} · </span>` + (byGoals ? `<a class="ref" href="#/goals">goals →</a>` : `<a class="ref" href="#/goals">add your goals →</a>`);
 
   // The highlight is where the praise carousel starts.
   const big = ITEMS.find(i=>i.id===HIGHLIGHT.item);
   if(big?.rec != null) recI = big.rec;
 
-  // mix
-  const m = cnt(ITEMS, modeOf), mx = Math.max(...Object.values(m));
+  // By mode: one ink, longest first. The labels say the mode; Trace keeps the mode colors.
+  const m = cnt(ITEMS, modeOf), mk = Object.keys(MODES).sort((a,b) => (m[b]||0) - (m[a]||0)), mx = Math.max(1, ...Object.values(m));
   $("#t-mix").innerHTML = `<span class="col-h">By mode</span>
-    <div class="mixbars">${Object.keys(MODES).map(k=>`<div class="mb"><a class="ref" style="color:var(--ink-2);font-size:12.5px;font-family:var(--f-body)" href="#" data-ref="${k}">${MODES[k]}</a><span class="tr"><i style="width:${(m[k]||0)/mx*100}%;background:${mc(k)}"></i></span><span class="n">${m[k]||0}</span></div>`).join("")}</div>`;
+    ${mk.map(k=>`<div class="hb"><a class="ref" style="color:var(--ink-2);font:400 12.5px var(--f-body)" href="#" data-ref="${k}">${MODES[k]}</a><span class="tr"><i style="width:${(m[k]||0)/mx*100}%"></i></span><span class="n">${m[k]||0}</span></div>`).join("")}`;
 
-  // without you: your own answer for each thread you kept
-  const wc = cnt(ITEMS, i=>i.wm), wx = Math.max(1, ...Object.values(wc));
+  // Without you: parts of one whole, so one bar. Only "wouldn't happen" gets the accent.
+  const wc = cnt(ITEMS, i=>i.wm), WC = {wouldnt:"var(--accent)", slower:"var(--ink-3)", same:"var(--line-2)"};
+  const wn = Object.keys(WMS).reduce((a,k) => a + (wc[k]||0), 0);
   $("#t-without").innerHTML = `<span class="col-h">Without you <a class="ref" href="#" data-ref="counterfactual">why →</a></span>
-    <div class="mixbars">${Object.keys(WMS).map(k=>`<div class="mb"><span style="color:var(--ink-2);font-size:12.5px">${WMS[k]}</span><span class="tr"><i style="width:${(wc[k]||0)/wx*100}%;background:var(--accent);opacity:${k==="wouldnt"?1:k==="slower"?.6:.3}"></i></span><span class="n">${wc[k]||0}</span></div>`).join("")}</div>`;
+    <div class="part" role="img" aria-label="${Object.keys(WMS).map(k => `${wc[k]||0} ${WMS[k]}`).join(", ")}">${Object.keys(WMS).map(k => wc[k] ? `<i style="flex:${wc[k]};--c:${WC[k]}"></i>` : "").join("")}</div>
+    <ul class="pleg">${Object.keys(WMS).map(k => `<li><i class="sw" style="--c:${WC[k]}"></i><b>${wc[k]||0}</b><span>${WMS[k]} · ${wn ? Math.round((wc[k]||0)/wn*100) : 0}%</span></li>`).join("")}</ul>
+    ${n - wn ? `<span class="by">${n - wn} not answered yet</span>` : ""}`;
 
   renderRec();
 
-  // reviews with baseline
-  const avg = REVIEWS.reduce((a,b)=>a+b)/REVIEWS.length;
-  const top = Math.max(30, ...REVIEWS), X = i=>12+i*(224/Math.max(1,LAST)), Y = v=>78-v/top*62;
-  const pts = REVIEWS.map((v,i)=>`${X(i)},${Y(v)}`).join(" ");
+  // Reviews given: columns on a zero baseline, the average as a dashed line, this week in ink.
+  // Not accent: a quiet week is not an alert.
+  const avg = REVIEWS.reduce((a,b)=>a+b, 0)/REVIEWS.length, {top: rt, ticks: rtk} = axis(Math.max(...REVIEWS)), RH = 110;
   $("#t-rev").innerHTML = `<span class="col-h">Reviews given <a class="ref" href="#" data-ref="elevate">elevate →</a></span>
-    <div style="display:flex;align-items:baseline;gap:10px"><span class="statn num" data-count="${REVIEWS[LAST]}">${REVIEWS[LAST]}</span><span style="font-size:12.5px;color:var(--ink-3)">in ${WEEKS[LAST]} · your normal is ${avg.toFixed(0)}</span></div>
-    <svg class="spark" viewBox="0 0 248 96" width="100%" role="img" aria-label="Reviews per week: ${REVIEWS.join(", ")}">
-      <line x1="12" x2="236" y1="${Y(avg)}" y2="${Y(avg)}" stroke="var(--ink-3)" stroke-dasharray="3 4"/>
-      <text x="236" y="${Y(avg)-5}" text-anchor="end">NORMAL ${avg.toFixed(0)}</text>
-      <polygon points="12,78 ${pts} ${X(LAST)},78" fill="var(--accent)" fill-opacity=".16"/>
-      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
-      <circle cx="${X(LAST)}" cy="${Y(REVIEWS[LAST])}" r="4" fill="var(--accent)"/>
-      ${WEEKS.map((w,i)=>`<text x="${X(i)}" y="93" text-anchor="middle">${w.slice(1)}</text>`).join("")}
-    </svg>`;
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="statn num" data-count="${REVIEWS[LAST]}">${REVIEWS[LAST]}</span><span style="font-size:12.5px;color:var(--ink-3)">in ${WEEKS[LAST]} · average ${avg.toFixed(0)}</span></div>
+    <figure style="margin:0"><div class="plot" style="height:${RH}px" role="img" aria-label="Reviews per week: ${REVIEWS.join(", ")}">
+      ${rtk.map(v => `<div class="tick${v ? "" : " z"}" style="top:${(1 - v/rt)*100}%"><span>${v}</span></div>`).join("")}
+      <div class="bars" style="--n:${WEEKS.length}">${REVIEWS.map((v,i) => `<div class="stack" title="${WEEKS[i]}: ${v} reviews"><i style="height:${v/rt*RH}px;--c:${i === LAST ? "var(--ink)" : "var(--line-2)"}"></i></div>`).join("")}</div>
+      <div class="tick" style="top:${(1 - avg/rt)*100}%;border-top:1.5px dashed var(--ink-2)"></div>
+    </div>
+    <div class="xax" style="--n:${WEEKS.length}">${WEEKS.map((w,i) => `<span class="${i === LAST ? "now" : ""}">${w}</span>`).join("")}</div></figure>`;
 
   renderWm();
 
@@ -1006,11 +1042,18 @@ function renderHome(){
   if(G){
     // fromTo, not from: renderHome runs twice on load, and a second from() would start at half opacity and stay there.
     G.fromTo(".north .tile",{y:14,opacity:0},{y:0,opacity:1,duration:.5,stagger:.05,ease:"power2.out",clearProps:"all"});
-    document.querySelectorAll("#rings .ring").forEach((c,i)=>G.fromTo(c,{attr:{"stroke-dashoffset":100}},{attr:{"stroke-dashoffset":100-c.dataset.v},duration:1.4,delay:.2+i*.15,ease:"power3.out"}));
-    G.fromTo(".mb .tr i",{scaleX:0},{scaleX:1,duration:.9,stagger:.06,ease:"power3.out",delay:.3});
+    // Bars grow from their baseline, left to right, so the eye reads the weeks in order.
+    G.fromTo("#v-home .stack",{scaleY:0},{scaleY:1,duration:.8,stagger:.04,ease:"expo.out",delay:.2});
+    G.fromTo("#v-home .hb .tr i, #v-home .part i",{scaleX:0},{scaleX:1,duration:.8,stagger:.04,ease:"expo.out",delay:.3});
     countUp($("#v-home"));
   }
 }
+// Legend and bars point at each other: hover a goal and only its series stays lit.
+const wgOn = id => document.querySelectorAll("#wg [data-s]").forEach(e => e.classList.toggle("dim", !!id && e.dataset.s !== id));
+$("#wg").addEventListener("mouseover", e => wgOn(e.target.closest("[data-s]")?.dataset.s));
+$("#wg").addEventListener("mouseleave", () => wgOn(null));
+$("#wg").addEventListener("focusin", e => wgOn(e.target.closest("[data-s]")?.dataset.s));
+$("#wg").addEventListener("focusout", () => wgOn(null));
 function renderRec(){
   const r = REC[recI];
   if(!r){ $("#t-rec").innerHTML = `<div class="th"><span class="lbl">What people said</span></div><p style="margin:0;font-size:14px;color:var(--ink-2)">No mentions or praise yet in the threads you kept.</p>`; return; }
