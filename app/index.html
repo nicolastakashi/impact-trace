@@ -535,13 +535,22 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .go-seed b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--s3);color:var(--accent);font-weight:600}
   .go-seed:hover,.go-seed:focus-visible{border-style:solid;border-color:var(--accent)}
   @media (prefers-reduced-motion:reduce){ .go-kind{transition:none} .go-kind:hover{transform:none} }
-  .go-form{display:grid;gap:12px;background:var(--s1);border:1px solid var(--line-2);border-radius:18px;padding:18px clamp(14px,2.5vw,22px)}
-  .go-form label{display:grid;gap:6px;font-size:13px;color:var(--ink-2)}
-  .go-form input,.go-form textarea,.go-form select{font:inherit;font-size:14.5px;color:var(--ink);background:var(--s2);border:1px solid var(--line-2);border-radius:10px;padding:9px 12px}
+  /* One control height, font and radius across the form, so fields line up. */
+  .go-form{--h:40px;display:grid;gap:14px;background:var(--s1);border:1px solid var(--line-2);border-radius:18px;padding:18px clamp(14px,2.5vw,22px)}
+  .go-form label,.go-form .fld{display:grid;gap:6px;font-size:13px;color:var(--ink-2)}
+  .go-form input,.go-form select,.go-form textarea{box-sizing:border-box;font:400 14px var(--f-body);color:var(--ink);background:var(--s2);border:1px solid var(--line-2);border-radius:10px;padding:0 12px}
+  .go-form input,.go-form select{height:var(--h)}
+  .go-form select{min-width:140px}
+  .go-form textarea{padding:10px 12px;line-height:1.5;resize:vertical}
   .go-form .row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
-  .go-form .seg{display:inline-flex;gap:4px}
-  .go-form .seg button{font:500 13px var(--f-body);color:var(--ink-2);background:var(--s2);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+  .go-form .seg{display:inline-flex;gap:4px;height:var(--h)}
+  .go-form .seg button{font:400 14px var(--f-body);color:var(--ink-2);background:var(--s2);border:1px solid var(--line-2);border-radius:10px;padding:0 14px;cursor:pointer}
   .go-form .seg button[aria-pressed="true"]{color:var(--ink);border-color:var(--ink-2);background:var(--s3)}
+  .go-btn{height:var(--h);font:500 13px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);background:none;border:1px solid var(--line-2);border-radius:10px;padding:0 16px;cursor:pointer}
+  .go-btn:hover{color:var(--ink);border-color:var(--ink-2)}
+  .go-btn.main{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+  .go-btn.main:hover{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+  .go-form :is(input,select,textarea,button):focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .go-form .err{color:var(--accent);font-size:13px;margin:0}
   .go-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
   .go-h h2{font:800 22px/1.05 var(--f-num);text-transform:uppercase;margin:0;text-wrap:balance}
@@ -1990,10 +1999,10 @@ function form(g){
   const kind = g.kind ?? "team", qs = quarters(); if(g.quarter && !qs.includes(g.quarter)) qs.unshift(g.quarter);
   return `<form class="go-form" id="go-form" data-id="${g.id ?? ""}" data-kind="${kind}">
     <label>Goal<input id="go-title" name="title" maxlength="120" required value="${esc(g.title ?? "")}" placeholder="Private Locations GA" autocomplete="off"></label>
-    <div class="row"><div class="seg" role="group" aria-label="Kind of goal"><button type="button" data-kind="team" aria-pressed="${kind === "team"}">Team or company</button><button type="button" data-kind="personal" aria-pressed="${kind === "personal"}">Personal</button></div>
+    <div class="row"><div class="fld"><span id="go-kind-l">Kind</span><div class="seg" role="group" aria-labelledby="go-kind-l"><button type="button" data-kind="team" aria-pressed="${kind === "team"}">Team or company</button><button type="button" data-kind="personal" aria-pressed="${kind === "personal"}">Personal</button></div></div>
       <label>Quarter<select id="go-q" name="quarter"><option value="">No end</option>${qs.map(q => `<option ${q === g.quarter ? "selected" : ""}>${q}</option>`).join("")}</select></label></div>
     <label>Key results, one per line (optional)<textarea id="go-krs" name="krs" rows="3" maxlength="2000">${esc(g.krs ?? "")}</textarea></label>
-    <div class="row"><button class="todo big" type="submit">${g.id ? "Save goal" : "Create goal"}</button><button class="undo" type="button" id="go-cancel">cancel</button></div></form>`;
+    <div class="row"><button class="go-btn main" type="submit">${g.id ? "Save goal" : "Create goal"}</button><button class="go-btn" type="button" id="go-cancel">Cancel</button></div></form>`;
 }
 function card(g, max){
   if(edit === g.id) return form(g);
