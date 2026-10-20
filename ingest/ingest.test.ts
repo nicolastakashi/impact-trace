@@ -3,7 +3,7 @@ import { expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ingestWeek, isoWeek, migrate, refOf, refsIn, threads } from "./ingest";
+import { dayOf, ingestWeek, isoWeek, migrate, refOf, refsIn, threads } from "./ingest";
 
 const ME = { name: "Riley Chen", github: "rchen", orgs: ["acme"], level: "Senior Engineer" };
 
@@ -37,9 +37,13 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
       at: "2026-10-14T07:50:00Z", linear_refs: ["ACME-41", "WEST-1", "UTF-8"] }],
   }));
   writeFileSync(join(dir, "github.expected"), "2\n");
+  // A Wednesday call that returned a Monday row: dropped, and the run is flagged.
+  writeFileSync(join(dir, "slack_own_5.run.json"), wrap({ week: "2026-W42", self_user_id: "U1", pages_read: 1, exhausted: true, messages: [
+    { pass: "own", channel_id: "C9", channel_name: "#dev", ts: String(Date.UTC(2026, 9, 12, 9) / 1000), permalink: "https://s/9", author_id: "U1", author_name: "Me", text: "monday" }] }));
   // Six pages read but one page of rows: Claude dropped the rest.
   writeFileSync(join(dir, "slack_own_4.run.json"), wrap({ week: "2026-W42", self_user_id: "U1", pages_read: 6, exhausted: true, messages: [] }));
-  writeFileSync(join(dir, "slack_own_3.run.json"), wrap({
+  // The old one-call-per-week file: no day, so only the week filter applies.
+  writeFileSync(join(dir, "slack_own.run.json"), wrap({
     week: "2026-W42", self_user_id: "U1", pages_read: 1, exhausted: true,
     messages: [
       { pass: "own", channel_id: "C1", channel_name: "#dev", ts: "1791833652.842769", permalink: "https://s/1", author_id: "U1", author_name: "Me",
@@ -80,7 +84,7 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   ingestWeek(db, dir, "2026-W42", ME);
 
   // ACME-40 is in the window but Claude did not pick it: flagged, and still ingested from the raw rows.
-  expect(first).toEqual({ linear: "count_mismatch", github: "count_mismatch", slack_own_3: "ok", slack_own_4: "count_mismatch", calendar: "ok", drive: "ok" });
+  expect(first).toEqual({ linear: "count_mismatch", github: "count_mismatch", slack_own: "ok", slack_own_4: "count_mismatch", slack_own_5: "count_mismatch", calendar: "ok", drive: "ok" });
   expect(db.query("SELECT group_concat(id) ids FROM events WHERE kind = 'issue_completed'").get()).toEqual({ ids: "linear:ACME-41,linear:ACME-40" });
   expect(db.query("SELECT count(*) n FROM events").get()).toEqual({ n: 9 });
   expect(db.query("SELECT kind, count(*) n FROM events WHERE source = 'slack' GROUP BY 1 ORDER BY 1").all())
@@ -138,4 +142,10 @@ test("references normalize across sources", () => {
   expect(refOf("https://docs.google.com/document/d/abc_D-1/edit")).toBe("gdoc:abc_D-1");
   expect(refsIn("PTAL <https://github.com/acme/api/pull/7|#7> fixes ACME-3, not UTF-8", new Set(["ACME"])).sort())
     .toEqual(["github:acme/api#7", "linear:ACME-3"]);
+});
+
+test("dayOf: Monday of an ISO week, at midnight UTC", () => {
+  expect(new Date(dayOf("2026-W42", 0)).toISOString()).toBe("2026-10-12T00:00:00.000Z");
+  expect(new Date(dayOf("2026-W53", 6)).toISOString()).toBe("2027-01-03T00:00:00.000Z");
+  expect(new Date(dayOf("2027-W01", 0)).toISOString()).toBe("2027-01-04T00:00:00.000Z");
 });

@@ -38,6 +38,12 @@ export function migrate(db: Database) {
   );
 }
 
+// Midnight UTC of a day in an ISO week: 0 is Monday.
+export function dayOf(week: string, i: number) {
+  const [y, w] = week.split("-W").map(Number), jan4 = Date.UTC(y, 0, 4);
+  return jan4 - ((new Date(jan4).getUTCDay() + 6) % 7) * 864e5 + ((w - 1) * 7 + i) * 864e5;
+}
+
 // ponytail: week of the UTC date; a Sunday-night Berlin timestamp lands in the next week.
 export function isoWeek(iso: string) {
   const d = new Date(iso.slice(0, 10) + "T00:00:00Z");
@@ -115,13 +121,18 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
       else {
         // No source gives Slack a total. Every page but the last is full, so N pages hold at
         // least (N-1) x 20 rows: Haiku read 11 pages and returned the first 20, saying it was done.
+        // A day call must return that day: one Saturday call came back with Monday's 93 rows.
+        // Rows more than a day off (time zones) are dropped and the run is flagged.
+        const n = Number(source.match(/_(\d)$/)?.[1]);
+        const off = n ? out.messages.filter((m: any) => Math.abs(Number(m.ts) * 1000 - dayOf(week, n - 1) - 12 * 36e5) > 36 * 36e5) : [];
+        if (off.length) { console.warn(`${source} ${week}: dropped ${off.length} rows from other days`); out.messages = out.messages.filter((m: any) => !off.includes(m)); out.dropped = off.length; }
         got = out.messages.length;
         expected = Math.max(0, (out.pages_read - 1) * SLACK_PAGE);
         if (!out.exhausted) console.warn(`slack ${week}: paging did not finish after ${out.pages_read} pages`);
         if (got < expected) console.warn(`${source} ${week}: ${out.pages_read} pages read but ${got} rows returned`);
       }
       const counted = expected == null || (source.startsWith("slack") ? got! >= expected : expected === got);
-      status = counted && out.exhausted !== false ? "ok" : "count_mismatch";
+      status = counted && out.exhausted !== false && !(source.startsWith("slack") && out.dropped) ? "ok" : "count_mismatch";
     }
     result[source] = status;
 
