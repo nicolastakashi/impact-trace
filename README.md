@@ -22,6 +22,17 @@ Claude may only flag the categories in `ingest/feedback-categories.json`. Each o
 (Reilly, Larson, Marquet, research on hedges), shown on its card as "Why this counts". Cards
 follow SBI (Situation, Behavior, Impact) and end with what to say next time.
 
+## How it works
+
+| Part | Doc |
+|---|---|
+| Collect from 5 sources, checked by code | [collect](docs/collect.md) |
+| Group events into threads and projects | [threads](docs/threads.md) |
+| Review: Claude suggests, you decide | [review](docs/review.md) |
+| North, Trace and Projects | [views](docs/views.md) |
+| Feedback on how you show up | [feedback](docs/feedback.md) |
+| The daily schedule, with no gaps | [schedule](docs/schedule.md) |
+
 `data/` holds your work data and `config.json`. It is git-ignored and must never be pushed.
 
 ## Before you start
