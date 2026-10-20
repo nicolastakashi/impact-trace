@@ -9,6 +9,11 @@ import { join } from "node:path";
 import { config, open, ROOT } from "./ingest";
 import { reviewThreads } from "./review";
 
+// What Claude may flag, and who says it matters. Claude picks from this list; code drops anything else.
+export const CATEGORIES: { id: string; kind: "pattern" | "strength"; name: string; look_for: string; not?: string; refs: any[] }[] =
+  JSON.parse(readFileSync(join(import.meta.dir, "feedback-categories.json"), "utf8"));
+const cat = (id: string, kind: string) => CATEGORIES.find((c) => c.id === id && c.kind === kind);
+
 type Msg = { week: string; at: string; channel: string; text: string; url: string | null };
 
 function window8(db: Database, week: string) {
@@ -64,6 +69,7 @@ export function emit(db: Database, week: string) {
   for (const w of weeks) for (const t of reviewThreads(db, w)) for (const p of t.projects) worked.add(p.name);
   const led = (db.query("SELECT name FROM projects WHERE lead = ?").all(me.name) as any[]).map((r) => r.name);
   return { week, level: me.level, weeks, projects_worked_on: [...worked], projects_led: led,
+    categories: CATEGORIES.map(({ id, kind, name, look_for, not }) => ({ id, kind, name, look_for, not })),
     messages: msgs.map((m) => ({ week: m.week, at: m.at, channel: m.channel, text: m.text })), previous: previous(db, week, weeks, msgs),
     verdicts: db.query("SELECT week, item, verdict, why FROM feedback_verdicts WHERE week < ? ORDER BY week DESC LIMIT 40").all(week) };
 }
@@ -83,14 +89,15 @@ export function verify(db: Database, week: string, out: any) {
   const weeks = window8(db, week), msgs = messages(db, weeks);
   const find = (q: string) => { const n = norm(q); return n.length >= 8 ? msgs.find((m) => norm(m.text ?? "").includes(n)) : undefined; };
   const cite = (e: any) => { const m = find(e.quote); return m && { ...e, quote: norm(e.quote), week: m.week, at: m.at, channel: m.channel, url: m.url }; };
-  const patterns = (out.patterns ?? []).map((p: any) => ({ ...p, markers: p.markers.map((x: string) => x.toLowerCase()), evidence: p.evidence.map(cite).filter(Boolean) }))
+  // The name comes from the category, so a verdict on it means the same thing every week.
+  const patterns = (out.patterns ?? []).filter((p: any) => cat(p.category, "pattern")).map((p: any) => ({ ...p, name: cat(p.category, "pattern")!.name, markers: p.markers.map((x: string) => x.toLowerCase()), evidence: p.evidence.map(cite).filter(Boolean) }))
     .filter((p: any) => p.evidence.length >= 2)
     .map((p: any) => ({ ...p, trend: trend(msgs, weeks, p.markers), matches: others(msgs, p) }));
-  const sev = (out.strength?.evidence ?? []).map(cite).filter(Boolean);
-  const target = patterns.find((p: any) => p.name === out.experiment?.pattern);
+  const sc = cat(out.strength?.category, "strength"), sev = sc ? (out.strength.evidence ?? []).map(cite).filter(Boolean) : [];
+  const target = patterns.find((p: any) => p.category === out.experiment?.pattern);
   return { week, weeks, messages: weeks.map((w) => msgs.filter((m) => m.week === w).length), patterns,
-    strength: sev.length ? { ...out.strength, evidence: sev } : null,
-    experiment: out.experiment ? { ...out.experiment, markers: target?.markers ?? [], trend: target?.trend ?? null } : null,
+    strength: sev.length ? { ...out.strength, name: sc!.name, evidence: sev } : null,
+    experiment: target ? { ...out.experiment, pattern: target.name, markers: target.markers, trend: target.trend } : null,
     last_experiment: out.last_experiment ?? null, previous: previous(db, week, weeks, msgs),
     dropped: (out.patterns ?? []).reduce((n: number, p: any) => n + p.evidence.length, 0) - patterns.reduce((n: number, p: any) => n + p.evidence.length, 0) };
 }
@@ -110,7 +117,8 @@ if (import.meta.main) {
   else if (cmd === "save") {
     const run = JSON.parse(readFileSync(file, "utf8")), out = run.structured_output;
     if (run.is_error || !out || out.week !== week) throw new Error(`feedback ${week}: no usable output`);
-    const version = createHash("sha256").update(readFileSync(join(ROOT, ".claude/skills/weekly-feedback/SKILL.md"))).digest("hex").slice(0, 8);
+    // The categories are part of the prompt too.
+    const version = createHash("sha256").update(readFileSync(join(ROOT, ".claude/skills/weekly-feedback/SKILL.md"))).update(JSON.stringify(CATEGORIES)).digest("hex").slice(0, 8);
     const v = verify(db, week, out);
     db.query(`INSERT INTO feedback VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (week) DO UPDATE SET output = excluded.output, model = excluded.model,
       prompt_version = excluded.prompt_version, cost_usd = excluded.cost_usd, at = excluded.at`)

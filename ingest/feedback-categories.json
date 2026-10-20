@@ -1,0 +1,73 @@
+[
+  {"id": "permission", "kind": "pattern", "name": "Asking permission on what you own",
+   "look_for": "Asking sign-off or objections on a decision inside your own ownership: \"any objection?\", \"is that ok?\", \"wdyt?\" at the end of a plan.",
+   "not": "Review requests, and real questions where you lack the context. The stronger version states intent and keeps people informed; it never acts in silence.",
+   "refs": [
+     {"q": "Radiating intent (instead of seeking permission or asking for forgiveness).", "who": "Tanya Reilly, The Staff Engineer's Path, ch. 7", "url": "https://danlebrero.com/2024/01/24/the-staff-engineers-path-summary/", "warn": "From a reader's notes, not the book"},
+     {"q": "instead of asking permission, we would say 'I intend to...'", "who": "L. David Marquet, Turn the Ship Around!", "url": "https://www.infoq.com/news/2015/11/intent-based-leadership-agile/"}]},
+  {"id": "open-decision", "kind": "pattern", "name": "Leaving a decision open",
+   "look_for": "A choice that is yours or blocks others, left without a call: \"let's see\", \"we can decide later\", options listed with no pick.",
+   "not": "Asking for input before a deadline you set.",
+   "refs": [
+     {"q": "Not deciding is a decision, usually not a good one.", "who": "Tanya Reilly, The Staff Engineer's Path, ch. 3", "url": "https://danlebrero.com/2024/01/24/the-staff-engineers-path-summary/", "warn": "From a reader's notes, not the book"}]},
+  {"id": "unwritten-decision", "kind": "pattern", "name": "Decision not written down",
+   "look_for": "A thread where you agree on something but nobody writes the decision, the owner and the reason.",
+   "not": "Small calls that change nothing for others.",
+   "refs": [
+     {"q": "Document any decision, including trade-offs and reasons.", "who": "Tanya Reilly, The Staff Engineer's Path", "url": "https://danlebrero.com/2024/01/24/the-staff-engineers-path-summary/", "warn": "From a reader's notes, not the book"},
+     {"q": "enable effective decision-making", "who": "Dropbox, IC5 Staff Engineer", "url": "https://dropbox.github.io/dbx-career-framework/ic5_staff_software_engineer.html"}]},
+  {"id": "vague-owner", "kind": "pattern", "name": "No owner or date",
+   "look_for": "Work stated with no person or day: \"someone should\", \"we need to\", \"at some point\".",
+   "not": "Brainstorming before anything is agreed.",
+   "refs": [
+     {"q": "wrong is better than vague. Be precise about who and what will do.", "who": "Tanya Reilly, The Staff Engineer's Path", "url": "https://softwarephilosopher.com/2024/10/27/the-staff-engineers-path-my-reading-notes/", "warn": "From a reader's notes, not the book"}]},
+  {"id": "delegate", "kind": "pattern", "name": "Keeping work you could hand off",
+   "look_for": "Taking work that would grow someone else: \"I'll just do it\", \"faster if I do it\", picking up a task a teammate asked about.",
+   "not": "Hands-on work on what you lead. Staying close to some projects is part of the role.",
+   "refs": [
+     {"q": "make the work theirs", "who": "Will Larson, Create space for others", "url": "https://staffeng.com/guides/create-space-for-others/"}]},
+  {"id": "late-escalation", "kind": "pattern", "name": "Apologising for escalating",
+   "look_for": "Escalation framed as a failure or a favour: \"sorry to escalate\", \"sorry to pull you in\", or a long stuck back-and-forth with no escalation.",
+   "not": "Escalations you made early and plainly; that is the strength.",
+   "refs": [
+     {"q": "Escalations are a natural part of working together", "who": "Will Larson", "url": "https://lethain.com/eng-strategies/"}]},
+  {"id": "fact-hedge", "kind": "pattern", "name": "Hedging a fact you know",
+   "look_for": "A casual hedge before something you know: \"I think maybe\", \"sort of\", \"might be wrong but\", \"just\" on a fact.",
+   "not": "Real uncertainty, real questions, and careful hedges such as \"possibly\" or \"the data suggests\". Research finds those do not hurt.",
+   "refs": [
+     {"says": "Hedges and other powerless markers lowered ratings of the message and the speaker when readers cared about the topic.", "who": "Blankenship & Holtgraves, 2005, J. of Language and Social Psychology", "url": "https://journals.sagepub.com/doi/10.1177/0261927X04273034", "warn": "Read from the abstract only"},
+     {"says": "Only casual hedges and hedges on data hurt. Professional hedges such as \"possibly\" did not.", "who": "Durik et al., 2008, J. of Language and Social Psychology", "url": "https://journals.sagepub.com/doi/10.1177/0261927X08317947", "warn": "Read from the abstract only"}]},
+  {"id": "buried-point", "kind": "pattern", "name": "Main point buried",
+   "look_for": "The ask, the decision or the conclusion comes last, after the background.",
+   "not": "Length alone. A long message with the point first is fine.",
+   "refs": [
+     {"q": "the main point at the beginning of the correspondence", "who": "US Army Regulation 25-50 (BLUF), quoted on Wikipedia", "url": "https://en.wikipedia.org/wiki/BLUF_(communication)"},
+     {"says": "Lead with the main idea, then the arguments that support it.", "who": "Barbara Minto, The Pyramid Principle, via a review", "url": "https://strategyu.co/pyramid-principle-partone/", "warn": "From a review, not the book"}]},
+  {"id": "not-amplifying", "kind": "pattern", "name": "Credit without names",
+   "look_for": "Shipped or solved work announced with no names: \"we shipped X\", \"I fixed Y\" when others did part of it.",
+   "not": "Work you did alone.",
+   "refs": [
+     {"q": "amplifying – promote good work so that others know about their accomplishments", "who": "Tanya Reilly, The Staff Engineer's Path, ch. 8", "url": "https://softwarephilosopher.com/2024/10/27/the-staff-engineers-path-my-reading-notes/", "warn": "From a reader's notes, not the book"},
+     {"q": "putting your thumb directly on the scale", "who": "Will Larson, on sponsorship", "url": "https://lethain.com/what-do-staff-engineers-actually-do/"}]},
+
+  {"id": "intent", "kind": "strength", "name": "Stating intent",
+   "look_for": "\"I'm doing X, tell me by <day> if that breaks you\": you act on what you own and keep people informed.",
+   "refs": [
+     {"q": "instead of asking permission, we would say 'I intend to...'", "who": "L. David Marquet, Turn the Ship Around!", "url": "https://www.infoq.com/news/2015/11/intent-based-leadership-agile/"}]},
+  {"id": "closing", "kind": "strength", "name": "Closing with a written decision",
+   "look_for": "You end a thread with the decision, the owner and the reason.",
+   "refs": [
+     {"q": "Document any decision, including trade-offs and reasons.", "who": "Tanya Reilly, The Staff Engineer's Path", "url": "https://danlebrero.com/2024/01/24/the-staff-engineers-path-summary/", "warn": "From a reader's notes, not the book"}]},
+  {"id": "consent-check", "kind": "strength", "name": "Asking who cannot live with it",
+   "look_for": "You check for blockers instead of agreement: \"can anyone not live with this?\"",
+   "refs": [
+     {"q": "Can anyone not live with option A?", "who": "Tanya Reilly, The Staff Engineer's Path, ch. 3", "url": "https://danlebrero.com/2024/01/24/the-staff-engineers-path-summary/", "warn": "From a reader's notes, not the book"}]},
+  {"id": "specific-praise", "kind": "strength", "name": "Specific praise",
+   "look_for": "You name what someone did and why it mattered, not only \"great job\".",
+   "refs": [
+     {"q": "Give praise that's specific and sincere", "who": "Kim Scott, Radical Candor", "url": "https://www.radicalcandor.com/our-approach/"}]},
+  {"id": "public-credit", "kind": "strength", "name": "Naming others' work in public",
+   "look_for": "You credit people by name in shared channels.",
+   "refs": [
+     {"q": "amplifying – promote good work so that others know about their accomplishments", "who": "Tanya Reilly, The Staff Engineer's Path, ch. 8", "url": "https://softwarephilosopher.com/2024/10/27/the-staff-engineers-path-my-reading-notes/", "warn": "From a reader's notes, not the book"}]}
+]

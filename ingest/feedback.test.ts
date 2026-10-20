@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
 import { migrate } from "./ingest";
-import { isoWeek, pendingMondays, verify } from "./feedback";
+import { CATEGORIES, isoWeek, pendingMondays, verify } from "./feedback";
 
 test("feedback keeps only quotes found in your messages and counts markers itself", () => {
   const db = new Database(":memory:", { strict: true });
@@ -12,14 +12,17 @@ test("feedback keeps only quotes found in your messages and counts markers itsel
   ev.run("slack:C/3", "2026-W42", "2026-10-14T10:00:00Z", JSON.stringify({ text: "wdyt? Also, this is unobjectionable" }));
   const v = verify(db, "2026-W42", {
     patterns: [
-      { name: "Sign-off", why: "", markers: ["Any objection", "wdyt"], evidence: [{ quote: "Moving the gate today, any objection?", instead: "" }, { quote: "shipping it Friday", instead: "" }] },
+      { category: "permission", why: "", markers: ["Any objection", "wdyt"], evidence: [{ quote: "Moving the gate today, any objection?", instead: "" }, { quote: "shipping it Friday", instead: "" }] },
       // A made-up quote is dropped, and a pattern left with one quote goes with it.
-      { name: "Made up", why: "", markers: ["sorry"], evidence: [{ quote: "sorry to bother you all", instead: "" }, { quote: "wdyt? Also", instead: "" }] },
+      // A category outside the catalog is dropped, even with real quotes.
+      { category: "smaller-asks", why: "", markers: ["any objection"], evidence: [{ quote: "Moving the gate today, any objection?", instead: "" }, { quote: "shipping it Friday", instead: "" }] },
+      { category: "fact-hedge", why: "", markers: ["sorry"], evidence: [{ quote: "sorry to bother you all", instead: "" }, { quote: "wdyt? Also", instead: "" }] },
     ],
-    strength: { name: "S", why: "", evidence: [{ quote: "never said this at all" }] },
-    experiment: { pattern: "Sign-off", do: "Say what you will do." },
+    strength: { category: "intent", why: "", evidence: [{ quote: "never said this at all" }] },
+    experiment: { pattern: "permission", do: "Say what you will do." },
   });
-  expect(v.patterns.map((p: any) => p.name)).toEqual(["Sign-off"]);
+  expect(v.patterns.map((p: any) => p.name)).toEqual(["Asking permission on what you own"]);
+  expect(v.experiment?.pattern).toBe("Asking permission on what you own");
   // Whitespace differences still match; "unobjectionable" does not count as "objection".
   expect(v.patterns[0].evidence.map((e: any) => e.week)).toEqual(["2026-W42", "2026-W41"]);
   expect(v.patterns[0].trend).toEqual([1, 2]);
@@ -27,7 +30,7 @@ test("feedback keeps only quotes found in your messages and counts markers itsel
   expect(v.patterns[0].matches.map((m: any) => m.text)).toEqual(["wdyt? Also, this is unobjectionable"]);
   expect(v.experiment?.trend).toEqual([1, 2]);
   expect(v.strength).toBeNull();
-  expect(v.dropped).toBe(2);
+  expect(v.dropped).toBe(4);
 });
 
 test("pending lists every ended week without feedback, so a missed Monday is closed later", () => {
@@ -46,4 +49,13 @@ test("pending lists every ended week without feedback, so a missed Monday is clo
   // Across New Year, and never more than 8 weeks back.
   expect(pendingMondays(new Date(2027, 0, 5), ["2026-W52"])).toEqual(["2026-12-28"]);
   expect(pendingMondays(new Date(2027, 0, 5), ["2025-W01"])).toHaveLength(8);
+});
+
+test("every category has a source to show", () => {
+  expect(new Set(CATEGORIES.map((c) => c.id)).size).toBe(CATEGORIES.length);
+  for (const c of CATEGORIES) {
+    expect(["pattern", "strength"]).toContain(c.kind);
+    expect(c.refs.length).toBeGreaterThan(0);
+    for (const r of c.refs) { expect(r.url).toMatch(/^https:\/\//); expect(r.q ?? r.says).toBeTruthy(); expect(r.who).toBeTruthy(); }
+  }
 });
