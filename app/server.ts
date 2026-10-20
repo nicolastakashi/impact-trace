@@ -5,7 +5,7 @@ import { CONFIG, LIVE, open, PLACED } from "../ingest/ingest";
 import { labelsOf, reviewThreads } from "../ingest/review";
 import { CATEGORIES } from "../ingest/feedback";
 
-const db = open();
+let db = open();
 const page = join(import.meta.dir, "index.html");
 // North and Trace read /data.js: built from your decisions, or the fictional sample before you have any.
 const sample = join(import.meta.dir, "sample-data.js");
@@ -281,6 +281,9 @@ const server = Bun.serve({
   // HOST is 0.0.0.0 and compose publishes the port on 127.0.0.1 only.
   hostname: process.env.HOST ?? "127.0.0.1",
   async fetch(req) {
+    // Collection writes from the host. Over Docker's file share an open connection can keep reading
+    // old pages, so each request reads with a fresh one.
+    db.close(); db = open();
     const url = new URL(req.url);
     // No cache: after an update or a new review, the next load shows it.
     if (url.pathname === "/") return new Response(Bun.file(page), { headers: { "cache-control": "no-cache" } });
