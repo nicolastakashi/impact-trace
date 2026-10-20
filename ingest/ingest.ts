@@ -14,6 +14,8 @@ export function config(): Config {
   return JSON.parse(readFileSync(CONFIG, "utf8"));
 }
 type Status = "ok" | "count_mismatch" | "error";
+// Rows per Slack search page; the collect-slack skill asks for `limit: 20`.
+const SLACK_PAGE = 20;
 
 export function open(path = join(ROOT, "data/impact.db")) {
   // A fresh clone has no data/ yet.
@@ -34,6 +36,12 @@ export function migrate(db: Database) {
       db.exec(`PRAGMA user_version = ${user_version + i + 1}`);
     })(),
   );
+}
+
+// Midnight UTC of a day in an ISO week: 0 is Monday.
+export function dayOf(week: string, i: number) {
+  const [y, w] = week.split("-W").map(Number), jan4 = Date.UTC(y, 0, 4);
+  return jan4 - ((new Date(jan4).getUTCDay() + 6) % 7) * 864e5 + ((w - 1) * 7 + i) * 864e5;
 }
 
 // ponytail: week of the UTC date; a Sunday-night Berlin timestamp lands in the next week.
@@ -84,9 +92,9 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
       payload=excluded.payload, run_id=excluded.run_id`);
   const link = db.query("INSERT OR IGNORE INTO links (from_id, to_ref, rel) VALUES (?, ?, ?)");
 
-  // slack_own is the old one-call-per-week file; weeks collected before the split still have it.
-  const days = [1, 2, 3, 4, 5, 6, 7].map((d) => `slack_own_${d}`);
-  for (const source of ["linear", "github", "slack_own", ...days, "slack_mention", "calendar", "drive"]) {
+  // slack_own and slack_mention are the old one-call-per-week files; older weeks still have them.
+  const days = [1, 2, 3, 4, 5, 6, 7].flatMap((d) => [`slack_own_${d}`, `slack_mention_${d}`]);
+  for (const source of ["linear", "github", "slack_own", "slack_mention", ...days, "calendar", "drive"]) {
     const file = join(dir, `${source}.run.json`);
     if (!existsSync(file)) continue;
     const run = JSON.parse(readFileSync(file, "utf8"));
@@ -111,11 +119,20 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
       else if (source === "calendar") got = out.events.length;
       else if (source === "drive") got = out.files.length;
       else {
-        // No source gives Slack a total, so the only check left is that paging finished.
+        // No source gives Slack a total. Every page but the last is full, so N pages hold at
+        // least (N-1) x 20 rows: Haiku read 11 pages and returned the first 20, saying it was done.
+        // A day call must return that day: one Saturday call came back with Monday's 93 rows.
+        // Rows more than a day off (time zones) are dropped and the run is flagged.
+        const n = Number(source.match(/_(\d)$/)?.[1]);
+        const off = n ? out.messages.filter((m: any) => Math.abs(Number(m.ts) * 1000 - dayOf(week, n - 1) - 12 * 36e5) > 36 * 36e5) : [];
+        if (off.length) { console.warn(`${source} ${week}: dropped ${off.length} rows from other days`); out.messages = out.messages.filter((m: any) => !off.includes(m)); out.dropped = off.length; }
         got = out.messages.length;
+        expected = Math.max(0, (out.pages_read - 1) * SLACK_PAGE);
         if (!out.exhausted) console.warn(`slack ${week}: paging did not finish after ${out.pages_read} pages`);
+        if (got < expected) console.warn(`${source} ${week}: ${out.pages_read} pages read but ${got} rows returned`);
       }
-      status = (expected == null || expected === got) && out.exhausted !== false ? "ok" : "count_mismatch";
+      const counted = expected == null || (source.startsWith("slack") ? got! >= expected : expected === got);
+      status = counted && out.exhausted !== false && !(source.startsWith("slack") && out.dropped) ? "ok" : "count_mismatch";
     }
     result[source] = status;
 
