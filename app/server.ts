@@ -283,7 +283,8 @@ function north() {
     for (const i of items) i.g = goals.some((g) => g.id === i.s) ? [i.s] : [];
   }
   goals.sort((a, b) => served(b.id) - served(a.id));
-  const reviews = weeks.map((w) => (db.query("SELECT json_extract(payload, '$.count') n FROM events WHERE kind = 'reviews_given' AND week = ?").get(w) as any)?.n ?? 0);
+  const weekly = (kind: string) => weeks.map((w) => (db.query("SELECT json_extract(payload, '$.count') n FROM events WHERE kind = ? AND week = ?").get(kind, w) as any)?.n ?? 0);
+  const reviews = weekly("reviews_given");
   const last = items.filter((i) => i.w === weeks.length - 1);
   const big = [...last.filter((i) => i.wm === "wouldnt" && i.rec != null), ...last.filter((i) => i.rec != null), ...last, ...items.slice().reverse()][0];
   const js = (k: string, v: any) => `const ${k} = ${JSON.stringify(v)};`;
@@ -298,7 +299,7 @@ function north() {
   return [js("WEEKS", weeks.map((w) => w.slice(5))), js("REVIEWS", reviews), js("PERIOD", `${weeks[0]} – ${weeks.at(-1)}`),
     js("GOALS", goals.map((g, i) => ({ ...g, color: COLORS[i % COLORS.length] }))), js("GOALS_FROM", from),
     js("NUMS", { slack: msgs.map((m) => m.length), channels: msgs.map((m) => new Set(m.map((x) => x.channel_name)).size), slackAt: msgs.map((m) => m.map((x) => x.t)),
-      meetings: per("meeting").map((m) => +m.reduce((a, x) => a + hours(x), 0).toFixed(1)), reach: ments.map((m) => new Set(m.map((x) => x.author_name)).size), merged: prs.map((m) => m.length),
+      meetings: per("meeting").map((m) => +m.reduce((a, x) => a + hours(x), 0).toFixed(1)), reach: ments.map((m) => new Set(m.map((x) => x.author_name)).size), merged: prs.map((m) => m.length), opened: weekly("prs_opened"),
       lead: prs.map((m) => median(m.filter((p) => p.opened).map((p) => (Date.parse(p.at) - Date.parse(p.opened)) / 36e5))) }),
     js("PROJECTS", P), js("REC", rec), js("ITEMS", items), js("HIGHLIGHT", { item: big.id, when: big.rec != null ? rec[big.rec].when : "" }),
     // Feedback, newest week first: what the code verified, never the raw Claude output.
