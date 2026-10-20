@@ -1,6 +1,6 @@
 ---
 name: collect-github
-description: Collect your GitHub PRs, reviews given and review comments received for one ISO week, as JSON for impact-trace. Read-only.
+description: Collect your GitHub PRs and review comments received for one ISO week, as JSON for impact-trace. Read-only.
 argument-hint: "<YYYY-MM-DD of the Monday> <LOGIN> <ORGS>"
 ---
 
@@ -37,16 +37,7 @@ Keep upstream repositories (open source projects outside `ORGS`).
 `linear_refs` are Linear identifiers such as `ACME-41` or `ACME-573` that appear in the
 title or the body. Upper-case them. Do not copy the body itself.
 
-## 3. Reviews given
-
-```
-gh search prs --reviewed-by LOGIN --updated FROM..TO --limit 200 \
-  --json number,author,repository
-```
-
-`reviews_given` is the number of rows whose author is not `LOGIN`.
-
-## 4. Review comments received
+## 3. Review comments received
 
 For each merged PR in a repository owned by one of `ORGS`, read both:
 
@@ -58,6 +49,6 @@ gh api --paginate repos/<repo>/pulls/<number>/reviews
 Keep comments and non-empty review bodies whose author is not `LOGIN` and does
 not end in `[bot]`. Copy `body` verbatim and `html_url` as `url`.
 
-## 5. Output
+## 4. Output
 
 Return only the structured output. Nothing else.

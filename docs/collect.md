@@ -1,6 +1,6 @@
 # Collect
 
-One week of your work, from 5 sources, into `data/impact.db`.
+One week of your work, from 6 sources, into `data/impact.db`.
 
 ```
 ╭──────────────╮   ╭──────────────╮   ╭──────────────╮
@@ -11,9 +11,10 @@ One week of your work, from 5 sources, into `data/impact.db`.
 
 | Source | What | Skill |
 |---|---|---|
-| GitHub | PRs, reviews given, review comments received | `collect-github` |
+| GitHub | PRs, review comments received | `collect-github` |
+| Reviews | every review you submitted, with its date | `collect-reviews` |
 | Linear | your issues and their projects | `collect-linear` |
-| Slack | your messages (one call per day), and mentions of you | `collect-slack` |
+| Slack | your messages and mentions of you, one call per day each | `collect-slack` |
 | Calendar | meetings with someone else that you did not decline | `collect-calendar` |
 | Drive | docs you own, created or changed that week | `collect-drive` |
 
@@ -24,9 +25,13 @@ One week of your work, from 5 sources, into `data/impact.db`.
 - **Read-only.** Each call gets only the tools it needs (`--allowedTools` in `run.sh`).
 - **Claude copies, code filters.** Claude returns every row; code drops rows outside the
   week. When Haiku filtered dates itself, it lost an issue.
-- **An independent count.** `gh` counts your merged PRs on its own. If Claude returned
-  fewer, `ingest` exits 2, and so does a source that failed.
-- **Slack in small calls.** One call for a busy week (338 messages) was too long, and one
-  call for both passes skipped the mentions.
+- **Independent counts.** `gh` counts your merged PRs and the PRs you reviewed on its own.
+  If Claude returned fewer, `ingest` exits 2, and so does a source that failed.
+- **Reviews by date, not by PR.** Search can only filter PRs by their last update, so a PR
+  you reviewed weeks ago counted again when its author pushed. Each review now counts in
+  the week you submitted it (W42: 9 counted before, 5 real).
+- **Slack in small calls.** A week in one call came back as its first page: 11 pages read,
+  20 rows returned. Code checks that the rows fill the pages read, and drops rows from
+  other days.
 
 Code: `run.sh`, `.claude/skills/collect-*`, `ingest/ingest.ts`. Next: [threads](threads.md).

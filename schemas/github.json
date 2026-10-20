@@ -4,7 +4,6 @@
     "week",
     "prs_merged",
     "prs_open",
-    "reviews_given",
     "review_comments_received"
   ],
   "properties": {
@@ -87,10 +86,6 @@
           }
         }
       }
-    },
-    "reviews_given": {
-      "type": "integer",
-      "minimum": 0
     },
     "review_comments_received": {
       "type": "array",
