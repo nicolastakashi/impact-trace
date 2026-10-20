@@ -117,7 +117,12 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
         const missed = [...inWindow].filter((id) => !picked.has(id));
         if (missed.length) console.warn(`linear ${week}: no attachments collected for ${missed.join(", ")}`);
         [expected, got] = [inWindow.size, [...inWindow].filter((id) => picked.has(id)).length];
-      } else if (source === "github") got = out.prs_merged.length;
+      } else if (source === "github") {
+        got = out.prs_merged.length;
+        // PRs opened have their own count: a short list flags the run like a short merged list.
+        const f = join(dir, "github_opened.expected"), n = out.prs_opened ? new Set(out.prs_opened.map((p: any) => p.url)).size : null;
+        if (n != null && existsSync(f) && Number(readFileSync(f, "utf8").trim()) !== n) { console.warn(`github ${week}: ${n} PRs opened, search says ${readFileSync(f, "utf8").trim()}`); out.short = true; }
+      }
       // Every PR from the search has one of your reviews: PRs missing from the rows were not read.
       else if (source === "reviews") got = new Set(out.reviews.filter((r: any) => r.author !== me.github).map((r: any) => `${r.repo}#${r.number}`)).size;
       else if (source === "calendar") got = out.events.length;
@@ -136,7 +141,7 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
         if (got < expected) console.warn(`${source} ${week}: ${out.pages_read} pages read but ${got} rows returned`);
       }
       const counted = expected == null || (source.startsWith("slack") ? got! >= expected : expected === got);
-      status = counted && out.exhausted !== false && !(source.startsWith("slack") && out.dropped) ? "ok" : "count_mismatch";
+      status = counted && out.exhausted !== false && !out.short && !(source.startsWith("slack") && out.dropped) ? "ok" : "count_mismatch";
     }
     result[source] = status;
 
@@ -263,6 +268,9 @@ function ingestGithub(db: Database, out: any, week: string, runId: string, event
       for (const r of p.linear_refs) if (keys.has(r.split("-")[0])) link.run(id, `linear:${r}`, "mentions");
     }
   }
+  // Older runs have no PRs opened: the North tile shows 0 for them.
+  if (out.prs_opened) event.run(`github:prs_opened:${week}`, "github", "prs_opened", week, null, null, null, me.github, null, null,
+    JSON.stringify({ count: new Set(out.prs_opened.map((p: any) => p.url)).size }), runId);
   // Older runs counted PRs updated in the week; the reviews source replaces that count.
   if (out.reviews_given != null) event.run(`github:reviews_given:${week}`, "github", "reviews_given", week, null, null, null, me.github, null, null,
     JSON.stringify({ count: out.reviews_given }), runId);

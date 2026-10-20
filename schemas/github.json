@@ -4,6 +4,7 @@
     "week",
     "prs_merged",
     "prs_open",
+    "prs_opened",
     "review_comments_received"
   ],
   "properties": {
@@ -87,6 +88,28 @@
               "type": "string",
               "pattern": "^[A-Z]+-\\d+$"
             }
+          }
+        }
+      }
+    },
+    "prs_opened": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "repo",
+          "number",
+          "url"
+        ],
+        "properties": {
+          "repo": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer"
+          },
+          "url": {
+            "type": "string"
           }
         }
       }
