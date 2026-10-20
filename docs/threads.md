@@ -14,6 +14,8 @@ A thread groups them, so you judge the work once, not each event.
 
 - **Strong links join.** A PR and the issues it cites, a review and its PR, a doc and itself.
   Then threads with the same main Linear project merge.
+- **Issues that move on keep their pull.** An open issue lives in the latest week that saw it.
+  A PR that cites it still goes to that issue's project, so a week does not split next Monday.
 - **Weak links attach.** A Slack message or a meeting goes to the one thread it cites most,
   and never joins two threads: one "PTAL #1 #2 #3" would glue unrelated work.
 - **Raw URLs do not join.** Agendas carry board and huddle links that would join everything.

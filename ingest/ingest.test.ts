@@ -130,6 +130,20 @@ test("threads merge by main project, and a bridge between projects does not merg
   expect(t).toEqual([["github:x/y#1", "github:x/y#2", "linear:A-1", "linear:A-2", "linear:B-1"], ["linear:B-2"]]);
 });
 
+test("a PR keeps its project when the issue it cites moved to a later week", () => {
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  const ev = db.query("INSERT INTO events (id, source, kind, week, project_id, payload, run_id) VALUES (?, 'x', 'k', ?, ?, '{}', 'r')");
+  ev.run("linear:A-1", "2026-W42", "P1");
+  ev.run("linear:A-9", "2026-W43", "P1"); // still open, so next week's run moved it
+  ev.run("github:x/y#1", "2026-W42", null);
+  ev.run("github:x/y#2", "2026-W42", null);
+  const link = db.query("INSERT INTO links VALUES (?, ?, 'mentions')");
+  link.run("github:x/y#1", "linear:A-1");
+  link.run("github:x/y#2", "linear:A-9");
+  expect(threads(db, ["2026-W42"]).map((g) => g.sort())).toEqual([["github:x/y#1", "github:x/y#2", "linear:A-1"]]);
+});
+
 test("a Slack message citing two unrelated PRs attaches to one and joins neither", () => {
   const db = new Database(":memory:", { strict: true });
   migrate(db);

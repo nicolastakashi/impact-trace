@@ -320,12 +320,21 @@ export function threads(db: Database, weeks: string[]) {
   const groups = new Map<string, string[]>();
   for (const e of events) if (!weak.has(e.id)) groups.set(find(e.id), [...(groups.get(find(e.id)) ?? []), e.id]);
   const project = new Map(events.filter((e) => e.p).map((e) => [e.id, e.p as string]));
+  // An open issue lives in the latest week that saw it, so a PR can cite an issue that has
+  // moved on to a later week. Its project still places the PR: W43 took three W42 PRs out of their thread.
+  const inWeek = new Set(events.map((e) => e.id)), placed = db.query(`SELECT ${PROJECT} p FROM events WHERE id = ?`);
+  const away = new Map<string, string[]>(); // group root → projects of issues cited from other weeks
+  for (const l of links) {
+    if (weak.has(l.from_id) || !l.to_ref.startsWith("linear:") || inWeek.has(l.to_ref)) continue;
+    const p = (placed.get(l.to_ref) as any)?.p;
+    if (p) away.set(find(l.from_id), [...(away.get(find(l.from_id)) ?? []), p]);
+  }
   const out: string[][] = [];
   const byProject = new Map<string, string[]>();
   const home = new Map<string, string[]>(); // group root → its thread
   for (const [root, ids] of groups) {
     const n = new Map<string, number>();
-    for (const id of ids) if (project.has(id)) n.set(project.get(id)!, (n.get(project.get(id)!) ?? 0) + 1);
+    for (const p of [...ids.filter((id) => project.has(id)).map((id) => project.get(id)!), ...(away.get(root) ?? [])]) n.set(p, (n.get(p) ?? 0) + 1);
     // Most issues wins; a tie goes to the smaller id so the result does not depend on order.
     const main = [...n].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0];
     let t: string[];
