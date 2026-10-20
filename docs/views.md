@@ -16,7 +16,7 @@ Your week on one screen.
 
 ## Trace
 
-Your weeks shown the way Dash0 shows a request.
+Your weeks shown the way a tracing tool shows a request.
 
 | Trace view | Your work |
 |---|---|

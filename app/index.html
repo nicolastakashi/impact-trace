@@ -130,7 +130,7 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 
 /* trace */
 .panel{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
-/* Trace: your weeks as Dash0 traces. Explorer heatmap on top (start day × duration, drag to brush weeks),
+/* Trace: your weeks as distributed traces. Explorer heatmap on top (start day × duration, drag to brush weeks),
    waterfall below (a week is a trace, a kept thread is a span), span sidebar on the right.
    Color map: mode = service color (--m-*), heatmap = accent ramp (mode color when filtered),
    selection = ink outline, critical path ("without you it wouldn't happen") = ink ring, span events = ticks. */
@@ -1998,7 +1998,7 @@ async function open(focus){
 function form(g){
   const kind = g.kind ?? "team", qs = quarters(); if(g.quarter && !qs.includes(g.quarter)) qs.unshift(g.quarter);
   return `<form class="go-form" id="go-form" data-id="${g.id ?? ""}" data-kind="${kind}">
-    <label>Goal<input id="go-title" name="title" maxlength="120" required value="${esc(g.title ?? "")}" placeholder="Private Locations GA" autocomplete="off"></label>
+    <label>Goal<input id="go-title" name="title" maxlength="120" required value="${esc(g.title ?? "")}" placeholder="Exports API GA" autocomplete="off"></label>
     <div class="row"><div class="fld"><span id="go-kind-l">Kind</span><div class="seg" role="group" aria-labelledby="go-kind-l"><button type="button" data-kind="team" aria-pressed="${kind === "team"}">Team or company</button><button type="button" data-kind="personal" aria-pressed="${kind === "personal"}">Personal</button></div></div>
       <label>Quarter<select id="go-q" name="quarter"><option value="">No end</option>${qs.map(q => `<option ${q === g.quarter ? "selected" : ""}>${q}</option>`).join("")}</select></label></div>
     <label>Key results, one per line (optional)<textarea id="go-krs" name="krs" rows="3" maxlength="2000">${esc(g.krs ?? "")}</textarea></label>
@@ -2030,7 +2030,7 @@ function first(){
     <h2>What does your work serve?</h2>
     <p>Name two to four goals. North then shows how much of your work serves each one, and what serves none.</p>
     <div class="go-kinds">
-      <button class="go-kind" data-new="team">${ring(false)}<b>Team or company goal</b><span>“Private Locations GA”. Usually served by projects.</span></button>
+      <button class="go-kind" data-new="team">${ring(false)}<b>Team or company goal</b><span>“Exports API GA”. Usually served by projects.</span></button>
       <button class="go-kind" data-new="personal">${ring(true)}<b>Personal goal</b><span>“Grow two engineers to lead projects”. Usually single threads: a pairing, a review that taught.</span></button></div>
     ${top.length ? `<span class="lbl">Start from your work</span><p>Your busiest projects. One tap makes it a goal, linked, and opens it so you can rename it.</p>
       <div class="go-seeds">${top.map(p => `<button class="go-seed" data-seed="${esc(p.id)}"><i class="src ${p.kind}"></i>${esc(p.name)}<span>${p.threads} threads</span><b>＋</b></button>`).join("")}</div>` : ""}

@@ -15,12 +15,12 @@ What your work serves. You write the goals; nothing measures them yet.
 
 | Kind | Example | Usually linked by |
 |---|---|---|
-| team or company | "Private Locations GA" | a project |
+| team or company | "Exports API GA" | a project |
 | personal | "Grow two engineers to lead projects" | single threads: a pairing, a review that taught |
 
 ## Why it works this way
 
-- **Written by you.** Dash0 has no OKR process yet, so the app is where goals live. Key
+- **Written by you.** Many teams have no OKR process, so the app is where goals live. Key
   results are plain text, one per line. "Goals", not "OKRs": nothing measures them.
 - **Two ways to link.** A project links all its threads, every week. A personal goal rarely
   has a project, so one thread can link on its own.
