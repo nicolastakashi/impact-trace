@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CONFIG, LIVE, open, PLACED } from "../ingest/ingest";
 import { labelsOf, reviewThreads } from "../ingest/review";
+import { CATEGORIES } from "../ingest/feedback";
 
 const db = open();
 const page = join(import.meta.dir, "index.html");
@@ -305,7 +306,8 @@ const server = Bun.serve({
     if (url.pathname === "/api/restore" && json) return restore(await req.json().catch(() => null));
     if (url.pathname === "/api/feedback" && json) return verdict(await req.json().catch(() => null));
     if (url.pathname === "/api/unmerge" && json) return unmerge(await req.json().catch(() => null));
-    if (url.pathname === "/data.js") { const d = north(); return new Response(d ?? Bun.file(sample), { headers: { "content-type": "text/javascript", "cache-control": "no-cache" } }); }
+    // The feedback categories and their sources come with the data, the example too.
+    if (url.pathname === "/data.js") { const d = north() ?? await Bun.file(sample).text(); return new Response(`const FB_CATS = ${JSON.stringify(CATEGORIES)};\n${d}`, { headers: { "content-type": "text/javascript", "cache-control": "no-cache" } }); }
     if (url.pathname === "/api/projects") {
       const weeks = (url.searchParams.get("weeks") ?? "").split(",").filter((w) => /^\d{4}-W\d{2}$/.test(w));
       return Response.json(projects(weeks));

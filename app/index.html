@@ -306,7 +306,13 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .rw-was mark{color:var(--ink);padding:0 2px;border-radius:2px;background:linear-gradient(color-mix(in srgb,var(--accent) 38%,transparent),color-mix(in srgb,var(--accent) 38%,transparent)) no-repeat 0 100% / 0% 45%;transition:background-size .55s cubic-bezier(.16,1,.3,1)}
 .rw.on .rw-was mark{background-size:100% 45%}
 .rw-now{display:grid;gap:4px;padding-top:12px;border-top:1px dashed var(--line-2)}
-.rw-now span{font:500 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.rw-now span,.rw-k{font:500 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.rw-b{display:grid;gap:4px}
+.fb-imp{display:grid;gap:4px}
+.why.fb-src{gap:6px;padding:12px 14px;max-width:62ch;background:var(--s2);border-color:var(--line)}
+.fb-src p{font-size:14px;line-height:1.5}
+.fb-src div{display:flex;flex-wrap:wrap;gap:4px 14px}
+.ref.warn{color:var(--ink-3)}
 .rw-now p{margin:0;font-size:15.5px;line-height:1.55;color:var(--ink);font-weight:500}
 .rw.keep{border-color:color-mix(in srgb,var(--m-build) 35%,var(--line))}
 .fb-fh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
@@ -622,6 +628,8 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 .refc li{display:grid;grid-template-rows:auto 1fr auto;gap:10px;background:var(--s2);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
 .refc li::before{content:"“";font:800 54px/.6 var(--f-num);color:var(--c,var(--ink-3));height:22px}
 .refc q{font-size:clamp(17px,1.8vw,20px);line-height:1.4;quotes:none;text-wrap:pretty}
+.refc li:has(.says)::before{content:"In our words";font:500 10.5px/22px var(--f-mono);letter-spacing:.06em;text-transform:uppercase}
+.refc .says{margin:0;font-size:clamp(16px,1.6vw,18px);line-height:1.45;color:var(--ink-2);text-wrap:pretty}
 .refc .ref{align-self:end}
 @media (max-width:760px){
   .refs{grid-template-columns:1fr}
@@ -1148,7 +1156,20 @@ function openItem(id){
 const WM = [["wouldnt","wouldn't happen"],["slower","slower"],["same","same"]];
 
 /* FEEDBACK: how you show up, from your own messages. The experiment first, then each pattern with your words and a stronger version. */
-const FB = typeof FEEDBACK === "undefined" ? [] : FEEDBACK;
+const FB = typeof FEEDBACK === "undefined" ? [] : FEEDBACK, CATS = typeof FB_CATS === "undefined" ? [] : FB_CATS;
+if(CATS.length) REFS.feedback = {title:"Feedback categories", d:"What Claude may flag in your Slack messages, and who says it matters. Anything outside this list is dropped by the code.",
+  ex: CATS.map(c => c.name), items: Object.values(CATS.reduce((a, c) => { for(const x of c.refs){ const k = x.url + (x.q ?? x.says);
+    a[k] ??= {...x, names: []}; a[k].names.push(c.name); } return a; }, {})).map(x => ({...x, who: `${x.names.join(", ")} · ${x.who}`}))};
+REFS.sbi = {title:"How feedback is written", d:"Each card follows Situation, Behavior, Impact: where you wrote it, your exact words, what it costs. Then what to say next time.",
+  ex:["Situation", "Behavior", "Impact", "Next time"], items:[
+  {q:"Describe the actual, observable behavior being discussed.", who:"Center for Creative Leadership, SBI model", url:"https://www.ccl.org/articles/leading-effectively-articles/sbi-feedback-model-a-quick-win-to-improve-talent-conversations-development/"},
+  {q:"No feedback about the past, only ideas for the future.", who:"Marshall Goldsmith, Feedforward", url:"https://hr.uiowa.edu/sites/hr.uiowa.edu/files/2022-10/FeedForward.pdf"}]};
+// Why a pattern counts: its first source, the rest on the References page.
+function srcOf(it){
+  const c = CATS.find(x => x.id === it.category && x.kind === (it.keep ? "strength" : "pattern")), x = c?.refs[0]; if(!x) return "";
+  return `<div class="why fb-src"><span class="lbl">Why this counts</span><p>${x.q ? `“${esc(x.q)}”` : esc(x.says)}</p>
+    <div><a class="ref" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.who)} ↗</a>${x.warn ? `<span class="ref warn">${esc(x.warn)}</span>` : ""}<a class="ref" href="#/refs?k=feedback">all sources →</a></div></div>`;
+}
 let fbW = 0, fbP = 0;
 const wk = w => w.slice(5);
 const nextWeek = w => `W${String(+w.slice(6) + 1).padStart(2, "0")}`; // ponytail: W53 and New Year are not handled
@@ -1241,13 +1262,13 @@ function focus(it, f){
       <div class="fb-ax" style="--n:${it.trend.length}">${f.weeks.map(w => `<span>${wk(w)}</span>`).join("")}</div></div>`;
   }
   const cards = `<div class="rws">${it.evidence.map(x => `<article class="rw${it.keep ? " keep" : ""}">
-      <div class="rw-h"><span>${esc(when(x))}</span>${x.url ? `<a class="ref" href="${esc(x.url)}" target="_blank" rel="noopener">open in Slack ↗</a>` : ""}</div>
-      <p class="rw-was">“${markQ(x.quote, it.markers)}”</p>
-      ${x.instead ? `<div class="rw-now"><span>Say it like this</span><p>${esc(x.instead)}</p></div>` : ""}</article>`).join("")}</div>`;
+      <div class="rw-h"><span class="rw-k">Situation</span><span>${esc(when(x))}</span>${x.url ? `<a class="ref" href="${esc(x.url)}" target="_blank" rel="noopener">open in Slack ↗</a>` : ""}</div>
+      <div class="rw-b"><span class="rw-k">Behavior</span><p class="rw-was">“${markQ(x.quote, it.markers)}”</p></div>
+      ${x.instead ? `<div class="rw-now"><span>Next time</span><p>${esc(x.instead)}</p></div>` : ""}</article>`).join("")}</div>`;
   const more = it.matches?.length ? `<details class="fb-more"><summary>${it.matches.length} more message${it.matches.length > 1 ? "s" : ""} with these phrases, no rewrite</summary>
       <ol>${it.matches.map(m => `<li><div class="rw-h"><span>${esc(when(m))}</span>${m.url ? `<a class="ref" href="${esc(m.url)}" target="_blank" rel="noopener">open in Slack ↗</a>` : ""}</div><p>${markQ(m.text, it.markers)}</p></li>`).join("")}</ol></details>` : "";
   return `<div class="fb-fh"><span class="lbl">${it.keep ? "Strength" : `Pattern ${k + 1} of ${n}`}</span>${vdBtns(f, it.key, "Accept", "Reject")}</div>${vdNote(f, it.key)}${vdWhy(f, it.key)}
-    <h2>${esc(it.name)}</h2><p class="fb-why">${esc(it.why)}</p>${body}${cards}${more}`;
+    <h2>${esc(it.name)}</h2><div class="fb-imp"><span class="rw-k">${it.keep ? "Why it works" : "Impact"}</span><p class="fb-why">${esc(it.why)}</p></div>${srcOf(it)}${body}${cards}${more}`;
 }
 function animFocus(all){
   const cards = [...document.querySelectorAll("#fb-focus .rw")];
@@ -1256,7 +1277,7 @@ function animFocus(all){
   G.from("#fb-focus .fb-bars .b i", {scaleY:0, duration:.6, ease:"expo.out", stagger:.04, clearProps:"transform"});
   if(all){ G.from("#fb .fb-try .fb-bars .b:not(.next) i", {scaleY:0, duration:.7, ease:"expo.out", stagger:.05, clearProps:"transform"});
     G.from("#fb .fb-do", {opacity:0, y:10, filter:"blur(6px)", duration:.6, ease:"power3.out", clearProps:"all"}); }
-  G.from("#fb-focus > .fb-fh, #fb-focus > h2, #fb-focus > .fb-why, #fb-focus > .fb-wk", {opacity:0, y:8, filter:"blur(6px)", duration:.45, ease:"power3.out", stagger:.04, clearProps:"all"});
+  G.from("#fb-focus > .fb-fh, #fb-focus > h2, #fb-focus > .fb-imp, #fb-focus > .fb-src, #fb-focus > .fb-wk", {opacity:0, y:8, filter:"blur(6px)", duration:.45, ease:"power3.out", stagger:.04, clearProps:"all"});
   cards.forEach((c, k) => {
     G.from(c, {opacity:0, y:12, duration:.45, ease:"power3.out", delay:.12 + k*.1, clearProps:"all", onStart:() => setTimeout(() => c.classList.add("on"), 200)});
     const now = c.querySelector(".rw-now"); if(now) G.from(now, {opacity:0, x:-8, filter:"blur(4px)", duration:.5, ease:"power3.out", delay:.75 + k*.1, clearProps:"all"});
@@ -1346,7 +1367,7 @@ function renderRefs(k){
     <article class="refc" style="--c:${MODES[k] ? mc(k) : "var(--ink-3)"}">
     <h3>${MODES[k]?`<i class="dot" style="background:${mc(k)};width:14px;height:14px"></i>`:""}${esc(r.title)}</h3>
     <div class="desc"><p>${esc(r.d)}</p><div><span class="lbl">Looks like</span>${r.ex.map(x => `<span>${esc(x)}</span>`).join("")}</div></div>
-    <ul>${r.items.map(x=>`<li><q>${esc(x.q)}</q><a class="ref" href="${x.url}" target="_blank" rel="noopener">${esc(x.who)} ↗</a>${x.warn?`<span class="ref warn">⚠ ${esc(x.warn)}</span>`:""}</li>`).join("")}</ul></article>`;
+    <ul>${r.items.map(x=>`<li>${x.q ? `<q>${esc(x.q)}</q>` : `<p class="says">${esc(x.says)}</p>`}<a class="ref" href="${x.url}" target="_blank" rel="noopener">${esc(x.who)} ↗</a>${x.warn?`<span class="ref warn">⚠ ${esc(x.warn)}</span>`:""}</li>`).join("")}</ul></article>`;
 }
 $("#refs").addEventListener("click", e => { const b = e.target.closest("[data-refk]"); if(b) history.replaceState(null, "", `#/refs?k=${b.dataset.refk}`), renderRefs(b.dataset.refk); });
 
