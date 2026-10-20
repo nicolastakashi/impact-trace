@@ -38,6 +38,8 @@ collect() { # source tools [skill args]: the raw file is named after the source
 
 collect linear "$linear_tools"
 collect github "$github_tools" "$login ${orgs:--}"
+# Reviews by when you submitted them: search can only filter PRs by their last update.
+collect reviews "$github_tools" "$login"
 # One call per pass and per day: a single call skipped the mention pass, and a week in one
 # call came back as its first page only (11 pages read, 20 rows returned).
 for i in 0 1 2 3 4 5 6; do
@@ -54,6 +56,8 @@ collect drive "$drive_tools"
 gh search prs --author "$login" --merged --merged-at "$monday..$sunday" --limit 200 \
   --json repository --jq "[.[]|select(.repository.nameWithOwner|startswith(\"$login/\")|not)]|length" \
   > "$out/github.expected"
+gh search prs --reviewed-by "$login" --updated ">=$monday" --limit 1000 \
+  --json author --jq "[.[]|select(.author.login!=\"$login\")]|length" > "$out/reviews.expected"
 
 bun ingest/ingest.ts "$week"
 

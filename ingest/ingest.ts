@@ -94,7 +94,7 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
 
   // slack_own and slack_mention are the old one-call-per-week files; older weeks still have them.
   const days = [1, 2, 3, 4, 5, 6, 7].flatMap((d) => [`slack_own_${d}`, `slack_mention_${d}`]);
-  for (const source of ["linear", "github", "slack_own", "slack_mention", ...days, "calendar", "drive"]) {
+  for (const source of ["linear", "github", "reviews", "slack_own", "slack_mention", ...days, "calendar", "drive"]) {
     const file = join(dir, `${source}.run.json`);
     if (!existsSync(file)) continue;
     const run = JSON.parse(readFileSync(file, "utf8"));
@@ -107,7 +107,9 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
     let status: Status = "error";
     if (!run.is_error && out) {
       // Trust boundary: the shape was enforced by --json-schema, so check only what it cannot.
-      check(out.week === week, `${source}: collected ${out.week}, expected ${week}`);
+      // Reviews come from PRs updated since `from`, with every date, so one run covers each week after it.
+      if (source === "reviews") check(out.from <= new Date(dayOf(week, 0)).toISOString().slice(0, 10), `reviews: collected from ${out.from}, after ${week} starts`);
+      else check(out.week === week, `${source}: collected ${out.week}, expected ${week}`);
       if (source === "linear") {
         // Claude copies every row; the window filter is ours. Its own picks are the check.
         const inWindow = new Set(out.issues.filter((i: any) => completedIn(i, week)).map((i: any) => i.id));
@@ -116,6 +118,8 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
         if (missed.length) console.warn(`linear ${week}: no attachments collected for ${missed.join(", ")}`);
         [expected, got] = [inWindow.size, [...inWindow].filter((id) => picked.has(id)).length];
       } else if (source === "github") got = out.prs_merged.length;
+      // Every PR from the search has one of your reviews: PRs missing from the rows were not read.
+      else if (source === "reviews") got = new Set(out.reviews.filter((r: any) => r.author !== me.github).map((r: any) => `${r.repo}#${r.number}`)).size;
       else if (source === "calendar") got = out.events.length;
       else if (source === "drive") got = out.files.length;
       else {
@@ -143,6 +147,7 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
       if (status === "error") return;
       if (source === "linear") ingestLinear(db, out, week, runId, now, event, link);
       else if (source === "github") ingestGithub(db, out, week, runId, event, link, me);
+      else if (source === "reviews") ingestReviews(out, week, runId, event, me);
       else if (source === "calendar") ingestCalendar(out, week, runId, event, link);
       else if (source === "drive") ingestDrive(out, week, runId, event, link);
       else ingestSlack(db, out, week, runId, event, link, me);
@@ -235,6 +240,13 @@ function ingestSlack(db: Database, out: any, week: string, runId: string, event:
   }
 }
 
+// Reviews given: the PRs you reviewed this week, counted by when you submitted the review.
+function ingestReviews(out: any, week: string, runId: string, event: any, me: Config) {
+  const mine = out.reviews.filter((r: any) => r.author !== me.github && r.submitted_at && isoWeek(r.submitted_at) === week);
+  event.run(`github:reviews_given:${week}`, "github", "reviews_given", week, null, null, null, me.github, null, null,
+    JSON.stringify({ count: new Set(mine.map((r: any) => `${r.repo}#${r.number}`)).size, submissions: mine.length }), runId);
+}
+
 function ingestGithub(db: Database, out: any, week: string, runId: string, event: any, link: any, me: Config) {
   // Claude copies anything shaped like ABC-123 from a PR body: eu-west-1, UTF-8, names. Only
   // your Linear teams' keys are issues. ponytail: teams seen in your issues; a PR citing another
@@ -250,7 +262,8 @@ function ingestGithub(db: Database, out: any, week: string, runId: string, event
       for (const r of p.linear_refs) if (keys.has(r.split("-")[0])) link.run(id, `linear:${r}`, "mentions");
     }
   }
-  event.run(`github:reviews_given:${week}`, "github", "reviews_given", week, null, null, null, me.github, null, null,
+  // Older runs counted PRs updated in the week; the reviews source replaces that count.
+  if (out.reviews_given != null) event.run(`github:reviews_given:${week}`, "github", "reviews_given", week, null, null, null, me.github, null, null,
     JSON.stringify({ count: out.reviews_given }), runId);
   for (const c of out.review_comments_received) {
     const id = `github:${c.url}`;

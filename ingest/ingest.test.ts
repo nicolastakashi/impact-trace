@@ -37,6 +37,12 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
       at: "2026-10-14T07:50:00Z", linear_refs: ["ACME-41", "WEST-1", "UTF-8"] }],
   }));
   writeFileSync(join(dir, "github.expected"), "2\n");
+  // Reviews by when you submitted them: two on one PR count once, other weeks and your own PRs do not count.
+  const rv = (number: number, submitted_at: string | null, author = "blair") => ({ repo: "acme/api", number, author, state: "COMMENTED", submitted_at });
+  writeFileSync(join(dir, "reviews.run.json"), wrap({ from: "2026-10-05", prs_read: 4, reviews: [
+    rv(7, "2026-10-13T09:00:00Z"), rv(7, "2026-10-14T09:00:00Z"), rv(8, "2026-10-16T09:00:00Z"),
+    rv(9, "2026-10-08T09:00:00Z"), rv(10, null), rv(11, "2026-10-13T09:00:00Z", "rchen")] }));
+  writeFileSync(join(dir, "reviews.expected"), "4\n");
   // A Wednesday call that returned a Monday row: dropped, and the run is flagged.
   writeFileSync(join(dir, "slack_own_5.run.json"), wrap({ week: "2026-W42", self_user_id: "U1", pages_read: 1, exhausted: true, messages: [
     { pass: "own", channel_id: "C9", channel_name: "#dev", ts: String(Date.UTC(2026, 9, 12, 9) / 1000), permalink: "https://s/9", author_id: "U1", author_name: "Me", text: "monday" }] }));
@@ -84,7 +90,9 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   ingestWeek(db, dir, "2026-W42", ME);
 
   // ACME-40 is in the window but Claude did not pick it: flagged, and still ingested from the raw rows.
-  expect(first).toEqual({ linear: "count_mismatch", github: "count_mismatch", slack_own: "ok", slack_own_4: "count_mismatch", slack_own_5: "count_mismatch", calendar: "ok", drive: "ok" });
+  // The reviews source wins over the old count in the github file (10).
+  expect(JSON.parse((db.query("SELECT payload FROM events WHERE kind = 'reviews_given'").get() as any).payload)).toEqual({ count: 2, submissions: 3 });
+  expect(first).toEqual({ linear: "count_mismatch", github: "count_mismatch", reviews: "ok", slack_own: "ok", slack_own_4: "count_mismatch", slack_own_5: "count_mismatch", calendar: "ok", drive: "ok" });
   expect(db.query("SELECT group_concat(id) ids FROM events WHERE kind = 'issue_completed'").get()).toEqual({ ids: "linear:ACME-41,linear:ACME-40" });
   expect(db.query("SELECT count(*) n FROM events").get()).toEqual({ n: 9 });
   expect(db.query("SELECT kind, count(*) n FROM events WHERE source = 'slack' GROUP BY 1 ORDER BY 1").all())
@@ -148,4 +156,19 @@ test("dayOf: Monday of an ISO week, at midnight UTC", () => {
   expect(new Date(dayOf("2026-W42", 0)).toISOString()).toBe("2026-10-12T00:00:00.000Z");
   expect(new Date(dayOf("2026-W53", 6)).toISOString()).toBe("2027-01-03T00:00:00.000Z");
   expect(new Date(dayOf("2027-W01", 0)).toISOString()).toBe("2027-01-04T00:00:00.000Z");
+});
+
+test("reviews given count PRs you reviewed in the week, not PRs updated in it", () => {
+  const dir = mkdtempSync(join(tmpdir(), "rv-"));
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  const rv = (number: number, submitted_at: string) => ({ repo: "acme/api", number, author: "blair", state: "APPROVED", submitted_at });
+  writeFileSync(join(dir, "reviews.run.json"), JSON.stringify({ session_id: "s", structured_output: { from: "2026-10-05", prs_read: 3,
+    reviews: [rv(7, "2026-10-13T09:00:00Z"), rv(7, "2026-10-14T09:00:00Z"), rv(8, "2026-10-16T09:00:00Z"), rv(9, "2026-10-08T09:00:00Z")] } }));
+  writeFileSync(join(dir, "reviews.expected"), "4\n");
+  // One PR from the search is missing from the rows: flagged.
+  expect(ingestWeek(db, dir, "2026-W42", ME)).toEqual({ reviews: "count_mismatch" });
+  expect(JSON.parse((db.query("SELECT payload FROM events WHERE kind = 'reviews_given'").get() as any).payload)).toEqual({ count: 2, submissions: 3 });
+  // A run from after the week started cannot cover it.
+  expect(() => ingestWeek(db, dir, "2026-W40", ME)).toThrow("after 2026-W40 starts");
 });
