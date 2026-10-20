@@ -15,7 +15,7 @@ The engineer works at `level`. Judge the work against that level. Label each thr
 words. No adjectives of praise.
 
 `summary`: what they did, in one or two sentences and under 40 words. Past tense, no
-subject ("Shipped soft-delete for datasets: ..."). Facts and counts from the events only.
+subject ("Shipped soft-delete for exports: ..."). Facts and counts from the events only.
 No praise, no judgment of impact. For a mention, say what the other person says the engineer did.
 
 `mode`: the one kind of value that fits best.
