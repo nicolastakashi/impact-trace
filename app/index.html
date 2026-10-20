@@ -130,7 +130,7 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 
 /* trace */
 .panel{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
-/* Trace: your weeks as Dash0 traces. Explorer heatmap on top (start day × duration, drag to brush weeks),
+/* Trace: your weeks as distributed traces. Explorer heatmap on top (start day × duration, drag to brush weeks),
    waterfall below (a week is a trace, a kept thread is a span), span sidebar on the right.
    Color map: mode = service color (--m-*), heatmap = accent ramp (mode color when filtered),
    selection = ink outline, critical path ("without you it wouldn't happen") = ink ring, span events = ticks. */
@@ -461,7 +461,8 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 @media (max-width:520px){ #v-review .r-wm{grid-template-columns:1fr} #v-review .r-events li{grid-template-columns:1fr;gap:2px} }
 
 /* projects: one card per project; a week strip, then its threads week by week. */
-#v-projects{
+/* Goals reuse the project list styles: cards, week strips, chips. */
+:is(#v-projects, #v-goals){
   .filters{display:flex;gap:6px}
   .filters button{font:500 12px var(--f-mono);color:var(--ink-2);background:var(--s1);border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer}
   .filters button[aria-pressed="true"]{color:var(--ink);border-color:var(--ink-2);background:var(--s3)}
@@ -513,6 +514,64 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 .src{display:inline-block;width:8px;height:8px;transform:rotate(45deg);border-radius:2px;margin-right:6px;flex:none}
 .src.linear{background:var(--m-elevate)}
 .src.topic{background:var(--m-solve)}
+#v-goals{
+  #go{display:grid;gap:14px}
+  .go-new{justify-self:start}
+  .go-first{display:grid;gap:14px;background:var(--s1);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:clamp(18px,3vw,32px)}
+  .go-first h2{font:800 clamp(24px,3vw,34px)/1 var(--f-num);text-transform:uppercase;margin:0;text-wrap:balance}
+  .go-first p{margin:0;color:var(--ink-2);font-size:14.5px;max-width:60ch}
+  .go-first .lbl{margin-top:10px}
+  .go-kinds{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+  .go-kind{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center;text-align:left;font:inherit;color:var(--ink);background:var(--s2);border:1px solid var(--line-2);border-radius:14px;padding:16px 18px;cursor:pointer;transition:border-color .2s,transform .2s}
+  .go-kind[data-new="personal"]{border-style:dashed}
+  .go-kind:hover,.go-kind:focus-visible{border-color:var(--accent);transform:translateY(-1px)}
+  .go-kind svg{grid-row:span 2}
+  .go-kind b{font-size:16px}
+  .go-kind span{font-size:13.5px;color:var(--ink-2);line-height:1.45}
+  .go-seeds{display:flex;flex-wrap:wrap;gap:8px}
+  .go-seed{display:inline-flex;align-items:center;gap:8px;font:500 14px var(--f-body);color:var(--ink);background:none;border:1px dashed var(--line-2);border-radius:999px;padding:7px 8px 7px 14px;cursor:pointer}
+  .go-seed{text-align:left}
+  .go-seed span{font:500 11.5px var(--f-mono);color:var(--ink-3);white-space:nowrap}
+  .go-seed b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--s3);color:var(--accent);font-weight:600}
+  .go-seed:hover,.go-seed:focus-visible{border-style:solid;border-color:var(--accent)}
+  @media (prefers-reduced-motion:reduce){ .go-kind{transition:none} .go-kind:hover{transform:none} }
+  /* One control height, font and radius across the form, so fields line up. */
+  .go-form{--h:40px;display:grid;gap:14px;background:var(--s1);border:1px solid var(--line-2);border-radius:18px;padding:18px clamp(14px,2.5vw,22px)}
+  .go-form label,.go-form .fld{display:grid;gap:6px;font-size:13px;color:var(--ink-2)}
+  .go-form input,.go-form select,.go-form textarea{box-sizing:border-box;font:400 14px var(--f-body);color:var(--ink);background:var(--s2);border:1px solid var(--line-2);border-radius:10px;padding:0 12px}
+  .go-form input,.go-form select{height:var(--h)}
+  .go-form select{min-width:140px}
+  .go-form textarea{padding:10px 12px;line-height:1.5;resize:vertical}
+  .go-form .row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+  .go-form .seg{display:inline-flex;gap:4px;height:var(--h)}
+  .go-form .seg button{font:400 14px var(--f-body);color:var(--ink-2);background:var(--s2);border:1px solid var(--line-2);border-radius:10px;padding:0 14px;cursor:pointer}
+  .go-form .seg button[aria-pressed="true"]{color:var(--ink);border-color:var(--ink-2);background:var(--s3)}
+  .go-btn{height:var(--h);font:500 13px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);background:none;border:1px solid var(--line-2);border-radius:10px;padding:0 16px;cursor:pointer}
+  .go-btn:hover{color:var(--ink);border-color:var(--ink-2)}
+  .go-btn.main{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+  .go-btn.main:hover{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+  .go-form :is(input,select,textarea,button):focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .go-form .err{color:var(--accent);font-size:13px;margin:0}
+  .go-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+  .go-h h2{font:800 22px/1.05 var(--f-num);text-transform:uppercase;margin:0;text-wrap:balance}
+  .go-h .end{margin-left:auto;display:flex;gap:8px}
+  .go-k{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);border:1px solid var(--line-2);border-radius:999px;padding:2px 8px}
+  .go-k.personal{border-style:dashed}
+  .krs{margin:0;white-space:pre-line;font-size:14px;line-height:1.55;color:var(--ink-2);max-width:65ch}
+  .go-p{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--ink-3)}
+  .go-p select{font:500 11.5px var(--f-mono);color:var(--ink-2);background:none;border:1px dashed var(--line-2);border-radius:6px;padding:2px 6px;cursor:pointer}
+  .grp.personal{border-style:dashed}
+  .go-th{all:unset;cursor:pointer;font-size:13.5px;color:var(--ink-2)}
+  .go-th:hover{color:var(--ink)}
+  .go-th:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+  .go-direct{font:500 10.5px var(--f-mono);color:var(--ink-3);margin-left:6px}
+  .banner{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13.5px;color:var(--ink-2);background:var(--s2);border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));border-radius:12px;padding:10px 14px}
+  .banner span{display:flex;gap:8px}
+  .undo{font:500 11.5px var(--f-mono);color:var(--ink-2);background:none;border:1px dashed var(--line-2);border-radius:6px;padding:3px 8px;cursor:pointer}
+  .undo:hover{color:var(--ink);border-color:var(--ink-2)}
+  .undo.del{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+  .todo.big{font:500 13px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:none;cursor:pointer;border:1px solid color-mix(in srgb,var(--accent) 50%,var(--line));border-radius:10px;padding:8px 12px}
+}
 #v-project{
   #pv{display:grid;gap:20px}
   #pv > .undo{justify-self:start}
@@ -560,7 +619,14 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .pv-ev .x{overflow-wrap:anywhere}
   .pv-ev .from{display:inline-flex;align-items:center;font:500 11px var(--f-mono);color:var(--ink-3);white-space:nowrap}
   .pv-act{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
+  .pv-goals{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 }
+/* A goal you can switch on or off: projects and threads link to goals the same way. */
+.gl-chip{font:500 12px var(--f-body);color:var(--ink-2);background:none;border:1px dashed var(--line-2);border-radius:999px;padding:4px 10px;cursor:pointer}
+.gl-chip[aria-pressed="true"]{color:var(--ink);border-style:solid;border-color:var(--ink-2);background:var(--s3)}
+.gl-chip:disabled{cursor:default;opacity:.8}
+.r-goals{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.r-goals .lbl{margin-right:4px}
 @media (max-width:720px){ #v-project .pv-top{grid-template-columns:1fr} #v-project .pv-ev li{grid-template-columns:1fr;gap:2px} #v-project .pv-wk{grid-template-columns:1fr} }
 
 /* projects */
@@ -689,6 +755,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   <div class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M1 8h3l2-5 4 10 2-5h3" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><b>Impact Trace</b></div>
   <nav role="tablist" aria-label="Views">
     <button role="tab" id="t-home" data-v="home" aria-selected="true">North</button>
+    <button role="tab" id="t-goals" data-v="goals" aria-selected="false">Goals</button>
     <button role="tab" id="t-projects" data-v="projects" aria-selected="false">Projects</button>
     <button role="tab" id="t-trace" data-v="trace" aria-selected="false">Trace <span class="ex sample-tag" hidden>example</span></button>
     <button role="tab" id="t-feedback" data-v="feedback" aria-selected="false">Feedback <span class="ex sample-tag" hidden>example</span></button>
@@ -711,7 +778,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   <div class="bento">
     <button class="tile t-full t-fb" id="t-fb" data-v="feedback" hidden></button>
     <div class="tile t-rings">
-      <div class="th"><span class="lbl">Where the work goes</span></div>
+      <div class="th"><span class="lbl">Where the work goes</span><span id="rings-h"></span></div>
       <div class="rings-wrap">
         <svg class="rings" viewBox="0 0 240 240" role="img" aria-label="Share of items that serve each goal" id="rings"></svg>
         <ul class="glist" id="glist"></ul>
@@ -762,6 +829,12 @@ nav .ex{font-size:8.5px;padding:2px 4px}
     <div class="filters" role="group" aria-label="Kind of project"><button data-f="all" aria-pressed="true">All</button><button data-f="linear" aria-pressed="false">Linear</button><button data-f="topic" aria-pressed="false">Topics</button></div></div>
   <div class="grp-list" id="grp-list"><div class="empty">Loading projects…</div></div>
   <div class="grp-deleted" id="grp-deleted"></div>
+</section>
+
+<!-- GOALS: what your work serves -->
+<section class="view" id="v-goals" hidden>
+  <div class="vhead"><h1>Goals</h1><p>Link a project here, or one thread in review with <kbd>L</kbd>. North shows how much of your work serves each goal.</p></div>
+  <div id="go"><div class="empty">Loading goals…</div></div>
 </section>
 
 <!-- PROJECT: one project, all of it -->
@@ -853,7 +926,9 @@ const REFS = {
 const WMS = {wouldnt:"wouldn't happen", slower:"slower", same:"same"};
 const LAST = WEEKS.length - 1;
 const modeOf = it => it.mode;
-const goalOf = it => PROJECTS[it.s].goal;
+// The goals a thread serves. The example data names one goal per project instead.
+const goalsOf = it => it.g ?? (PROJECTS[it.s]?.goal ? [PROJECTS[it.s].goal] : []);
+const byGoals = typeof GOALS_FROM === "undefined" || GOALS_FROM === "goals";
 const mc = m => `var(--m-${m})`;
 const esc = s => String(s).replace(/[&<>"]/g, ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
 const $ = s => document.querySelector(s);
@@ -875,15 +950,16 @@ function renderHome(){
   $("#home-h").innerHTML = `${esc(WEEKS[0])}–${esc(WEEKS[LAST])} <em>·</em> ${WEEKS.length} weeks`;
   $("#home-p").innerHTML = `<b>${ITEMS.length}</b> threads you kept, <b>${REC.length}</b> mentions and praise, <b>${ups}</b> that would not have happened without you.`;
 
-  // rings: share of items per goal
-  const by = cnt(ITEMS, goalOf), n = ITEMS.length;
-  const R = [96,74,52];
-  $("#rings").innerHTML = GOALS.map((g,i)=>`
-    <circle cx="120" cy="120" r="${R[i]}" fill="none" stroke="var(--s3)" stroke-width="16"/>
-    <circle class="ring" data-v="${(by[g.id]||0)/n*100}" cx="120" cy="120" r="${R[i]}" fill="none" stroke="${g.color}" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="${100-(by[g.id]||0)/n*100}" transform="rotate(-90 120 120)" style="filter:drop-shadow(0 0 6px color-mix(in srgb,${g.color} 60%,transparent))"/>`).join("")
-    + `<text x="120" y="124" text-anchor="middle"><tspan data-count="${n-(by.null||0)}">${n-(by.null||0)}</tspan>/${n}</text><text class="sub" x="120" y="142" text-anchor="middle">IN THE TOP ${GOALS.length}</text>`;
-  $("#glist").innerHTML = GOALS.map(g=>`<li><button data-goal="${g.id}"><i class="dot" style="background:${g.color};margin-top:5px"></i><span class="gt">${esc(g.title)}</span><span class="gp num">${Math.round((by[g.id]||0)/n*100)}%</span><span class="gs">${by[g.id]||0} items · ${ITEMS.filter(i=>goalOf(i)===g.id&&i.wm==="wouldnt").length} wouldn't happen without you</span></button></li>`).join("")
-    + `<li><button data-goal="none"><i class="dot" style="background:var(--line-2);margin-top:5px"></i><span class="gt" style="color:var(--ink-2)">Everything else</span><span class="gp num" style="color:var(--ink-3)">${Math.round((by.null||0)/n*100)}%</span><span class="gs">can be normal, or glue with no owner · <a class="ref" href="#" data-ref="glue">glue work</a></span></button></li>`;
+  // rings: share of threads per goal. A thread can serve two goals, so the shares can add up to more than 100%.
+  const by = Object.fromEntries(GOALS.map(g => [g.id, ITEMS.filter(i => goalsOf(i).includes(g.id)).length])), n = ITEMS.length;
+  const none = ITEMS.filter(i => !goalsOf(i).length).length, R = [96,74,52];
+  $("#rings").innerHTML = GOALS.slice(0, 3).map((g,i)=>`
+    <circle cx="120" cy="120" r="${R[i]}" fill="none" stroke="var(--s3)" stroke-width="16" ${g.kind === "personal" ? `stroke-dasharray="3 3" pathLength="100"` : ""}/>
+    <circle class="ring" data-v="${by[g.id]/n*100}" cx="120" cy="120" r="${R[i]}" fill="none" stroke="${g.color}" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="${100-by[g.id]/n*100}" transform="rotate(-90 120 120)" style="filter:drop-shadow(0 0 6px color-mix(in srgb,${g.color} 60%,transparent))"/>`).join("")
+    + `<text x="120" y="124" text-anchor="middle"><tspan data-count="${n-none}">${n-none}</tspan>/${n}</text><text class="sub" x="120" y="142" text-anchor="middle">${byGoals ? "SERVE A GOAL" : `IN THE TOP ${GOALS.length}`}</text>`;
+  $("#glist").innerHTML = GOALS.map(g=>`<li><button data-goal="${g.id}"><i class="dot" style="${g.kind === "personal" ? `border:2px solid ${g.color}` : `background:${g.color}`};margin-top:5px"></i><span class="gt">${esc(g.title)}${g.kind === "personal" ? ` <span class="lbl">personal</span>` : ""}</span><span class="gp num">${Math.round(by[g.id]/n*100)}%</span><span class="gs">${by[g.id]} threads · ${ITEMS.filter(i=>goalsOf(i).includes(g.id)&&i.wm==="wouldnt").length} wouldn't happen without you</span></button></li>`).join("")
+    + `<li><button data-goal="none"><i class="dot" style="background:var(--line-2);margin-top:5px"></i><span class="gt" style="color:var(--ink-2)">${byGoals ? "Serves no goal" : "Everything else"}</span><span class="gp num" style="color:var(--ink-3)">${Math.round(none/n*100)}%</span><span class="gs">can be normal, or glue with no owner · <a class="ref" href="#" data-ref="glue">glue work</a></span></button></li>`;
+  $("#rings-h").innerHTML = byGoals ? `<a class="ref" href="#/goals">goals →</a>` : `<a class="ref" href="#/goals">top projects for now · add your goals →</a>`;
 
   // one big thing (Oura)
   const big = ITEMS.find(i=>i.id===HIGHLIGHT.item), r = REC[big.rec], bm = modeOf(big);
@@ -1120,7 +1196,7 @@ $("#hm").addEventListener("pointerup", () => { if(!brush) return;
 
 /* ITEM SHEET */
 function openItem(id){
-  const it = ITEMS.find(i=>i.id===id), m = modeOf(it), st = PROJECTS[it.s], g = GOALS.find(x=>x.id===st.goal);
+  const it = ITEMS.find(i=>i.id===id), m = modeOf(it), st = PROJECTS[it.s], g = GOALS.find(x=>goalsOf(it).includes(x.id));
   const r = it.rec!=null ? REC[it.rec] : null, q = it.quote || (r && {t:r.t, who:`${r.who} · ${r.where}`});
   const ref = REFS[m].items[0];
   // flame: item → sources → links
@@ -1413,7 +1489,7 @@ function step(d){ sI = Math.max(0, Math.min(SLIDES.length-1, sI+d)); drawStory()
 
 /* CMDK */
 let cmdSel = 0, cmdRes = [];
-const VIEWS = [["home","North"],["projects","Projects"],["project","Project"],["trace","Trace"],["feedback","Feedback"],["review","Review"],["refs","References"],["setup","Setup"]];
+const VIEWS = [["home","North"],["goals","Goals"],["projects","Projects"],["project","Project"],["trace","Trace"],["feedback","Feedback"],["review","Review"],["refs","References"],["setup","Setup"]];
 function openCmd(){ $("#cmdk").hidden = false; $("#cmdk-input").value=""; filterCmd(); $("#cmdk-input").focus(); }
 function filterCmd(){
   const q = $("#cmdk-input").value.toLowerCase();
@@ -1445,6 +1521,7 @@ function route(){
   if(v === "review") RV.open(p.get("week"), p.get("key"), p.get("from"));
   if(v === "projects") p.get("p") ? (history.replaceState(null, "", `#/project?id=${encodeURIComponent(p.get("p"))}`), route()) : GV.open();
   if(v === "project") PV.open(p.get("id"));
+  if(v === "goals") GO.open(p.get("id"));
   if(v === "refs") renderRefs(p.get("k"));
   if(v === "setup") SU.open();
   if(v === "feedback"){ fbW = Math.max(0, FB.findIndex(f => wk(f.week) === p.get("w"))); fbP = +p.get("p") || 0; renderFeedback(); }
@@ -1455,7 +1532,7 @@ addEventListener("hashchange", route);
 function renderAll(){ renderTrace(); }
 
 document.addEventListener("click", e=>{
-  const t = e.target.closest("button,a,[data-wk]"); if(!t || t.closest("#v-review, #v-projects, #v-project")) return;
+  const t = e.target.closest("button,a,[data-wk]"); if(!t || t.closest("#v-review, #v-projects, #v-project, #v-goals")) return;
   const d = t.dataset;
   if(d.storyGo){ $("#story").hidden = true; show(d.storyGo); return; }
   if(d.step){ step(+d.step); return; }
@@ -1465,7 +1542,7 @@ document.addEventListener("click", e=>{
   if(d.cmd){ runCmd(+d.cmd); return; }
   if(d.v){ e.preventDefault(); show(d.v); return; }
   if(d.ref){ e.preventDefault(); location.hash = `#/refs?k=${d.ref}`; return; }
-  if(d.goal){ location.hash = `#/trace?w=${[...new Set(ITEMS.filter(i=>(goalOf(i)??"none")===d.goal).map(i=>i.w))].sort((a,b)=>a-b).map(w=>WEEKS[w]).join(",")}`; return; }
+  if(d.goal){ location.hash = `#/trace?w=${[...new Set(ITEMS.filter(i=>d.goal==="none" ? !goalsOf(i).length : goalsOf(i).includes(d.goal)).map(i=>i.w))].sort((a,b)=>a-b).map(w=>WEEKS[w]).join(",")}`; return; }
   if(d.item){ openItem(d.item); return; }
   if(t.id==="x"){ $("#sheet").hidden = true; return; }
   if(d.rec){ recI = (recI + +d.rec + REC.length) % REC.length; renderRec(); return; }
@@ -1563,6 +1640,11 @@ function render(){
       ${group && group.id !== from ? `<a class="crumb" href="#/project?id=${encodeURIComponent(group.id)}">across weeks →</a>` : ""}
       <button class="discard" data-wm="discard" aria-pressed="${t.human.discard==="yes"}" title="Not your impact: routine, noise, or someone else's work (0)"><kbd>0</kbd>discard${routine(t)?` <span class="ai" title="Claude thinks this is routine">Claude</span>`:""}</button>
       <div class="gpop" id="gpop" hidden><input id="gq" placeholder="Find a project, or type a new topic" autocomplete="off" aria-label="Project"><ul id="gl-list" role="listbox"></ul></div></div>
+    <div class="r-goals" id="rv-goals" role="group" aria-label="Goals this thread serves"><span class="lbl">Serves</span>${data.goals.length ? data.goals.map(g => {
+      // A goal its project serves is on through the project; change that on the project's page.
+      const via = t.goals.project.includes(g.id), on = via || t.goals.direct.includes(g.id);
+      return `<button class="gl-chip" data-gl="${g.id}" aria-pressed="${on}" ${via ? `disabled title="Through its project"` : ""}>${esc(g.title)}${via ? " · via project" : ""}</button>`; }).join("")
+      : `<a class="crumb" href="#/goals">no goals yet · add one →</a>`}</div>
     <div class="r-sec">
       <input class="r-title" id="rv-title" value="${esc(d.title)}" aria-label="Thread title">
       <textarea class="r-summary" id="rv-summary" rows="2" aria-label="Summary of what you did" placeholder="No summary yet">${esc(d.summary)}</textarea></div>
@@ -1582,7 +1664,7 @@ function render(){
       <div class="r-wm">${WM.map(([k,l],i) => `<button data-wm="${k}" aria-pressed="${t.human.discard==="no" && t.human.without_me===k}"><kbd>${i+1}</kbd>${l}</button>`).join("")}</div></div>
     <div class="r-keys" ${keys ? "" : "hidden"}><span><kbd>A</kbd>–<kbd>H</kbd> mode</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> pillar</span>
       <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> without you, save</span><span><kbd>0</kbd> discard</span><span><kbd>⇧0</kbd> discard all routine</span><span><kbd>J</kbd><kbd>K</kbd> move</span>
-      <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>V</kbd> evidence</span><span><kbd>O</kbd> open evidence</span><span><kbd>P</kbd> project</span><span><kbd>?</kbd> hide</span></div>`;
+      <span><kbd>T</kbd> edit title</span><span><kbd>E</kbd> edit summary</span><span><kbd>V</kbd> evidence</span><span><kbd>O</kbd> open evidence</span><span><kbd>P</kbd> project</span><span><kbd>L</kbd> goal</span><span><kbd>?</kbd> hide</span></div>`;
   $("#rv-queue [aria-current=true]")?.scrollIntoView({block:"nearest"});
 }
 
@@ -1659,6 +1741,13 @@ async function gChoose(i){
   if(!r.ok){ toast(`Not moved: ${await r.text()}`); return; }
   gClose(); await reloadAt(t.events[0].id); toast(g.create ? `Created ${g.create}` : `Moved to ${g.name}`);
 }
+async function linkGoal(id, on){
+  const t = data.threads[cur];
+  const r = await post("/api/goal-link", {goal_id: id, week: data.week, key: t.key, on});
+  if(!r.ok){ toast(`Not linked: ${await r.text()}`); return; }
+  t.goals.direct = on ? [...t.goals.direct, id] : t.goals.direct.filter(x => x !== id);
+  render(); $(`#rv-goals [data-gl="${id}"]`)?.focus(); toast(on ? "Linked to the goal" : "Unlinked");
+}
 async function unassign(){
   const t = data.threads[cur];
   const r = await post("/api/unassign", {week: data.week, key: t.key});
@@ -1673,6 +1762,7 @@ $("#v-review").addEventListener("click", e => {
   else if(b.dataset.pillar) set("pillar", b.dataset.pillar);
   else if(b.dataset.wm) decide(b.dataset.wm);
   else if(b.id === "unassign") unassign();
+  else if(b.dataset.gl) linkGoal(+b.dataset.gl, b.getAttribute("aria-pressed") !== "true");
   else if(b.id === "discard-all") discardAll();
   else if(b.id === "all"){ all = !all; render(); }
   else if(b.id === "gopen") $("#gpop").hidden ? gOpen() : gClose();
@@ -1707,6 +1797,7 @@ document.addEventListener("keydown", e => {
   else if(k === "t"){ $("#rv-title").focus(); $("#rv-title").select(); }
   else if(k === "e"){ const s = $("#rv-summary"); s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
   else if(k === "p") gOpen();
+  else if(k === "l"){ const c = $("#rv-goals .gl-chip:not(:disabled)") ?? $("#rv-goals a"); c?.focus(); }
   else if(e.key === "?"){ keys = !keys; render(); }
   else if(k === "v"){ all = !all; render(); }
   else if(k === "o"){ const a = $(".r-events li.ev a") ?? $(".r-events a"); if(a) window.open(a.href, "_blank", "noopener"); }
@@ -1836,7 +1927,10 @@ function render(){
         ${deleting ? `<div class="banner danger">Delete ${esc(p.name)}? ${n} thread${n === 1 ? "" : "s"} will have no project${many ? ", and the merged projects stand alone again" : ""}. You can restore it from the list.
             <span><button class="undo del" id="pv-del-yes">delete</button><button class="undo" id="pv-del-no">cancel</button></span></div>`
           : `<button class="undo del" id="pv-del">delete project</button>`}</div>
-      <div class="r-sec">${p.status || d.open || p.lead ? `<span class="facts">${[p.status, d.open ? `${d.open} open issues` : "", p.lead ? `lead ${esc(p.lead)}` : ""].filter(Boolean).join(" · ")}</span>` : ""}
+      <div class="r-sec"><div class="pv-goals" role="group" aria-label="Goals this project serves"><span class="lbl">Serves</span>${d.goals.length
+          ? d.goals.map(g => `<button class="gl-chip" data-pg="${g.id}" aria-pressed="${!!g.on_}">${esc(g.title)}</button>`).join("")
+          : `<a class="crumb" href="#/goals">no goals yet · add one →</a>`}</div>
+        ${p.status || d.open || p.lead ? `<span class="facts">${[p.status, d.open ? `${d.open} open issues` : "", p.lead ? `lead ${esc(p.lead)}` : ""].filter(Boolean).join(" · ")}</span>` : ""}
         ${d.ms.map(m => `<div class="msr"><span>${esc(m.name)}</span><span class="tr"><i style="width:${m.progress||0}%"></i></span><b>${m.progress==null?"—":m.progress+"%"}</b></div>`).join("")}</div>
     </div>
     ${strip(d.weeks, w => live.filter(t => t.week === w).length, max)}
@@ -1865,6 +1959,8 @@ $("#v-project").addEventListener("click", e => {
   else if(b.id === "pv-cancel"){ merging = false; render(); }
   else if(b.id === "pv-merge") act("/api/merge", {from: b.dataset.from, into: id}, `Merged ${b.dataset.name}`);
   else if(b.id === "pv-gone"){ showGone = !showGone; render(); }
+  else if(b.dataset.pg){ const on = b.getAttribute("aria-pressed") !== "true";
+    act("/api/goal-link", {goal_id: +b.dataset.pg, project_id: id, on}, on ? `Serves ${b.textContent}` : `No longer serves ${b.textContent}`); }
   else if(b.id === "pv-del"){ deleting = true; render(); }
   else if(b.id === "pv-del-no"){ deleting = false; render(); }
   else if(b.id === "pv-del-yes") post("/api/delete", {id}).then(async r => {
@@ -1881,6 +1977,112 @@ $("#v-project").addEventListener("change", e => {
   const mv = e.target.closest("[data-move]");
   if(mv && mv.value){ const name = mv.selectedOptions[0].textContent;
     act("/api/group", {week: mv.dataset.week, key: mv.dataset.move, group_id: mv.value}, `Moved to ${name}`); }
+});
+return {open};
+})();
+
+/* GOALS: what your work serves. You write them; projects and single threads link to them. */
+const GO = (() => {
+const esc = escP;
+const post = (url, body) => fetch(url, {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
+function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
+let d = null, edit = null, del = null, openG = new Set();
+// Last quarter, this one and the next three.
+function quarters(){ const n = new Date(), q = n.getFullYear() * 4 + Math.floor(n.getMonth() / 3);
+  return [-1, 0, 1, 2, 3].map(k => `${Math.floor((q + k) / 4)}-Q${(q + k) % 4 + 1}`); }
+async function open(focus){
+  const r = await fetch("/api/goals");
+  if(!r.ok){ $("#go").innerHTML = `<div class="empty">Goals need the app server. Start it with bun app/server.ts.</div>`; return; }
+  d = await r.json(); if(focus) openG.add(+focus); render();
+}
+function form(g){
+  const kind = g.kind ?? "team", qs = quarters(); if(g.quarter && !qs.includes(g.quarter)) qs.unshift(g.quarter);
+  return `<form class="go-form" id="go-form" data-id="${g.id ?? ""}" data-kind="${kind}">
+    <label>Goal<input id="go-title" name="title" maxlength="120" required value="${esc(g.title ?? "")}" placeholder="Exports API GA" autocomplete="off"></label>
+    <div class="row"><div class="fld"><span id="go-kind-l">Kind</span><div class="seg" role="group" aria-labelledby="go-kind-l"><button type="button" data-kind="team" aria-pressed="${kind === "team"}">Team or company</button><button type="button" data-kind="personal" aria-pressed="${kind === "personal"}">Personal</button></div></div>
+      <label>Quarter<select id="go-q" name="quarter"><option value="">No end</option>${qs.map(q => `<option ${q === g.quarter ? "selected" : ""}>${q}</option>`).join("")}</select></label></div>
+    <label>Key results, one per line (optional)<textarea id="go-krs" name="krs" rows="3" maxlength="2000">${esc(g.krs ?? "")}</textarea></label>
+    <div class="row"><button class="go-btn main" type="submit">${g.id ? "Save goal" : "Create goal"}</button><button class="go-btn" type="button" id="go-cancel">Cancel</button></div></form>`;
+}
+function card(g, max){
+  if(edit === g.id) return form(g);
+  const ts = Object.values(g.weeks).flat(), o = openG.has(g.id), linked = new Set(g.projects.map(p => p.id));
+  return `<article class="grp ${g.kind}" id="goal-${g.id}">
+    <div class="go-h"><h2>${esc(g.title)}</h2><span class="go-k ${g.kind}">${g.kind === "personal" ? "personal" : "team"}</span>${g.quarter ? `<span class="facts">${g.quarter}</span>` : ""}
+      <span class="end"><button class="undo" data-edit="${g.id}">edit</button><button class="undo del" data-del="${g.id}">delete</button></span></div>
+    ${del === g.id ? `<div class="banner">Delete this goal? Its links go; projects and threads stay. <span><button class="undo del" data-del-yes="${g.id}">delete</button><button class="undo" data-del-no="1">cancel</button></span></div>` : ""}
+    ${g.krs ? `<p class="krs">${esc(g.krs)}</p>` : ""}
+    <div class="go-p">${g.projects.map(p => `<span class="mchip">${esc(p.name)}<button data-unlink="${esc(p.id)}" data-g="${g.id}" aria-label="Unlink ${esc(p.name)}">✕</button></span>`).join("") || "<span>No project linked.</span>"}
+      <select data-link="${g.id}" aria-label="Link a project to ${esc(g.title)}"><option value="">＋ link a project…</option>${d.projects.filter(p => !linked.has(p.id)).map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("")}</select></div>
+    ${d.weeks.length ? strip(d.weeks.slice(-8), w => (g.weeks[w] ?? []).length, max) : ""}
+    ${ts.length ? `<button class="go-th" data-open="${g.id}" aria-expanded="${o}">${o ? "▾" : "▸"} ${ts.length} thread${ts.length > 1 ? "s" : ""}</button>`
+      : `<span class="facts">No threads yet. Link a project, or press L on a thread in review.</span>`}
+    ${o ? `<div class="weeks">${[...d.weeks].reverse().filter(w => g.weeks[w]).map(w => `<div class="wk"><span class="lbl">${w.slice(5)}</span><ul>${g.weeks[w].map(t =>
+      `<li><a href="#/review?week=${w}&key=${encodeURIComponent(t.key)}"><b>${esc(t.title ?? "Untitled")}</b>${t.direct ? `<span class="go-direct">linked in review</span>` : ""}${t.decided ? `<span class="ok">✓</span>` : `<span class="todo">to review</span>`}</a></li>`).join("")}</ul></div>`).join("")}</div>` : ""}
+  </article>`;
+}
+const ring = dashed => `<svg viewBox="0 0 40 40" width="34" height="34" aria-hidden="true"><circle cx="20" cy="20" r="14" fill="none" stroke="var(--s3)" stroke-width="6"/>
+  <circle cx="20" cy="20" r="14" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" pathLength="100" stroke-dasharray="${dashed ? "6 6" : "68 100"}" transform="rotate(-90 20 20)"/></svg>`;
+// No goals yet: pick a kind, or start from the work you already do.
+function first(){
+  const top = d.projects.filter(p => p.threads).sort((a, b) => b.threads - a.threads).slice(0, 4);
+  return `<div class="go-first">
+    <h2>What does your work serve?</h2>
+    <p>Name two to four goals. North then shows how much of your work serves each one, and what serves none.</p>
+    <div class="go-kinds">
+      <button class="go-kind" data-new="team">${ring(false)}<b>Team or company goal</b><span>“Exports API GA”. Usually served by projects.</span></button>
+      <button class="go-kind" data-new="personal">${ring(true)}<b>Personal goal</b><span>“Grow two engineers to lead projects”. Usually single threads: a pairing, a review that taught.</span></button></div>
+    ${top.length ? `<span class="lbl">Start from your work</span><p>Your busiest projects. One tap makes it a goal, linked, and opens it so you can rename it.</p>
+      <div class="go-seeds">${top.map(p => `<button class="go-seed" data-seed="${esc(p.id)}"><i class="src ${p.kind}"></i>${esc(p.name)}<span>${p.threads} threads</span><b>＋</b></button>`).join("")}</div>` : ""}
+  </div>`;
+}
+function render(){
+  const max = Math.max(1, ...d.goals.flatMap(g => Object.values(g.weeks).map(t => t.length)));
+  const list = d.goals.map(g => card(g, max)).join("");
+  $("#go").innerHTML = typeof edit === "string" ? form({kind: edit}) + list
+    : !d.goals.length ? first()
+    : `<button class="todo big go-new" id="go-add">＋ new goal</button>` + list;
+  if(edit != null) $("#go-title")?.focus();
+}
+// A goal named after one of your projects, already linked, open for you to rename.
+async function seed(p){
+  const r = await post("/api/goal", {title: p.name, kind: "team"});
+  if(!r.ok) return toast(await r.text());
+  const {id} = await r.json();
+  await post("/api/goal-link", {goal_id: id, project_id: p.id, on: true});
+  RV.reset(); edit = id; toast(`Goal created from ${p.name}`); await open();
+}
+async function act(url, body, done){
+  const r = await post(url, body);
+  if(!r.ok) return toast(await r.text());
+  RV.reset(); toast(done); await open();
+}
+$("#v-goals").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.id === "go-add"){ edit = "team"; render(); }
+  else if(b.dataset.new){ edit = b.dataset.new; render(); }
+  else if(b.dataset.seed){ const p = d.projects.find(x => x.id === b.dataset.seed); seed(p); }
+  else if(b.id === "go-cancel"){ edit = null; render(); }
+  else if(b.dataset.kind){ const f = b.closest("form"); f.dataset.kind = b.dataset.kind; f.querySelectorAll("[data-kind]").forEach(x => x.tagName === "BUTTON" && x.setAttribute("aria-pressed", x === b)); }
+  else if(b.dataset.edit){ edit = +b.dataset.edit; render(); }
+  else if(b.dataset.del){ del = +b.dataset.del; render(); }
+  else if(b.dataset.delNo){ del = null; render(); }
+  else if(b.dataset.delYes){ del = null; act("/api/goal", {id: +b.dataset.delYes, delete: true}, "Goal deleted"); }
+  else if(b.dataset.unlink) act("/api/goal-link", {goal_id: +b.dataset.g, project_id: b.dataset.unlink, on: false}, "Project unlinked");
+  else if(b.dataset.open){ const id = +b.dataset.open; openG.has(id) ? openG.delete(id) : openG.add(id); render(); }
+});
+$("#v-goals").addEventListener("change", e => {
+  const s = e.target.closest("[data-link]");
+  if(s?.value) act("/api/goal-link", {goal_id: +s.dataset.link, project_id: s.value, on: true}, `Linked ${s.selectedOptions[0].textContent}`);
+});
+$("#v-goals").addEventListener("submit", async e => {
+  e.preventDefault(); const f = e.target, id = f.dataset.id ? +f.dataset.id : null;
+  // f.title is the form's own title attribute, so read the fields by id.
+  const r = await post("/api/goal", {id, title: $("#go-title").value, kind: f.dataset.kind, quarter: $("#go-q").value || null, krs: $("#go-krs").value});
+  if(!r.ok){ // Say what is wrong without clearing what you typed.
+    let p = f.querySelector(".err"); if(!p){ p = document.createElement("p"); p.className = "err"; p.setAttribute("role", "alert"); f.lastElementChild.before(p); }
+    p.textContent = await r.text(); return; }
+  edit = null; toast(id ? "Goal saved" : "Goal created"); await open();
 });
 return {open};
 })();

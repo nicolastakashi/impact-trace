@@ -38,7 +38,7 @@ paged to the end the same way. Bots stay excluded (the default).
 ## 4. Rows
 
 One row per message, with `pass` set to the pass you ran.
-`channel_name` is the channel as shown (`#team-insights-dev`) or `DM` / `Group DM`.
+`channel_name` is the channel as shown (`#team-api`) or `DM` / `Group DM`.
 `ts` is the `Message_ts` value. `permalink` is the link URL.
 
 `pages_read` counts every call. `exhausted` is true only when the last page came back

@@ -29,18 +29,18 @@ test("review keeps threads that say something and saves only known keys", () => 
 test("an assignment places a thread in a project, and yours overrides Claude's", () => {
   const db = new Database(":memory:", { strict: true });
   migrate(db);
-  db.query("INSERT INTO projects (id, name, updated_at) VALUES ('P1', 'Private Locations', 'now')").run();
+  db.query("INSERT INTO projects (id, name, updated_at) VALUES ('P1', 'Billing', 'now')").run();
   const ev = db.query("INSERT INTO events (id, source, kind, week, title, project_id, payload, run_id) VALUES (?, 'x', ?, '2026-W42', ?, ?, '{}', 'r')");
-  ev.run("linear:A-1", "issue_completed", "Private location entity", "P1");
-  ev.run("github:x/docs#1", "pr_merged", "docs: private locations", null);
+  ev.run("linear:A-1", "issue_completed", "Billing invoice entity", "P1");
+  ev.run("github:x/docs#1", "pr_merged", "docs: billing", null);
   const run = { is_error: false, modelUsage: { "claude-x": {} }, structured_output: { week: "2026-W42",
-    assignments: [{ key: "2026-W42:github:x/docs#1", project_id: "P1", why: "\"private locations\"" }] } };
+    assignments: [{ key: "2026-W42:github:x/docs#1", project_id: "P1", why: "\"billing\"" }] } };
 
   expect(unplaced(db, "2026-W42").threads.map((t) => t.key)).toEqual(["2026-W42:github:x/docs#1"]);
   expect(saveAssignments(db, "2026-W42", run, "v1")).toEqual({ threads: 1, placed: 1, skipped: 0 });
   const [t] = reviewThreads(db, "2026-W42");
   expect(t.events.map((e) => e.id).sort()).toEqual(["github:x/docs#1", "linear:A-1"]);
-  expect(t.projects).toEqual([{ id: "P1", name: "Private Locations", by: "linear" }]);
+  expect(t.projects).toEqual([{ id: "P1", name: "Billing", by: "linear" }]);
 
   // You undo it: the docs PR is alone again.
   db.query("INSERT INTO assignments (event_id, project_id, source, at) VALUES ('github:x/docs#1', NULL, 'human', 'now')").run();
@@ -50,7 +50,7 @@ test("an assignment places a thread in a project, and yours overrides Claude's",
 test("group precedence: yours, then Linear, then a dedicated channel, then Claude", () => {
   const db = new Database(":memory:", { strict: true });
   migrate(db);
-  for (const [id, name, kind] of [["P1", "Datasets", "linear"], ["topic:internal-acme", "Acme", "topic"], ["topic:mine", "Mine", "topic"]])
+  for (const [id, name, kind] of [["P1", "Exports", "linear"], ["topic:internal-acme", "Acme", "topic"], ["topic:mine", "Mine", "topic"]])
     db.query("INSERT INTO projects (id, name, kind, updated_at) VALUES (?, ?, ?, 'now')").run(id, name, kind);
   const ev = db.query("INSERT INTO events (id, source, kind, week, title, project_id, payload, run_id) VALUES (?, ?, ?, '2026-W42', ?, ?, '{}', 'r')");
   ev.run("linear:A-1", "linear", "issue_completed", "Delete", "P1");
@@ -62,7 +62,7 @@ test("group precedence: yours, then Linear, then a dedicated channel, then Claud
   const groupOf = (id: string) => reviewThreads(db, "2026-W42").find((t) => t.events.some((e) => e.id === id))?.projects[0];
 
   expect(groupOf("slack:C/1")).toEqual({ id: "topic:internal-acme", name: "Acme", by: "channel" });
-  expect(groupOf("github:x/y#1")).toEqual({ id: "P1", name: "Datasets", by: "linear" });
+  expect(groupOf("github:x/y#1")).toEqual({ id: "P1", name: "Exports", by: "linear" });
   as.run("linear:A-1", "topic:mine", "human");
   as.run("github:x/y#1", "topic:mine", "human");
   expect(groupOf("github:x/y#1")).toEqual({ id: "topic:mine", name: "Mine", by: "human" });
@@ -71,11 +71,11 @@ test("group precedence: yours, then Linear, then a dedicated channel, then Claud
 test("a merged project counts as the one it was merged into", () => {
   const db = new Database(":memory:", { strict: true });
   migrate(db);
-  for (const [id, name, kind] of [["P1", "Private Locations", "linear"], ["topic:pl", "PL worker", "topic"]])
+  for (const [id, name, kind] of [["P1", "Billing", "linear"], ["topic:pl", "Billing worker", "topic"]])
     db.query("INSERT INTO projects (id, name, kind, updated_at) VALUES (?, ?, ?, 'now')").run(id, name, kind);
   const ev = db.query("INSERT INTO events (id, source, kind, week, title, project_id, payload, run_id) VALUES (?, 'x', ?, '2026-W42', ?, ?, '{}', 'r')");
-  ev.run("linear:A-1", "issue_completed", "Private location entity", "P1");
-  ev.run("github:x/api#1", "pr_merged", "feat: private location entity", null);
+  ev.run("linear:A-1", "issue_completed", "Billing invoice entity", "P1");
+  ev.run("github:x/api#1", "pr_merged", "feat: billing invoice entity", null);
   ev.run("github:x/worker#1", "pr_merged", "feat: worker", null);
   db.query("INSERT INTO links VALUES ('github:x/api#1', 'linear:A-1', 'mentions')").run();
   db.query("INSERT INTO assignments (event_id, project_id, source, at) VALUES ('github:x/worker#1', 'topic:pl', 'human', 'now')").run();

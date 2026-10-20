@@ -14,8 +14,8 @@ For each thread, pick the project its work belongs to, or `null`.
 ## Rules
 
 - Pick a project only when the events name its subject: the project name, or a component,
-  term or feature that appears in that project's `issues`. "synthetics-worker" in a PR
-  belongs to the project whose issues talk about the synthetics-worker. A shared repo or
+  term or feature that appears in that project's `issues`. "billing-worker" in a PR
+  belongs to the project whose issues talk about the billing-worker. A shared repo or
   team is not enough.
 - When unsure, `null`. A wrong project merges unrelated work; no project only leaves a
   thread alone.

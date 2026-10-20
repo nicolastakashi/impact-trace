@@ -256,7 +256,7 @@ export const PROJECT = `CASE WHEN ${PLACED} IN (SELECT id FROM project_deletions
 // Projects you can still pick: not merged into another, not deleted.
 export const LIVE = "id NOT IN (SELECT from_id FROM project_merges) AND id NOT IN (SELECT id FROM project_deletions)";
 
-// "#internal-axel-springer" → topic "Axel Springer".
+// "#internal-acme" → topic "Acme".
 export function channelTopic(db: Database, channel: string) {
   if (!channel.startsWith("#internal-")) return;
   const name = channel.slice("#internal-".length).split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");

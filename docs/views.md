@@ -7,7 +7,8 @@ review they show fictional example data, marked "example".
 ## North
 
 Your week on one screen.
-- **Rings:** your top 3 projects by kept threads. The rest share "everything else".
+- **Rings:** your [goals](goals.md), most served first, plus "serves no goal". Before you write
+  any goal, your top 3 projects stand in.
 - **Without you:** your own answers from review: wouldn't happen, slower, same.
 - **Highlight:** one thread from the last week. It prefers one you said would not happen
   without you, and one with praise someone wrote.
@@ -15,7 +16,7 @@ Your week on one screen.
 
 ## Trace
 
-Your weeks shown the way Dash0 shows a request.
+Your weeks shown the way a tracing tool shows a request.
 
 | Trace view | Your work |
 |---|---|

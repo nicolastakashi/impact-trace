@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { CONFIG, LIVE, open, PLACED } from "../ingest/ingest";
 import { labelsOf, reviewThreads } from "../ingest/review";
 import { CATEGORIES } from "../ingest/feedback";
+import { direct, goalsOf, links, viaProject } from "../ingest/goals";
 
 let db = open();
 const page = join(import.meta.dir, "index.html");
@@ -42,11 +43,14 @@ function pending() {
 }
 
 function review(week: string) {
+  const L = goalLinks();
   const by = (rows: any[], source: string) => Object.fromEntries(rows.filter((r) => r.source === source).map((r) => [r.field, r.value]));
   return {
     week,
     weeks: (db.query("SELECT DISTINCT week FROM labels ORDER BY 1 DESC").all() as any[]).map((r) => r.week),
-    threads: reviewThreads(db, week).map((t) => { const l = labelsOf(db, t); return { ...t, claude: by(l, "claude"), human: by(l, "human") }; }),
+    threads: reviewThreads(db, week).map((t) => { const l = labelsOf(db, t);
+      return { ...t, claude: by(l, "claude"), human: by(l, "human"), goals: { direct: direct(L, t), project: viaProject(L, t) } }; }),
+    goals: db.query("SELECT id, title, kind FROM goals ORDER BY kind = 'personal', id").all(),
     groups: db.query(`SELECT id, name, kind FROM projects WHERE ${LIVE} ORDER BY name`).all(),
     pending: pending(),
   };
@@ -140,6 +144,58 @@ function unmerge(body: any) {
   return n ? Response.json({ ok: true }) : new Response("Not merged", { status: 400 });
 }
 
+// Goals. A thread serves a goal through a project you linked, or because you linked the thread.
+const QUARTER = /^\d{4}-Q[1-4]$/;
+const goalLinks = () => links(db);
+
+function goalList() {
+  const weeks = (db.query("SELECT DISTINCT week FROM labels ORDER BY 1").all() as any[]).map((r) => r.week), L = goalLinks();
+  const busy = new Map<string, number>(); // threads per project, so you can start a goal from your busiest work
+  const projects = db.query("SELECT p.id, p.name FROM goal_projects gp JOIN projects p ON p.id = gp.project_id WHERE gp.goal_id = ? ORDER BY p.name");
+  const gs = new Map((db.query("SELECT id, title, kind, quarter, krs FROM goals ORDER BY kind = 'personal', id").all() as any[])
+    .map((g) => [g.id, { ...g, projects: projects.all(g.id), weeks: {} as Record<string, any[]> }]));
+  for (const week of weeks) for (const t of reviewThreads(db, week)) {
+    const l = labelsOf(db, t), d = l.find((r) => r.field === "discard" && r.source === "human")?.value;
+    if (d === "yes") continue;
+    const v = (f: string) => (l.find((r) => r.field === f && r.source === "human") ?? l.find((r) => r.field === f && r.source === "claude"))?.value;
+    const mine = direct(L, t);
+    if (t.projects[0]) busy.set(t.projects[0].id, (busy.get(t.projects[0].id) ?? 0) + 1);
+    for (const id of goalsOf(L, t)) (gs.get(id)!.weeks[week] ??= []).push({ key: t.key, title: v("title"), decided: !!d, direct: mine.includes(id) });
+  }
+  return { weeks, goals: [...gs.values()], projects: (db.query(`SELECT id, name, kind FROM projects WHERE ${LIVE} ORDER BY name`).all() as any[]).map((p) => ({ ...p, threads: busy.get(p.id) ?? 0 })) };
+}
+// Create, edit or delete one goal. Deleting it removes its links, never a project or a thread.
+function saveGoal(b: any) {
+  const id = b?.id == null ? null : Number(b.id);
+  if (id != null && !db.query("SELECT 1 FROM goals WHERE id = ?").get(id)) return new Response("Unknown goal", { status: 400 });
+  if (b?.delete) { db.query("DELETE FROM goals WHERE id = ?").run(id); return Response.json({ ok: true }); }
+  const title = typeof b?.title === "string" ? b.title.trim() : "", krs = typeof b?.krs === "string" ? b.krs.trim() : "";
+  const quarter = b?.quarter ? String(b.quarter) : null;
+  if (!title || title.length > 120) return new Response("A goal needs a title, up to 120 characters", { status: 400 });
+  if (!["team", "personal"].includes(b?.kind)) return new Response("Pick team or personal", { status: 400 });
+  if (quarter && !QUARTER.test(quarter)) return new Response("Quarter looks like 2026-Q4", { status: 400 });
+  if (krs.length > 2000) return new Response("Key results are too long", { status: 400 });
+  const at = new Date().toISOString();
+  if (id == null) return Response.json({ ok: true, id: Number(db.query("INSERT INTO goals (title, kind, quarter, krs, at) VALUES (?, ?, ?, ?, ?)").run(title, b.kind, quarter, krs || null, at).lastInsertRowid) });
+  db.query("UPDATE goals SET title = ?, kind = ?, quarter = ?, krs = ?, at = ? WHERE id = ?").run(title, b.kind, quarter, krs || null, at, id);
+  return Response.json({ ok: true, id });
+}
+// Link or unlink a project, or one thread, to a goal.
+function linkGoal(b: any) {
+  if (!db.query("SELECT 1 FROM goals WHERE id = ?").get(Number(b?.goal_id))) return new Response("Unknown goal", { status: 400 });
+  const g = Number(b.goal_id), on = b.on === true;
+  if (typeof b.project_id === "string") {
+    if (!db.query(`SELECT 1 FROM projects WHERE id = ? AND ${LIVE}`).get(b.project_id)) return new Response("Unknown project", { status: 400 });
+    db.query(on ? "INSERT OR IGNORE INTO goal_projects VALUES (?, ?)" : "DELETE FROM goal_projects WHERE goal_id = ? AND project_id = ?").run(g, b.project_id);
+    return Response.json({ ok: true });
+  }
+  const t = WEEK.test(b?.week) && reviewThreads(db, b.week).find((x) => x.key === b.key);
+  if (!t) return new Response("Unknown thread for that week", { status: 400 });
+  const q = db.query(on ? "INSERT OR IGNORE INTO goal_events VALUES (?, ?)" : "DELETE FROM goal_events WHERE goal_id = ? AND event_id = ?");
+  db.transaction(() => { for (const e of t.events) q.run(g, e.id); })();
+  return Response.json({ ok: true });
+}
+
 // Every group, week by week: the threads in it, with Claude's title or yours.
 function groups() {
   const weeks = (db.query("SELECT DISTINCT week FROM labels ORDER BY 1").all() as any[]).map((r) => r.week);
@@ -176,27 +232,27 @@ function project(id: string) {
     return { week, key: t.key, title: v("title"), summary: v("summary"), decided: !!d, discarded: d === "yes",
       events: t.events.map((e) => ({ id: e.id, kind: e.kind, title: e.title, url: e.url, source: (src.get(e.id) as any)?.s })) };
   }));
-  return Response.json({ project: p, deleted: !!db.query("SELECT 1 FROM project_deletions WHERE id = ?").get(id), sources, weeks, threads, ms: db.query("SELECT name, progress FROM milestones WHERE project_id = ? ORDER BY name").all(id),
+  return Response.json({ project: p, goals: db.query("SELECT id, title, kind, EXISTS (SELECT 1 FROM goal_projects WHERE goal_id = goals.id AND project_id = ?) on_ FROM goals ORDER BY kind = 'personal', id").all(id), deleted: !!db.query("SELECT 1 FROM project_deletions WHERE id = ?").get(id), sources, weeks, threads, ms: db.query("SELECT name, progress FROM milestones WHERE project_id = ? ORDER BY name").all(id),
     open: (db.query("SELECT count(*) n FROM events WHERE kind = 'issue_open' AND project_id = ?").get(id) as any).n });
 }
 
 // North and Trace: the threads you kept in review, the last 8 weeks. Same shape as sample-data.js.
 const SRC: Record<string, string> = { github: "GitHub", linear: "Linear", slack: "Slack", calendar: "Calendar", drive: "Docs" };
-const COLORS = ["var(--m-solve)", "var(--m-clarify)", "var(--m-elevate)"];
+const COLORS = ["var(--m-solve)", "var(--m-clarify)", "var(--m-elevate)", "var(--m-build)", "var(--m-prevent)", "var(--m-external)"];
 // Slack markup to what a person reads: <@U1|Ana> → @Ana, <url|label> → label, bare links dropped.
 const plain = (t: string) => t.replace(/<@[A-Z0-9]+\|([^>]+)>/g, "@$1").replace(/<@[A-Z0-9]+>/g, "@someone").replace(/<#[A-Z0-9]+\|([^>]*)>/g, "#$1")
   .replace(/<(?:https?|mailto):[^|>]+\|([^>]+)>/g, "$1").replace(/<(?:https?|mailto):[^>]+>/g, "").replace(/\s+/g, " ").trim();
 function north() {
   const weeks = (db.query("SELECT DISTINCT week FROM labels ORDER BY 1 DESC LIMIT 8").all() as any[]).map((r) => r.week).reverse();
   const meta = db.query("SELECT author, occurred_at, payload FROM events WHERE id = ?");
-  const items: any[] = [], rec: any[] = [];
+  const items: any[] = [], rec: any[] = [], L = goalLinks();
   weeks.forEach((week, w) => {
     for (const t of reviewThreads(db, week)) {
       const l = labelsOf(db, t);
       const v = (f: string) => (l.find((r) => r.field === f && r.source === "human") ?? l.find((r) => r.field === f && r.source === "claude"))?.value;
       if (l.find((r) => r.field === "discard" && r.source === "human")?.value !== "no") continue;
       const it: any = { id: t.key, w, s: t.projects[0]?.id ?? "none", title: v("title") ?? t.events[0].title, summary: v("summary"),
-        mode: v("mode"), pillar: v("pillar"), wm: v("without_me"),
+        mode: v("mode"), pillar: v("pillar"), wm: v("without_me"), g: goalsOf(L, t).map((id) => `g${id}`),
         links: t.events.filter((e) => e.url).map((e) => [SRC[e.id.split(":")[0]] ?? "Other", e.title ?? e.kind, e.url]),
         // Span events for Trace: [kind, when or null, title, url]. Review comments and open issues have no time.
         ev: t.events.map((e) => [e.kind, (meta.get(e.id) as any)?.occurred_at || null, e.title ?? "", e.url ?? null]) };
@@ -215,16 +271,24 @@ function north() {
   const all = projects(weeks).projects as any[];
   const count = (s: string) => items.filter((i) => i.s === s).length;
   const used = [...new Set(items.map((i) => i.s))].filter((s) => s !== "none");
-  // The three projects with the most items are the rings; the rest share "everything else".
-  const top = used.sort((a, b) => count(b) - count(a)).slice(0, 3);
-  const P: any = { none: { name: "No project", url: null, lead: null, status: "—", goal: null, ms: [] } };
-  for (const id of used) { const a = all.find((x) => x.id === id); P[id] = { name: a?.name ?? id, url: a?.url ?? null, lead: a?.lead ?? null, status: a?.status ?? "", goal: top.includes(id) ? id : null, ms: a?.ms ?? [] }; }
+  const P: any = { none: { name: "No project", url: null, lead: null, status: "—", ms: [] } };
+  for (const id of used) { const a = all.find((x) => x.id === id); P[id] = { name: a?.name ?? id, url: a?.url ?? null, lead: a?.lead ?? null, status: a?.status ?? "", ms: a?.ms ?? [] }; }
+  // The rings are your goals, most served first. Before you write any, the three projects with
+  // the most threads stand in, and North says so.
+  const served = (id: string) => items.filter((i) => i.g.includes(id)).length;
+  let goals = (db.query("SELECT id, title, kind FROM goals").all() as any[]).map((g) => ({ id: `g${g.id}`, short: g.title, title: g.title, kind: g.kind }));
+  const from = goals.length ? "goals" : "projects";
+  if (!goals.length) {
+    goals = used.sort((a, b) => count(b) - count(a)).slice(0, 3).map((id) => ({ id, short: P[id].name, title: P[id].name, kind: "team" }));
+    for (const i of items) i.g = goals.some((g) => g.id === i.s) ? [i.s] : [];
+  }
+  goals.sort((a, b) => served(b.id) - served(a.id));
   const reviews = weeks.map((w) => (db.query("SELECT json_extract(payload, '$.count') n FROM events WHERE kind = 'reviews_given' AND week = ?").get(w) as any)?.n ?? 0);
   const last = items.filter((i) => i.w === weeks.length - 1);
   const big = [...last.filter((i) => i.wm === "wouldnt" && i.rec != null), ...last.filter((i) => i.rec != null), ...last, ...items.slice().reverse()][0];
   const js = (k: string, v: any) => `const ${k} = ${JSON.stringify(v)};`;
   return [js("WEEKS", weeks.map((w) => w.slice(5))), js("REVIEWS", reviews), js("PERIOD", `${weeks[0]} – ${weeks.at(-1)}`),
-    js("GOALS", top.map((id, i) => ({ id, short: P[id].name, title: P[id].name, color: COLORS[i] }))),
+    js("GOALS", goals.map((g, i) => ({ ...g, color: COLORS[i % COLORS.length] }))), js("GOALS_FROM", from),
     js("PROJECTS", P), js("REC", rec), js("ITEMS", items), js("HIGHLIGHT", { item: big.id, when: big.rec != null ? rec[big.rec].when : "" }),
     // Feedback, newest week first: what the code verified, never the raw Claude output.
     js("FEEDBACK", (db.query("SELECT week, output FROM feedback ORDER BY week DESC").all() as any[]).map((r) => ({ ...JSON.parse(r.output),
@@ -308,9 +372,12 @@ const server = Bun.serve({
     if (url.pathname === "/api/delete" && json) return del(await req.json().catch(() => null));
     if (url.pathname === "/api/restore" && json) return restore(await req.json().catch(() => null));
     if (url.pathname === "/api/feedback" && json) return verdict(await req.json().catch(() => null));
+    if (url.pathname === "/api/goal" && json) return saveGoal(await req.json().catch(() => null));
+    if (url.pathname === "/api/goal-link" && json) return linkGoal(await req.json().catch(() => null));
     if (url.pathname === "/api/unmerge" && json) return unmerge(await req.json().catch(() => null));
     // The feedback categories and their sources come with the data, the example too.
     if (url.pathname === "/data.js") { const d = north() ?? await Bun.file(sample).text(); return new Response(`const FB_CATS = ${JSON.stringify(CATEGORIES)};\n${d}`, { headers: { "content-type": "text/javascript", "cache-control": "no-cache" } }); }
+    if (url.pathname === "/api/goals") return Response.json(goalList());
     if (url.pathname === "/api/projects") {
       const weeks = (url.searchParams.get("weeks") ?? "").split(",").filter((w) => /^\d{4}-W\d{2}$/.test(w));
       return Response.json(projects(weeks));
