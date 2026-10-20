@@ -1,14 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Impact Trace</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Schibsted+Grotesk:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
 /* The artifact viewer added this reset; served locally, overlays with display:grid ignored [hidden]. */
 [hidden]{display:none!important}
-/* Layout: bento cockpit as home (rings + tiles), observability views for Trace and Item (heatmap + brush, flame graph), Wrapped-style story for the recap. Dark-first, glow as elevation. */
+/* Layout: North as four bands, one question each, observability views for Trace and Item (heatmap + brush, flame graph), Wrapped-style story for the recap. Dark-first, glow as elevation. */
 :root{
   color-scheme: light;
   --ground:#f3f3f1; --s1:#ffffff; --s2:#f7f7f5; --s3:#ebebe7; --line:#deded9; --line-2:#c9c9c2;
-  --ink:#121214; --ink-2:#4f4f55; --ink-3:#86868c;
+  --ink:#121214; --ink-2:#4f4f55; --ink-3:#6b6b72; --rest:#89898e;
+  /* Goals: cool hues no mode uses, so a color means one thing on every page. */
+  --g1:#0a84c6; --g2:#0b8a7c; --g3:#2f5fe0; --g4:#4f86b8; --g5:#5d7088;
   --accent:#d93a3f; --accent-ink:#ffffff;
   --m-clarify:#a68300; --m-prevent:#c8326a; --m-solve:#d0571f; --m-build:#12854a; --m-elevate:#5b47d6; --m-external:#5f6470;
   --glow:0 0 0 transparent; --shadow:0 1px 2px rgba(20,20,30,.06), 0 8px 24px -12px rgba(20,20,30,.18);
@@ -20,7 +25,8 @@
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   color-scheme: dark;
   --ground:#070709; --s1:#0f0f13; --s2:#15151b; --s3:#1d1d25; --line:#24242d; --line-2:#34343f;
-  --ink:#f4f4f1; --ink-2:#b4b4b8; --ink-3:#74747c;
+  --ink:#f4f4f1; --ink-2:#b4b4b8; --ink-3:#8f8f97; --rest:#69696f;
+  --g1:#4cc2ff; --g2:#2fd5c4; --g3:#4f86ff; --g4:#c2e2ff; --g5:#8ea4c2;
   --accent:#ff4d52; --accent-ink:#0b0b0b;
   --m-clarify:#ffe37a; --m-prevent:#ff4f8f; --m-solve:#ff7a45; --m-build:#7dffa8; --m-elevate:#b3a1ff; --m-external:#9aa3b5;
   --glow:0 0 32px -6px color-mix(in srgb,var(--accent) 55%,transparent); --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 20px 40px -24px rgba(0,0,0,.8);
@@ -29,7 +35,8 @@
 :root[data-theme="dark"]{
   color-scheme: dark;
   --ground:#070709; --s1:#0f0f13; --s2:#15151b; --s3:#1d1d25; --line:#24242d; --line-2:#34343f;
-  --ink:#f4f4f1; --ink-2:#b4b4b8; --ink-3:#74747c;
+  --ink:#f4f4f1; --ink-2:#b4b4b8; --ink-3:#8f8f97; --rest:#69696f;
+  --g1:#4cc2ff; --g2:#2fd5c4; --g3:#4f86ff; --g4:#c2e2ff; --g5:#8ea4c2;
   --accent:#ff4d52; --accent-ink:#0b0b0b;
   --m-clarify:#ffe37a; --m-prevent:#ff4f8f; --m-solve:#ff7a45; --m-build:#7dffa8; --m-elevate:#b3a1ff; --m-external:#9aa3b5;
   --glow:0 0 32px -6px color-mix(in srgb,var(--accent) 55%,transparent); --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 20px 40px -24px rgba(0,0,0,.8);
@@ -59,7 +66,7 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;
 .mark{width:26px;height:26px;border-radius:7px;background:var(--accent);box-shadow:var(--glow);display:grid;place-items:center}
 .mark svg{width:16px;height:16px}
 .brand b{font:800 21px/1 var(--f-num);letter-spacing:.02em;text-transform:uppercase}
-nav{display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--s1)}
+nav{display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--s1);max-width:100%;overflow-x:auto;scrollbar-width:none}
 nav button{border:0;background:none;border-radius:999px;padding:7px 14px;font:500 13px var(--f-body);color:var(--ink-2);cursor:pointer;display:flex;gap:6px;align-items:center}
 nav button:hover{color:var(--ink)}
 nav button[aria-selected="true"]{background:var(--s3);color:var(--ink)}
@@ -74,26 +81,69 @@ section.view{padding-top:26px;display:grid;gap:22px}
 .vhead h1 em{font-style:normal;color:var(--accent)}
 .vhead p{margin:0;color:var(--ink-2);max-width:56ch;font-size:14px}
 
-/* bento */
-.bento{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(150px,auto);gap:12px}
+/* north: four bands, one question each */
+.north{display:grid;gap:12px}
 .tile{position:relative;background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow);overflow:hidden;min-width:0}
-.tile .th{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.t-rings{grid-column:span 2;grid-row:span 2}
-.t-big{grid-column:span 2;grid-row:span 2}
-.t-wide{grid-column:span 2}
-button.tile{text-align:left;cursor:pointer}
+.tile .th{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 8px}
+button.tile{text-align:left;cursor:pointer;font:inherit;color:inherit}
 button.tile:hover{border-color:var(--line-2)}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.cols>div{display:grid;gap:10px;align-content:start;padding-inline:20px;border-left:1px solid var(--line)}
+.cols>div:first-child{border-left:0;padding-left:0}
+.cols>div:last-child{padding-right:0}
+.col-h{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--ink-2)}
+.t-now{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:12px}
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:0}
+.nums>div{display:flex;flex-direction:column;gap:8px;padding:2px 20px;border-left:1px solid var(--line)}
+.nums>div:first-child{border-left:0;padding-left:0}
+.nums .v{font:800 40px/.9 var(--f-num);font-variant-numeric:tabular-nums}
+.nums .v small{font-size:18px;color:var(--ink-3);margin-left:2px}
+.nums .d{font-size:12.5px;color:var(--ink-3)}
+.spk8{display:flex;gap:3px;align-items:flex-end;height:36px;flex:none;margin-top:auto;position:relative}
+.spk8 i{flex:1;background:var(--rest);border-radius:2px 2px 0 0;transform-origin:bottom}
+.spk8 i.now{background:var(--ink)}
+.spk8 .avg{position:absolute;left:0;right:0;border-top:1.5px dashed var(--ink-2)}
+@media (max-width:620px){ .nums>div{border-left:0;padding:12px 0;border-top:1px solid var(--line)} .nums>div:first-child{border-top:0} }
+.said-f{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.said-f .chip{max-width:100%;text-align:left}
+.recap-btn{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line-2);background:var(--s2);color:var(--ink);border-radius:999px;padding:8px 16px 8px 8px;font:500 13px var(--f-body);cursor:pointer}
+.recap-btn:hover{border-color:var(--accent)}
+.recap-btn .play{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#111;display:grid;place-items:center;font-size:11px}
 
-.rings-wrap{display:grid;grid-template-columns:minmax(180px,240px) 1fr;gap:20px;align-items:center;flex:1}
-.rings{width:100%;height:auto;aspect-ratio:1;max-width:240px}
-.rings text{fill:var(--ink);font:800 34px var(--f-num)}
-.rings .sub{fill:var(--ink-3);font:600 10px var(--f-num);letter-spacing:.14em}
-.glist{display:grid;gap:14px;margin:0;padding:0;list-style:none}
-.glist button{all:unset;cursor:pointer;display:grid;grid-template-columns:12px 1fr auto;gap:10px;align-items:start;border-radius:8px;padding:4px}
-.glist button:focus-visible{outline:2px solid var(--accent)}
-.glist .gt{font-size:14px;line-height:1.3}
-.glist .gp{font:700 22px/1 var(--f-num)}
-.glist .gs{font-size:12px;color:var(--ink-3);grid-column:2/-1}
+/* Charts. One scale per chart, gridlines on round numbers, labels in the theme's ink.
+   Goals and modes have separate hues; answers use ink and accent, so no color means two things. */
+.cap{margin:-6px 0 0;font-size:13px;color:var(--ink-3)}
+.wg{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,360px);gap:32px;align-items:start}
+.plot{position:relative;margin-left:30px}
+.plot .tick{position:absolute;left:0;right:0;border-top:1px solid var(--line)}
+.plot .tick.z{border-top-color:var(--line-2)}
+.plot .tick span{position:absolute;right:100%;margin-right:8px;transform:translateY(-50%);font:600 11px/1 var(--f-num);color:var(--ink-3);font-variant-numeric:tabular-nums}
+.plot .bars{position:relative;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:clamp(4px,1.4vw,14px);height:100%;align-items:end}
+.plot .stack{display:flex;flex-direction:column-reverse;height:100%;width:100%;max-width:56px;justify-self:center;transform-origin:bottom}
+.plot .stack i{display:block;flex:none;background:var(--c);border-top:2px solid var(--s1);transition:opacity .2s}
+.plot .stack i:last-child{border-radius:4px 4px 0 0}
+.plot .stack i.p{background:repeating-linear-gradient(135deg,var(--c) 0 4px,color-mix(in srgb,var(--c) 35%,transparent) 4px 7px)}
+.plot i.dim,.wg-t tr.dim{opacity:.22}
+.xax{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:clamp(4px,1.4vw,14px);margin:8px 0 0 30px;font:600 11px/1 var(--f-num);color:var(--ink-3);text-align:center}
+.xax .now{color:var(--ink)}
+.wg-t{width:100%;border-collapse:collapse}
+.wg-t th{font:600 11px/1 var(--f-num);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);text-align:right;padding:0 0 10px 10px;border-bottom:1px solid var(--line-2)}
+.wg-t th:first-child{text-align:left;padding-left:0}
+.wg-t td{padding:10px 0 10px 10px;border-bottom:1px solid var(--line);text-align:right;font:600 16px/1 var(--f-num);font-variant-numeric:tabular-nums;transition:opacity .2s}
+.wg-t td:first-child{text-align:left;padding-left:0}
+.wg-t button{all:unset;cursor:pointer;display:flex;gap:9px;align-items:center;font:400 13.5px/1.3 var(--f-body);color:var(--ink)}
+.wg-t button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wg-t .none button{color:var(--ink-2)}
+.sw.p{background:repeating-linear-gradient(135deg,var(--c) 0 2px,transparent 2px 4px);box-shadow:inset 0 0 0 1.5px var(--c)}
+.hb{display:grid;grid-template-columns:76px minmax(0,1fr) 26px;gap:10px;align-items:center;font-size:12.5px;color:var(--ink-2)}
+.hb .tr{height:8px;border-radius:2px;background:var(--s3)}
+.hb .tr i{display:block;height:100%;border-radius:2px;background:var(--ink-2);transform-origin:left}
+.hb .n{font:600 14px/1 var(--f-num);text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.part{display:flex;height:12px;border-radius:3px;overflow:hidden;gap:2px}
+.part i{display:block;background:var(--c);transform-origin:left}
+.pleg{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.pleg li{display:grid;grid-template-columns:14px 34px 1fr;gap:10px;align-items:center;font-size:12.5px;color:var(--ink-2)}
+.pleg b{font:600 16px/1 var(--f-num);color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
 .ex{font:500 9.5px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);border:1px dashed var(--line-2);border-radius:4px;padding:3px 5px}
 
 .big-q{font:700 clamp(19px,2vw,24px)/1.28 var(--f-body);letter-spacing:-.01em;margin:0;text-wrap:balance}
@@ -107,26 +157,12 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .statn{font:800 64px/.85 var(--f-num)}
 .statn small{font-size:20px;color:var(--ink-3);margin-left:4px}
 
-.mixbars{display:grid;gap:7px}
-.mb{display:grid;grid-template-columns:74px 1fr 18px;gap:8px;align-items:center;font-size:12.5px;color:var(--ink-2)}
-.mb .tr{height:7px;border-radius:4px;background:var(--s3);overflow:hidden}
-.mb .tr i{display:block;height:100%;border-radius:4px;transform-origin:left}
-.mb .n{font:700 14px var(--f-num);text-align:right;color:var(--ink)}
 
 .edge{stroke-dasharray:3 7;animation:flow 1.6s linear infinite}
 @keyframes flow{to{stroke-dashoffset:-20}}
 
-.spark text{fill:var(--ink-3);font:600 10px var(--f-num)}
 .rec-nav{display:flex;gap:6px;align-items:center}
 .rec-nav button{border:1px solid var(--line);background:var(--s2);border-radius:8px;width:28px;height:28px;cursor:pointer;color:var(--ink-2)}
-.rec-dots{display:flex;gap:4px}
-.rec-dots i{width:5px;height:5px;border-radius:50%;background:var(--line-2)}
-.rec-dots i.on{background:var(--accent)}
-
-.t-recap{background:linear-gradient(135deg,color-mix(in srgb,var(--m-prevent) 85%,#000),color-mix(in srgb,var(--m-solve) 85%,#000) 55%,color-mix(in srgb,var(--m-clarify) 80%,#000));border:0;color:#fff}
-.t-recap .lbl{color:rgba(255,255,255,.75)}
-.t-recap .play{width:44px;height:44px;border-radius:50%;background:#fff;color:#111;display:grid;place-items:center;font-size:16px}
-.t-recap .oneline{color:#fff}
 
 /* trace */
 .panel{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
@@ -334,9 +370,8 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .fb-focus.rej .rws{opacity:.45}
 .fb-try .vd{margin-top:18px}
 .fb-try.rej .fb-do,.fb-try.rej .fb-chart{opacity:.45}
-.t-full{grid-column:1 / -1}
 .t-fb{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 24px;align-items:center;text-align:left;cursor:pointer;min-height:0}
-.t-fb .do{margin:0;font:600 17px/1.35 var(--f-body);color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.t-now .do{margin:0;font:600 17px/1.35 var(--f-body);color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .t-fb .spk{height:34px}
 .t-fb .spk i{width:8px;height:calc(var(--h) * 30px + 2px)}
 @media (max-width:860px){ .fb-try{grid-template-columns:minmax(0,1fr)} }
@@ -522,7 +557,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .go-first p{margin:0;color:var(--ink-2);font-size:14.5px;max-width:60ch}
   .go-first .lbl{margin-top:10px}
   .go-kinds{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
-  .go-kind{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center;text-align:left;font:inherit;color:var(--ink);background:var(--s2);border:1px solid var(--line-2);border-radius:14px;padding:16px 18px;cursor:pointer;transition:border-color .2s,transform .2s}
+  .go-kind{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:start;text-align:left;font:inherit;color:var(--ink);background:var(--s2);border:1px solid var(--line-2);border-radius:14px;padding:16px 18px;cursor:pointer;transition:border-color .2s,transform .2s}
   .go-kind[data-new="personal"]{border-style:dashed}
   .go-kind:hover,.go-kind:focus-visible{border-color:var(--accent);transform:translateY(-1px)}
   .go-kind svg{grid-row:span 2}
@@ -745,8 +780,9 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 .story .tap.l{left:0} .story .tap.r{right:0}
 .story .hint{position:absolute;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font:500 11px var(--f-mono);opacity:.7;z-index:2}
 
-@media (max-width:980px){ .bento{grid-template-columns:repeat(2,minmax(0,1fr))} .split{grid-template-columns:1fr} }
-@media (max-width:620px){ .bento{grid-template-columns:1fr} .t-rings,.t-big,.t-wide{grid-column:auto;grid-row:auto} .rings-wrap{grid-template-columns:1fr} .rings{max-width:200px;justify-self:center} .two{grid-template-columns:1fr} }
+@media (max-width:980px){ .split{grid-template-columns:1fr} }
+@media (max-width:860px){ .wg{grid-template-columns:1fr} .cols{grid-template-columns:1fr;gap:18px} .cols>div{border-left:0;padding:0} .cols>div+div{border-top:1px solid var(--line);padding-top:18px} }
+@media (max-width:620px){ .two{grid-template-columns:1fr} }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
 </style>
 
@@ -772,25 +808,29 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 <section class="view" id="v-home">
   <a class="sample-note" href="#/review" hidden>Example data, not yours. North and Trace show your weeks once you keep a thread in review. <b>Open Review →</b></a>
   <div class="vhead">
-    <h1 id="home-h"></h1>
-    <p id="home-p"></p>
+    <div><h1 id="home-h"></h1><p id="home-p"></p></div>
+    <button class="recap-btn" id="t-recap"></button>
   </div>
-  <div class="bento">
-    <button class="tile t-full t-fb" id="t-fb" data-v="feedback" hidden></button>
+  <!-- One question per band, read top to bottom. -->
+  <div class="north">
     <div class="tile t-rings">
       <div class="th"><span class="lbl">Where the work goes</span><span id="rings-h"></span></div>
-      <div class="rings-wrap">
-        <svg class="rings" viewBox="0 0 240 240" role="img" aria-label="Share of items that serve each goal" id="rings"></svg>
-        <ul class="glist" id="glist"></ul>
-      </div>
+      <p class="cap" id="wg-cap"></p>
+      <div class="wg" id="wg"></div>
     </div>
-    <div class="tile t-big" id="bigthing"></div>
-    <div class="tile" id="t-mix"></div>
-    <div class="tile" id="t-without"></div>
+    <div class="tile">
+      <div class="th"><span class="lbl">How you delivered</span><a class="ref" href="#" data-v="trace">trace →</a></div>
+      <div class="cols"><div id="t-mix"></div><div id="t-without"></div><div id="t-rev"></div></div>
+    </div>
+    <div class="tile" id="t-nums" hidden>
+      <div class="th"><span class="lbl">Your weeks in numbers</span><span class="ref" id="nums-h"></span></div>
+      <div class="nums" id="nums"></div>
+    </div>
     <div class="tile" id="t-rec"></div>
-    <div class="tile" id="t-rev"></div>
-    <button class="tile t-wide" id="t-wm" data-v="review"></button>
-    <button class="tile t-wide t-recap" id="t-recap"></button>
+    <div class="t-now">
+      <button class="tile t-fb" id="t-fb" data-v="feedback" hidden></button>
+      <button class="tile" id="t-wm" data-v="review"></button>
+    </div>
   </div>
 </section>
 
@@ -932,6 +972,10 @@ const byGoals = typeof GOALS_FROM === "undefined" || GOALS_FROM === "goals";
 const mc = m => `var(--m-${m})`;
 const esc = s => String(s).replace(/[&<>"]/g, ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
 const $ = s => document.querySelector(s);
+// Count axis: a step of 1, 2 or 5 times a power of ten, at most 5 gridlines above zero.
+const axis = max => { const r = Math.max(1, max) / 5, p = 10 ** Math.floor(Math.log10(r)), f = r / p;
+  const st = Math.max(1, (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p), top = Math.ceil(Math.max(1, max) / st) * st;
+  return {top, ticks: Array.from({length: top/st + 1}, (_,i) => i*st)}; };
 const cnt = (arr, f) => arr.reduce((o,x)=>{const k=f(x); o[k]=(o[k]||0)+1; return o},{});
 let sel = new Set(), cur = 0, recI = Math.max(0, REC.length-1);
 
@@ -950,72 +994,112 @@ function renderHome(){
   $("#home-h").innerHTML = `${esc(WEEKS[0])}–${esc(WEEKS[LAST])} <em>·</em> ${WEEKS.length} weeks`;
   $("#home-p").innerHTML = `<b>${ITEMS.length}</b> threads you kept, <b>${REC.length}</b> mentions and praise, <b>${ups}</b> that would not have happened without you.`;
 
-  // rings: share of threads per goal. A thread can serve two goals, so the shares can add up to more than 100%.
-  const by = Object.fromEntries(GOALS.map(g => [g.id, ITEMS.filter(i => goalsOf(i).includes(g.id)).length])), n = ITEMS.length;
-  const none = ITEMS.filter(i => !goalsOf(i).length).length, R = [96,74,52];
-  $("#rings").innerHTML = GOALS.slice(0, 3).map((g,i)=>`
-    <circle cx="120" cy="120" r="${R[i]}" fill="none" stroke="var(--s3)" stroke-width="16" ${g.kind === "personal" ? `stroke-dasharray="3 3" pathLength="100"` : ""}/>
-    <circle class="ring" data-v="${by[g.id]/n*100}" cx="120" cy="120" r="${R[i]}" fill="none" stroke="${g.color}" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="${100-by[g.id]/n*100}" transform="rotate(-90 120 120)" style="filter:drop-shadow(0 0 6px color-mix(in srgb,${g.color} 60%,transparent))"/>`).join("")
-    + `<text x="120" y="124" text-anchor="middle"><tspan data-count="${n-none}">${n-none}</tspan>/${n}</text><text class="sub" x="120" y="142" text-anchor="middle">${byGoals ? "SERVE A GOAL" : `IN THE TOP ${GOALS.length}`}</text>`;
-  $("#glist").innerHTML = GOALS.map(g=>`<li><button data-goal="${g.id}"><i class="dot" style="${g.kind === "personal" ? `border:2px solid ${g.color}` : `background:${g.color}`};margin-top:5px"></i><span class="gt">${esc(g.title)}${g.kind === "personal" ? ` <span class="lbl">personal</span>` : ""}</span><span class="gp num">${Math.round(by[g.id]/n*100)}%</span><span class="gs">${by[g.id]} threads · ${ITEMS.filter(i=>goalsOf(i).includes(g.id)&&i.wm==="wouldnt").length} wouldn't happen without you</span></button></li>`).join("")
-    + `<li><button data-goal="none"><i class="dot" style="background:var(--line-2);margin-top:5px"></i><span class="gt" style="color:var(--ink-2)">${byGoals ? "Serves no goal" : "Everything else"}</span><span class="gp num" style="color:var(--ink-3)">${Math.round(none/n*100)}%</span><span class="gs">can be normal, or glue with no owner · <a class="ref" href="#" data-ref="glue">glue work</a></span></button></li>`;
-  $("#rings-h").innerHTML = byGoals ? `<a class="ref" href="#/goals">goals →</a>` : `<a class="ref" href="#/goals">top projects for now · add your goals →</a>`;
+  // Where the work goes: threads per week, stacked by goal. A thread that serves two goals
+  // counts once, in the goal that is served most, so every bar adds up to its week.
+  const n = ITEMS.length, served = g => ITEMS.filter(i => goalsOf(i).includes(g.id)).length;
+  const GS = [...GOALS].sort((a,b) => served(b) - served(a));
+  const first = i => GS.find(g => goalsOf(i).includes(g.id))?.id ?? "none";
+  const S = [...GS.map(g => ({id:g.id, name:g.title, c:g.color, p:g.kind === "personal"})),
+    {id:"none", name: byGoals ? "Serves no goal" : "Everything else", c:"var(--rest)"}]
+    .map(x => ({...x, its: ITEMS.filter(i => first(i) === x.id)}));
+  const per = WEEKS.map((_,w) => S.map(x => x.its.filter(i => i.w === w).length));
+  const {top, ticks: yt} = axis(Math.max(...per.map(c => c.reduce((a,b) => a+b, 0))));
+  const H = 220, fit = S.filter(x => x.id !== "none").reduce((a,x) => a + x.its.length, 0);
+  $("#wg-cap").textContent = `Threads you kept each week, by the ${byGoals ? "goal" : "project"} they serve.`;
+  $("#wg").innerHTML = `<figure style="margin:0">
+      <div class="plot" style="height:${H}px" role="img" aria-label="Threads per week by ${byGoals ? "goal" : "project"}">
+        ${yt.map(v => `<div class="tick${v ? "" : " z"}" style="top:${(1 - v/top)*100}%"><span>${v}</span></div>`).join("")}
+        <div class="bars" style="--n:${WEEKS.length}">${per.map((c,w) => `<div class="stack" title="${WEEKS[w]}: ${c.reduce((a,b)=>a+b,0)} threads${S.map((x,k) => c[k] ? `\n${x.name}: ${c[k]}` : "").join("")}">${S.map((x,k) => c[k] ? `<i data-s="${x.id}" class="${x.p ? "p" : ""}" style="height:${c[k]/top*H}px;--c:${x.c}"></i>` : "").join("")}</div>`).join("")}</div>
+      </div>
+      <div class="xax" style="--n:${WEEKS.length}">${WEEKS.map((w,i) => `<span class="${i === LAST ? "now" : ""}">${w}</span>`).join("")}</div>
+    </figure>
+    <table class="wg-t">
+      <thead><tr><th>${byGoals ? "Goal" : "Project"}</th><th>Threads</th><th>Share</th><th title="You said it would not happen without you">Critical</th></tr></thead>
+      <tbody>${S.map(x => `<tr data-s="${x.id}" class="${x.id === "none" ? "none" : ""}">
+        <td><button data-goal="${x.id}"><i class="sw${x.p ? " p" : ""}" style="--c:${x.c}"></i>${esc(x.name)}</button></td>
+        <td>${x.its.length}</td><td>${n ? Math.round(x.its.length/n*100) : 0}%</td><td>${x.its.filter(i => i.wm === "wouldnt").length}</td></tr>`).join("")}</tbody>
+    </table>`;
+  $("#rings-h").innerHTML = `<span class="ref">${n ? Math.round(fit/n*100) : 0}% serve a ${byGoals ? "goal" : "top project"} · </span>` + (byGoals ? `<a class="ref" href="#/goals">goals →</a>` : `<a class="ref" href="#/goals">add your goals →</a>`);
 
-  // one big thing (Oura)
-  const big = ITEMS.find(i=>i.id===HIGHLIGHT.item), r = REC[big.rec], bm = modeOf(big);
-  $("#bigthing").innerHTML = `<div class="th"><span class="lbl">Highlight of the week · ${WEEKS[big.w]}</span><span class="chip" style="cursor:default"><i class="dot" style="background:${mc(bm)}"></i>${MODES[bm]}</span></div>
-    <p class="oneline">${esc(big.title)}</p>
-    ${r ? `<p class="big-q">${esc(r.t)}</p><span class="by">${esc(r.who)} · ${esc(r.where)} · ${esc(HIGHLIGHT.when)}</span>` : big.summary ? `<p class="by" style="font-size:14px">${esc(big.summary)}</p>` : ""}
-    <div style="margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><button class="chip" data-item="${big.id}">open evidence →</button><a class="ref" href="#" data-ref="${bm}">why it counts: ${esc(REFS[bm].title.toLowerCase())}</a></div>`;
+  // The highlight is where the praise carousel starts.
+  const big = ITEMS.find(i=>i.id===HIGHLIGHT.item);
+  if(big?.rec != null) recI = big.rec;
 
-  // mix
-  const m = cnt(ITEMS, modeOf), mx = Math.max(...Object.values(m));
-  $("#t-mix").innerHTML = `<div class="th"><span class="lbl">How I deliver</span><a class="ref" href="#" data-v="trace">trace →</a></div>
-    <div class="mixbars">${Object.keys(MODES).map(k=>`<div class="mb"><a class="ref" style="color:var(--ink-2);font-size:12.5px;font-family:var(--f-body)" href="#" data-ref="${k}">${MODES[k]}</a><span class="tr"><i style="width:${(m[k]||0)/mx*100}%;background:${mc(k)}"></i></span><span class="n">${m[k]||0}</span></div>`).join("")}</div>`;
+  // By mode: longest first, in the mode colors Trace uses.
+  const m = cnt(ITEMS, modeOf), mk = Object.keys(MODES).sort((a,b) => (m[b]||0) - (m[a]||0)), mx = Math.max(1, ...Object.values(m));
+  $("#t-mix").innerHTML = `<span class="col-h">By mode</span>
+    ${mk.map(k=>`<div class="hb"><a class="ref" style="color:var(--ink-2);font:400 12.5px var(--f-body)" href="#" data-ref="${k}">${MODES[k]}</a><span class="tr"><i style="width:${(m[k]||0)/mx*100}%;background:${mc(k)}"></i></span><span class="n">${m[k]||0}</span></div>`).join("")}`;
 
-  // without you: your own answer for each thread you kept
-  const wc = cnt(ITEMS, i=>i.wm), wx = Math.max(1, ...Object.values(wc));
-  $("#t-without").innerHTML = `<div class="th"><span class="lbl">Your answers · without you</span><a class="ref" href="#" data-ref="counterfactual">why →</a></div>
-    <div class="mixbars">${Object.keys(WMS).map(k=>`<div class="mb"><span style="color:var(--ink-2);font-size:12.5px">${WMS[k]}</span><span class="tr"><i style="width:${(wc[k]||0)/wx*100}%;background:var(--accent);opacity:${k==="wouldnt"?1:k==="slower"?.6:.3}"></i></span><span class="n">${wc[k]||0}</span></div>`).join("")}</div>`;
+  // Without you: parts of one whole, so one bar. Only "wouldn't happen" gets the accent.
+  const wc = cnt(ITEMS, i=>i.wm), WC = {wouldnt:"var(--accent)", slower:"var(--ink-2)", same:"var(--rest)"};
+  const wn = Object.keys(WMS).reduce((a,k) => a + (wc[k]||0), 0);
+  $("#t-without").innerHTML = `<span class="col-h">Without you <a class="ref" href="#" data-ref="counterfactual">why →</a></span>
+    <div class="part" role="img" aria-label="${Object.keys(WMS).map(k => `${wc[k]||0} ${WMS[k]}`).join(", ")}">${Object.keys(WMS).map(k => wc[k] ? `<i style="flex:${wc[k]};--c:${WC[k]}"></i>` : "").join("")}</div>
+    <ul class="pleg">${Object.keys(WMS).map(k => `<li><i class="sw" style="--c:${WC[k]}"></i><b>${wc[k]||0}</b><span>${WMS[k]} · ${wn ? Math.round((wc[k]||0)/wn*100) : 0}%</span></li>`).join("")}</ul>
+    ${n - wn ? `<span class="by">${n - wn} not answered yet</span>` : ""}`;
 
   renderRec();
+  renderNums();
 
-  // reviews with baseline
-  const avg = REVIEWS.reduce((a,b)=>a+b)/REVIEWS.length;
-  const top = Math.max(30, ...REVIEWS), X = i=>12+i*(224/Math.max(1,LAST)), Y = v=>78-v/top*62;
-  const pts = REVIEWS.map((v,i)=>`${X(i)},${Y(v)}`).join(" ");
-  $("#t-rev").innerHTML = `<div class="th"><span class="lbl">Reviews given</span><a class="ref" href="#" data-ref="elevate">elevate →</a></div>
-    <div style="display:flex;align-items:baseline;gap:10px"><span class="statn num" data-count="${REVIEWS[LAST]}">${REVIEWS[LAST]}</span><span style="font-size:12.5px;color:var(--ink-3)">in ${WEEKS[LAST]} · your normal is ${avg.toFixed(0)}</span></div>
-    <svg class="spark" viewBox="0 0 248 96" width="100%" role="img" aria-label="Reviews per week: ${REVIEWS.join(", ")}">
-      <line x1="12" x2="236" y1="${Y(avg)}" y2="${Y(avg)}" stroke="var(--ink-3)" stroke-dasharray="3 4"/>
-      <text x="236" y="${Y(avg)-5}" text-anchor="end">NORMAL ${avg.toFixed(0)}</text>
-      <polygon points="12,78 ${pts} ${X(LAST)},78" fill="var(--accent)" fill-opacity=".16"/>
-      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
-      <circle cx="${X(LAST)}" cy="${Y(REVIEWS[LAST])}" r="4" fill="var(--accent)"/>
-      ${WEEKS.map((w,i)=>`<text x="${X(i)}" y="93" text-anchor="middle">${w.slice(1)}</text>`).join("")}
-    </svg>`;
+  // Reviews given: columns on a zero baseline, the average as a dashed line, this week in ink.
+  // Not accent: a quiet week is not an alert.
+  const avg = REVIEWS.reduce((a,b)=>a+b, 0)/REVIEWS.length, {top: rt, ticks: rtk} = axis(Math.max(...REVIEWS)), RH = 110;
+  $("#t-rev").innerHTML = `<span class="col-h">Reviews given <a class="ref" href="#" data-ref="elevate">elevate →</a></span>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="statn num" data-count="${REVIEWS[LAST]}">${REVIEWS[LAST]}</span><span style="font-size:12.5px;color:var(--ink-3)">in ${WEEKS[LAST]} · average ${avg.toFixed(0)}</span></div>
+    <figure style="margin:0"><div class="plot" style="height:${RH}px" role="img" aria-label="Reviews per week: ${REVIEWS.join(", ")}">
+      ${rtk.map(v => `<div class="tick${v ? "" : " z"}" style="top:${(1 - v/rt)*100}%"><span>${v}</span></div>`).join("")}
+      <div class="bars" style="--n:${WEEKS.length}">${REVIEWS.map((v,i) => `<div class="stack" title="${WEEKS[i]}: ${v} reviews"><i style="height:${v/rt*RH}px;--c:${i === LAST ? "var(--ink)" : "var(--rest)"}"></i></div>`).join("")}</div>
+      <div class="tick" style="top:${(1 - avg/rt)*100}%;border-top:1.5px dashed var(--ink-2)"></div>
+    </div>
+    <div class="xax" style="--n:${WEEKS.length}">${WEEKS.map((w,i) => `<span class="${i === LAST ? "now" : ""}">${w}</span>`).join("")}</div></figure>`;
 
   renderWm();
 
-  // recap
-  $("#t-recap").innerHTML = `<div class="th"><span class="lbl">Recap · ${esc(PERIOD)}</span><span class="play" aria-hidden="true">▶</span></div>
-    <p class="oneline">Your ${WEEKS.length} weeks,<br>in ${PHASES.length+4} screens</p><span style="font-size:13px;opacity:.85">Wrapped style. Use ← → or tap the sides.</span>`;
+  $("#t-recap").innerHTML = `<span class="play" aria-hidden="true">▶</span>Recap · ${PHASES.length+4} screens`;
 
   if(G){
     // fromTo, not from: renderHome runs twice on load, and a second from() would start at half opacity and stay there.
-    G.fromTo(".bento .tile",{y:14,opacity:0},{y:0,opacity:1,duration:.5,stagger:.05,ease:"power2.out",clearProps:"all"});
-    document.querySelectorAll("#rings .ring").forEach((c,i)=>G.fromTo(c,{attr:{"stroke-dashoffset":100}},{attr:{"stroke-dashoffset":100-c.dataset.v},duration:1.4,delay:.2+i*.15,ease:"power3.out"}));
-    G.fromTo(".mb .tr i",{scaleX:0},{scaleX:1,duration:.9,stagger:.06,ease:"power3.out",delay:.3});
+    G.fromTo(".north .tile",{y:14,opacity:0},{y:0,opacity:1,duration:.5,stagger:.05,ease:"power2.out",clearProps:"all"});
+    // Bars grow from their baseline, left to right, so the eye reads the weeks in order.
+    G.fromTo("#v-home .stack, #v-home .spk8 i",{scaleY:0},{scaleY:1,duration:.8,stagger:.04,ease:"expo.out",delay:.2});
+    G.fromTo("#v-home .hb .tr i, #v-home .part i",{scaleX:0},{scaleX:1,duration:.8,stagger:.04,ease:"expo.out",delay:.3});
     countUp($("#v-home"));
   }
 }
+/* NUMBERS: one value per week. Big number is this week; the bars are the 8 weeks, average dashed. */
+function renderNums(){
+  if(typeof NUMS === "undefined") return;
+  // Your time zone comes from this browser, so travel follows you. Work hours are a fixed 09–19.
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const f = new Intl.DateTimeFormat("en-GB", {timeZone: tz, weekday: "short", hour: "numeric", hourCycle: "h23"});
+  const late = t => { const p = Object.fromEntries(f.formatToParts(new Date(t)).map(x => [x.type, x.value])); return p.weekday === "Sat" || p.weekday === "Sun" || +p.hour < 9 || +p.hour >= 19; };
+  const out = NUMS.slackAt.map(ts => ts.length ? Math.round(ts.filter(late).length / ts.length * 100) : 0);
+  const T = [
+    {k:"Slack messages", v:NUMS.slack, d:`in ${NUMS.channels[LAST]} channels`},
+    {k:"Meetings", v:NUMS.meetings, u:"h", d:"hours accepted or tentative"},
+    {k:"Outside work hours", v:out, u:"%", d:"of your messages, before 09, after 19 or weekends"},
+    {k:"People who mention you", v:NUMS.reach, d:"different people in Slack"}];
+  $("#nums-h").textContent = `times in ${tz}`;
+  $("#nums").innerHTML = T.map(t => { const avg = t.v.reduce((a,b) => a+b, 0) / t.v.length, mx = Math.max(1, ...t.v);
+    return `<div><span class="col-h">${t.k}</span>
+      <span class="v"><span ${Number.isInteger(t.v[LAST]) ? `data-count="${t.v[LAST]}"` : ""}>${t.v[LAST]}</span>${t.u ? `<small>${t.u}</small>` : ""}</span>
+      <span class="d">${t.d} · average ${t.u === "h" ? avg.toFixed(1) : Math.round(avg)}</span>
+      <div class="spk8" role="img" aria-label="${t.k} per week: ${t.v.join(", ")}">${t.v.map((v,i) => `<i class="${i === LAST ? "now" : ""}" style="height:${v/mx*100}%" title="${WEEKS[i]}: ${v}${t.u ?? ""}"></i>`).join("")}<span class="avg" style="bottom:${avg/mx*100}%"></span></div></div>`; }).join("");
+  $("#t-nums").hidden = false;
+}
+// Legend and bars point at each other: hover a goal and only its series stays lit.
+const wgOn = id => document.querySelectorAll("#wg [data-s]").forEach(e => e.classList.toggle("dim", !!id && e.dataset.s !== id));
+$("#wg").addEventListener("mouseover", e => wgOn(e.target.closest("[data-s]")?.dataset.s));
+$("#wg").addEventListener("mouseleave", () => wgOn(null));
+$("#wg").addEventListener("focusin", e => wgOn(e.target.closest("[data-s]")?.dataset.s));
+$("#wg").addEventListener("focusout", () => wgOn(null));
 function renderRec(){
   const r = REC[recI];
-  if(!r){ $("#t-rec").innerHTML = `<div class="th"><span class="lbl">★ Mentions and praise</span></div><p style="margin:0;font-size:14px;color:var(--ink-2)">None yet in the threads you kept.</p>`; return; }
-  $("#t-rec").innerHTML = `<div class="th"><span class="lbl">★ ${REC.length} mentions and praise</span><div class="rec-nav"><button data-rec="-1" aria-label="previous">‹</button><button data-rec="1" aria-label="next">›</button></div></div>
-    <p style="margin:0;font-size:14px;line-height:1.45">“${esc(r.t)}”</p>
-    <span class="by" style="margin-top:auto">${esc(r.who)}${r.role?` · ${esc(r.role)}`:""} · ${WEEKS[r.w]}</span>
-    <div class="rec-dots">${REC.map((_,i)=>`<i class="${i===recI?"on":""}"></i>`).join("")}</div>`;
+  if(!r){ $("#t-rec").innerHTML = `<div class="th"><span class="lbl">What people said</span></div><p style="margin:0;font-size:14px;color:var(--ink-2)">No mentions or praise yet in the threads you kept.</p>`; return; }
+  const it = ITEMS.find(i => i.id === r.item) ?? ITEMS.find(i => i.rec === recI);
+  $("#t-rec").innerHTML = `<div class="th"><span class="lbl">What people said</span><div class="rec-nav"><button data-rec="-1" aria-label="previous">‹</button><span class="by num">${recI+1} / ${REC.length}</span><button data-rec="1" aria-label="next">›</button></div></div>
+    <p class="big-q">${esc(r.t)}</p>
+    <div class="said-f"><span class="by">${esc(r.who)}${r.role?` · ${esc(r.role)}`:""} · ${esc(r.where ?? "")} · ${r.when ? esc(r.when) : WEEKS[r.w]}</span>${it ? `<button class="chip" data-item="${it.id}">${esc(it.title)} →</button>` : ""}</div>`;
 }
 
 /* TRACE: your weeks as traces. A week is a trace, a kept thread is a span, its PRs, issues and messages are span events. */
@@ -1024,9 +1108,9 @@ const EVK = {pr_merged:"PR merged", pr_open:"PR opened", issue_completed:"issue 
   reviews_given:"reviews given", slack_message:"Slack", slack_mention:"mention", meeting:"meeting", doc_created:"doc created", doc_edited:"doc edited"};
 // Heatmap rows, longest on top like a duration axis: label and lower bound in hours.
 const BUCKETS = [["3d +", 72], ["1–3 d", 24], ["< 1 d", .25], ["instant", 0]];
-// ponytail: the year comes from the period start, so a range across New Year puts January weeks a year early.
-const YEAR = +PERIOD.slice(0,4);
-const monday = w => { const j = new Date(YEAR, 0, 4); return new Date(YEAR, 0, 4 - (j.getDay()+6)%7 + (+WEEKS[w].slice(1)-1)*7).getTime(); };
+// WEEKS carry no year; the 8 weeks cross a new year at most once.
+const yearOf = w => +PERIOD.slice(0,4) + (+WEEKS[w].slice(1) < +WEEKS[0].slice(1));
+const monday = w => { const y = yearOf(w), j = new Date(y, 0, 4); return new Date(y, 0, 4 - (j.getDay()+6)%7 + (+WEEKS[w].slice(1)-1)*7).getTime(); };
 const fmtDay = t => new Date(t).toLocaleDateString("en", {month:"short", day:"numeric"});
 const fmtWhen = t => { const d = new Date(t); return `${DOW[(d.getDay()+6)%7]} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; };
 const fmtDur = i => { const h = i.hrs; if(h == null) return "no time"; if(h < 1/60) return "instant"; if(h < 1) return `${Math.round(h*60)}m`;
@@ -1153,7 +1237,7 @@ function drawSide(){
       ${i.summary ? `<p class="sb-sum">${esc(i.summary)}</p>` : ""}
       <span class="lbl">Span events · ${i.ev.length}</span>
       <ol class="evl">${timed.map(ev).join("")}${untimed.map(ev).join("")}</ol>
-      ${typeof SAMPLE === "undefined" ? `<a class="ref" href="#/review?week=${YEAR}-${esc(WEEKS[i.w])}&key=${encodeURIComponent(i.id)}">change it in review →</a>` : ""}`;
+      ${typeof SAMPLE === "undefined" ? `<a class="ref" href="#/review?week=${yearOf(i.w)}-${esc(WEEKS[i.w])}&key=${encodeURIComponent(i.id)}">change it in review →</a>` : ""}`;
   }
   if(G && !$("#v-trace").hidden){
     G.from("#sb > *", {y:8, opacity:0, filter:"blur(6px)", duration:.4, ease:"power3.out", stagger:.03, clearProps:"filter,transform,opacity"});
@@ -1228,7 +1312,7 @@ function openItem(id){
     <div class="two">
       <div class="why"><span class="lbl">Why this counts · ${MODES[m]}</span><p>“${esc(ref.q)}”</p><a class="ref" href="${ref.url}" target="_blank" rel="noopener">${esc(ref.who)} ↗</a><a class="ref" href="#" data-ref="${m}">all sources →</a></div>
       <div class="sec"><span class="lbl">Without you, would it have happened?</span><p class="oneline" style="font-size:20px;margin:0">${it.wm ? esc(WMS[it.wm]) : "not answered"}</p>
-        ${typeof SAMPLE === "undefined" ? `<a class="ref" href="#/review?week=2026-${esc(WEEKS[it.w])}&key=${encodeURIComponent(it.id)}">change it in review →</a>` : ""}<a class="ref" href="#" data-ref="counterfactual">why this question →</a></div>
+        ${typeof SAMPLE === "undefined" ? `<a class="ref" href="#/review?week=${yearOf(it.w)}-${esc(WEEKS[it.w])}&key=${encodeURIComponent(it.id)}">change it in review →</a>` : ""}<a class="ref" href="#" data-ref="counterfactual">why this question →</a></div>
     </div>`;
   $("#sheet").hidden = false; $("#x").focus();
   if(G){ G.from("#sheet-in",{y:40,opacity:0,duration:.35,ease:"power3.out",clearProps:"all"}); G.from("#sheet-in .flame .sp",{scaleX:0,duration:.5,stagger:.04,ease:"power2.out",clearProps:"transform"}); }
@@ -1568,12 +1652,12 @@ document.addEventListener("keydown", e=>{
 /* PENDING: your undecided threads per week, for the nav badge and the home tile. */
 let PENDING = {};
 function renderWm(){
-  const ws = Object.keys(PENDING).sort(), left = ws.reduce((a,w)=>a+PENDING[w],0), done = ws.filter(w=>!PENDING[w]).length;
+  const ws = Object.keys(PENDING).sort(), left = ws.reduce((a,w)=>a+PENDING[w],0);
   $("#badge").textContent = left; $("#badge").hidden = !left;
-  $("#t-wm").innerHTML = `<div class="th"><span class="lbl">Without you, would it have happened?</span><span class="ref">only you can answer</span></div>
-    <div style="display:flex;align-items:end;gap:20px;flex-wrap:wrap"><span class="statn num">${left}<small>threads to review</small></span>
-    <div style="display:grid;gap:8px;flex:1;min-width:200px"><div class="prog">${ws.map(w=>`<i class="${PENDING[w]?"":"d"}" title="${w}: ${PENDING[w] ? PENDING[w]+" left" : "done"}"></i>`).join("")}</div>
-    <span class="keys"><span>${done} of ${ws.length} weeks done</span><span>open review →</span></span></div></div>`;
+  $("#t-wm").innerHTML = `<span class="lbl">To review</span>
+    <p class="do">${left ? `${left} threads wait for your answer` : ws.length ? `All ${ws.length} weeks reviewed` : "No weeks collected yet"}</p>
+    <div class="prog">${ws.map(w=>`<i class="${PENDING[w]?"":"d"}" title="${w}: ${PENDING[w] ? PENDING[w]+" left" : "done"}"></i>`).join("")}</div>
+    <span class="ref">${left || !ws.length ? "open review →" : "review again →"}</span>`;
 }
 const loadPending = () => fetch("/api/pending").then(r => r.ok ? r.json() : {}).then(p => { PENDING = p; renderWm(); }).catch(() => {});
 

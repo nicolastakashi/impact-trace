@@ -238,7 +238,7 @@ function project(id: string) {
 
 // North and Trace: the threads you kept in review, the last 8 weeks. Same shape as sample-data.js.
 const SRC: Record<string, string> = { github: "GitHub", linear: "Linear", slack: "Slack", calendar: "Calendar", drive: "Docs" };
-const COLORS = ["var(--m-solve)", "var(--m-clarify)", "var(--m-elevate)", "var(--m-build)", "var(--m-prevent)", "var(--m-external)"];
+const COLORS = ["var(--g1)", "var(--g2)", "var(--g3)", "var(--g4)", "var(--g5)"];
 // Slack markup to what a person reads: <@U1|Ana> → @Ana, <url|label> → label, bare links dropped.
 const plain = (t: string) => t.replace(/<@[A-Z0-9]+\|([^>]+)>/g, "@$1").replace(/<@[A-Z0-9]+>/g, "@someone").replace(/<#[A-Z0-9]+\|([^>]*)>/g, "#$1")
   .replace(/<(?:https?|mailto):[^|>]+\|([^>]+)>/g, "$1").replace(/<(?:https?|mailto):[^>]+>/g, "").replace(/\s+/g, " ").trim();
@@ -287,8 +287,15 @@ function north() {
   const last = items.filter((i) => i.w === weeks.length - 1);
   const big = [...last.filter((i) => i.wm === "wouldnt" && i.rec != null), ...last.filter((i) => i.rec != null), ...last, ...items.slice().reverse()][0];
   const js = (k: string, v: any) => `const ${k} = ${JSON.stringify(v)};`;
+  // Numbers: everything collected, not only kept threads. Times go out raw: the browser
+  // knows your time zone, the container does not.
+  const per = (k: string) => weeks.map((w) => (db.query("SELECT occurred_at t, payload p FROM events WHERE kind = ? AND week = ?").all(k, w) as any[]).map((r) => ({ t: r.t, ...JSON.parse(r.p) })));
+  const msgs = per("slack_message"), ments = per("slack_mention");
+  const hours = (m: any) => String(m.start).includes("T") ? (Date.parse(m.end) - Date.parse(m.start)) / 36e5 : 0;
   return [js("WEEKS", weeks.map((w) => w.slice(5))), js("REVIEWS", reviews), js("PERIOD", `${weeks[0]} – ${weeks.at(-1)}`),
     js("GOALS", goals.map((g, i) => ({ ...g, color: COLORS[i % COLORS.length] }))), js("GOALS_FROM", from),
+    js("NUMS", { slack: msgs.map((m) => m.length), channels: msgs.map((m) => new Set(m.map((x) => x.channel_name)).size), slackAt: msgs.map((m) => m.map((x) => x.t)),
+      meetings: per("meeting").map((m) => +m.reduce((a, x) => a + hours(x), 0).toFixed(1)), reach: ments.map((m) => new Set(m.map((x) => x.author_name)).size) }),
     js("PROJECTS", P), js("REC", rec), js("ITEMS", items), js("HIGHLIGHT", { item: big.id, when: big.rec != null ? rec[big.rec].when : "" }),
     // Feedback, newest week first: what the code verified, never the raw Claude output.
     js("FEEDBACK", (db.query("SELECT week, output FROM feedback ORDER BY week DESC").all() as any[]).map((r) => ({ ...JSON.parse(r.output),

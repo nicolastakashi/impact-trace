@@ -5,9 +5,9 @@ const WEEKS = ["W35","W36","W37","W38","W39","W40","W41","W42"];
 const REVIEWS = [28,19,22,27,17,27,15,10];
 const PERIOD = "2026-W35 – 2026-W42";
 const GOALS = [
-  {id:"o1", short:"Self-serve", title:"Customers manage their whole setup as code", color:"var(--m-solve)"},
-  {id:"o2", short:"Trusted alerts", title:"Alerts customers trust", color:"var(--m-clarify)"},
-  {id:"o3", short:"Industry voice", title:"A voice in the open-source community", color:"var(--m-elevate)"},
+  {id:"o1", short:"Self-serve", title:"Customers manage their whole setup as code", color:"var(--g1)"},
+  {id:"o2", short:"Trusted alerts", title:"Alerts customers trust", color:"var(--g2)"},
+  {id:"o3", short:"Industry voice", title:"A voice in the open-source community", color:"var(--g3)"},
 ];
 const PROJECTS = {
   access:{name:"Access model for shared assets", url:null, lead:null, status:"In Progress", goal:"o1", done:[2,3,4,5,7,4,3,2], open:6, ms:[]},
@@ -42,6 +42,10 @@ const ITEMS = [
   {id:"2026-W42-i02", w:7, s:"up", title:"Conference talk on metric contracts", mode:"external", pillar:"big", wm:"wouldnt", links:[], ev:[["doc_created", "2026-10-13T09:00:00", "Talk: metric contracts", null], ["meeting", "2026-10-16T11:00:00", "Conference talk on metric contracts", null]], p:{external:.95,clarify:.05}},
 ];
 const HIGHLIGHT = {item:"2026-W42-i01", when:"2026-10-16"};
+// Numbers: fictional. Slack times spread over working days, a few late or on weekends.
+const NUMS = (() => { const slack = [96,112,88,130,104,121,99,117], at = slack.map((n, w) => Array.from({length: n}, (_, i) =>
+  new Date(Date.UTC(2026, 7, 24 + w*7 + (i % 7 === 6 ? 5 : i % 5), i % 9 === 0 ? 20 : 8 + i % 9)).toISOString()));
+  return {slack, channels:[11,13,9,14,12,15,10,13], slackAt: at, meetings:[8.5,11,7,12.5,9,10,6.5,9.5], reach:[9,12,8,14,10,13,9,12]}; })();
 const PHASES = [
   {k:"Phase 1 · W35–W38", h:"Runners and the access model", from:0, to:3},
   {k:"Phase 1 · W37", rec:0},
