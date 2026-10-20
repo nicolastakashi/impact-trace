@@ -250,7 +250,11 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .fb-weeks{display:flex;flex-wrap:wrap;gap:6px}
 .fb-weeks button{border:1px solid var(--line);background:var(--s1);border-radius:999px;padding:5px 12px;font:600 12px var(--f-num);letter-spacing:.08em;color:var(--ink-3);cursor:pointer}
 .fb-weeks button[aria-pressed="true"]{color:var(--ink);border-color:var(--ink-3)}
-.fb-prev{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;padding:14px 18px;border:1px dashed var(--line-2);border-radius:14px;font-size:14px;color:var(--ink-2)}
+.fb-prev{padding:12px 18px;border:1px dashed var(--line-2);border-radius:14px;font-size:14px;color:var(--ink-2)}
+.fb-prev summary{display:flex;gap:14px;align-items:baseline;cursor:pointer;list-style:none}
+.fb-prev summary::after,.fb-src summary::after{content:"▸";color:var(--ink-3);font-size:11px}
+.fb-prev[open] summary::after,.fb-src[open] summary::after{content:"▾"}
+.fb-prev p{margin:8px 0 0}
 .fb-prev .n{font:600 14px var(--f-mono);color:var(--ink)}
 .fb-try{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px 40px;padding:28px clamp(18px,3vw,34px);position:relative;overflow:hidden}
 .fb-try::before{content:"";position:absolute;inset:-40% -20% auto 45%;height:160%;background:radial-gradient(closest-side,color-mix(in srgb,var(--accent) 13%,transparent),transparent);pointer-events:none}
@@ -306,12 +310,13 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .rw-was mark{color:var(--ink);padding:0 2px;border-radius:2px;background:linear-gradient(color-mix(in srgb,var(--accent) 38%,transparent),color-mix(in srgb,var(--accent) 38%,transparent)) no-repeat 0 100% / 0% 45%;transition:background-size .55s cubic-bezier(.16,1,.3,1)}
 .rw.on .rw-was mark{background-size:100% 45%}
 .rw-now{display:grid;gap:4px;padding-top:12px;border-top:1px dashed var(--line-2)}
-.rw-now span,.rw-k{font:500 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
-.rw-b{display:grid;gap:4px}
-.fb-imp{display:grid;gap:4px}
-.why.fb-src{gap:6px;padding:12px 14px;max-width:62ch;background:var(--s2);border-color:var(--line)}
-.fb-src p{font-size:14px;line-height:1.5}
-.fb-src div{display:flex;flex-wrap:wrap;gap:4px 14px}
+.rw-now span{font:500 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.fb-src summary{display:inline-flex;gap:8px;align-items:baseline;cursor:pointer;list-style:none;font:500 12px var(--f-mono);color:var(--ink-3)}
+.fb-src summary:hover{color:var(--ink)}
+.fb-src > div{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;padding:12px 14px;border-radius:12px;background:var(--s2);border:1px solid var(--line);max-width:62ch}
+.fb-src p{margin:0;width:100%;font-size:14px;line-height:1.5}
+.fb-more-in{display:grid;gap:12px;margin-top:10px}
+.fb-fh h2{margin:0}
 .ref.warn{color:var(--ink-3)}
 .rw-now p{margin:0;font-size:15.5px;line-height:1.55;color:var(--ink);font-weight:500}
 .rw.keep{border-color:color-mix(in srgb,var(--m-build) 35%,var(--line))}
@@ -329,7 +334,6 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .fb-focus.rej .rws{opacity:.45}
 .fb-try .vd{margin-top:18px}
 .fb-try.rej .fb-do,.fb-try.rej .fb-chart{opacity:.45}
-.fb-trust{margin:0;font-size:12.5px;line-height:1.55;color:var(--ink-3);max-width:80ch}
 .t-full{grid-column:1 / -1}
 .t-fb{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 24px;align-items:center;text-align:left;cursor:pointer;min-height:0}
 .t-fb .do{margin:0;font:600 17px/1.35 var(--f-body);color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -1167,9 +1171,10 @@ REFS.sbi = {title:"How feedback is written", d:"Each card follows Situation, Beh
 // Why a pattern counts: its first source, the rest on the References page.
 function srcOf(it){
   const c = CATS.find(x => x.id === it.category && x.kind === (it.keep ? "strength" : "pattern")), x = c?.refs[0]; if(!x) return "";
-  return `<div class="why fb-src"><span class="lbl">Why this counts</span><p>${x.q ? `“${esc(x.q)}”` : esc(x.says)}</p>
-    <div><a class="ref" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.who)} ↗</a>${x.warn ? `<span class="ref warn">${esc(x.warn)}</span>` : ""}<a class="ref" href="#/refs?k=feedback">all sources →</a></div></div>`;
+  return `<details class="fb-src"><summary>Why this counts · ${esc(x.who.split(",")[0])}</summary><div><p>${x.q ? `“${esc(x.q)}”` : esc(x.says)}</p>
+    <a class="ref" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.who)} ↗</a>${x.warn ? `<span class="ref warn">${esc(x.warn)}</span>` : ""}<a class="ref" href="#/refs?k=feedback">all sources →</a></div></details>`;
 }
+
 let fbW = 0, fbP = 0;
 const wk = w => w.slice(5);
 const nextWeek = w => `W${String(+w.slice(6) + 1).padStart(2, "0")}`; // ponytail: W53 and New Year are not handled
@@ -1193,7 +1198,7 @@ const vdBtns = (f, key, yes = "Accept", no = "Reject", keys = true) => `<div cla
 const vdWhy = (f, key) => vdOf(f, key) !== "reject" ? "" : `<form class="vd-why" data-key="${esc(key)}"><input id="fb-why" name="why" maxlength="400" autocomplete="off"
   placeholder="What is wrong with it? Claude reads this next week." value="${esc(f.verdicts[key].why ?? "")}" aria-label="Why you rejected it"><button>Save reason</button></form>`;
 async function setVerdict(key, v, why){
-  const f = FB[fbW], old = f.verdicts?.[key];
+  const f = FB[fbW], old = f.verdicts?.[key]; fbJust = key;
   f.verdicts = {...f.verdicts}; if(v) f.verdicts[key] = {v, why: why ?? null}; else delete f.verdicts[key];
   renderFeedback(false);
   // The example has no server behind it: the verdict lives on this page only.
@@ -1213,10 +1218,10 @@ function renderFeedback(anim = true){
     $("#fb").innerHTML = `${weeksNav}<div class="panel empty">You wrote no Slack messages in ${wk(f.week)}, so there is no feedback for it.</div>`; return; }
   const total = f.messages.reduce((a, b) => a + b, 0), e = f.experiment, items = fbItems(f);
   fbP = Math.min(fbP, items.length - 1);
-  $("#fb-lead").textContent = `From ${total} Slack messages you wrote, ${wk(f.weeks[0])} to ${wk(f.weeks.at(-1))}. Every quote below is one of them.`;
+  $("#fb-lead").textContent = `${total} of your Slack messages · ${wk(f.weeks[0])}–${wk(f.weeks.at(-1))}`;
   const p = f.previous;
-  const prev = p && p.do ? `<div class="fb-prev"><span class="lbl">Last experiment · ${wk(p.week)}</span><span>${esc(p.do)}</span>
-    ${p.before != null && p.after != null ? `<span class="n">${p.before} → ${p.after}</span>` : ""}${f.last_experiment ? `<span>${esc(f.last_experiment)}</span>` : ""}</div>` : "";
+  const prev = p && p.do ? `<details class="fb-prev"><summary><span class="lbl">Last experiment · ${wk(p.week)}</span>${p.before != null && p.after != null ? `<span class="n">${p.before} → ${p.after}</span>` : ""}</summary>
+    <p>${esc(p.do)}</p>${f.last_experiment ? `<p>${esc(f.last_experiment)}</p>` : ""}</details>` : "";
   const t = e?.trend, n = t ? t.length + 1 : 0, mx = t ? Math.max(1, ...t) : 1;
   const chart = t ? `<div class="fb-chart"><span class="cap"><b>${t.reduce((a, b) => a + b, 0)}</b>messages with these phrases in 8 weeks, ${t.at(-1)} in ${wk(f.week)}</span>
       <div class="fb-bars" style="--n:${n}">${t.map((c, k) => `<div class="b${k === t.length - 1 ? " now" : ""}"><em>${c}</em><i style="--h:${c/mx}"></i></div>`).join("")}<div class="b next" title="Measured after the next collection"><em>?</em><i></i></div></div>
@@ -1234,8 +1239,7 @@ function renderFeedback(anim = true){
         return `<button role="tab" class="fb-tab${x.keep ? " keep" : ""}${v === "reject" ? " rej" : ""}" data-fbp="${k}" aria-selected="${k === fbP}">
           <b>${x.keep ? "✓ " : ""}${esc(x.name)}</b><small>${st}${x.keep ? "keep doing" : `${x.trend.reduce((a, b) => a + b, 0)} messages`}</small></button>`; }).join("")}</div>
       <div class="fb-focus${vdOf(f, it?.key) === "reject" ? " rej" : ""}" id="fb-focus" role="tabpanel">${focus(it, f)}</div>
-    </div>
-    <p class="fb-trust">Claude reads only the Slack messages you wrote: not code, meetings or what others say. The code drops any quote it cannot find in your messages, and makes every count.</p>`;
+    </div>`;
   if(anim) animFocus(true); else document.querySelectorAll("#fb-focus .rw").forEach(c => c.classList.add("on"));
 }
 // What a verdict does, said where you made it.
@@ -1245,30 +1249,32 @@ const NOTE = {
   strength: {accept:"Accepted. Claude keeps it as a strength to build on.", reject:"Rejected. Claude will not call this a strength again without new evidence."},
   experiment: {accept:"Next Monday counts these phrases in {w} and shows before → after here.", reject:"Passed. Next week Claude proposes a different experiment, and nothing is measured for this one."},
 };
-const vdNote = (f, key) => { const v = vdOf(f, key); if(!v) return "";
+let fbJust = null;
+const vdNote = (f, key) => { const v = vdOf(f, key); if(!v || fbJust !== key) return "";
   const t = NOTE[key.startsWith("pattern:") ? "pattern" : key][v].replace("{w}", nextWeek(f.week));
   return `<p class="vd-note" role="status">${t}</p>`; };
 function focus(it, f){
   if(!it) return `<p class="fb-why">No pattern stood out in these weeks.</p>`;
-  const k = fbItems(f).findIndex(x => x.key === it.key), n = f.patterns.length;
-  let body = "";
+  const card = x => `<article class="rw${it.keep ? " keep" : ""}">
+      <div class="rw-h"><span>${esc(when(x))}</span>${x.url ? `<a class="ref" href="${esc(x.url)}" target="_blank" rel="noopener">open in Slack ↗</a>` : ""}</div>
+      <p class="rw-was">“${markQ(x.quote, it.markers)}”</p>
+      ${x.instead ? `<div class="rw-now"><span>Next time</span><p>${esc(x.instead)}</p></div>` : ""}</article>`;
+  const [first, ...rest] = it.evidence, more = it.matches ?? [];
+  let chart = "";
   if(!it.keep){
     const total = it.trend.reduce((a, b) => a + b, 0), mx = Math.max(1, ...it.trend), re = new RegExp(it.markers.map(m => m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "i");
     // Two quotes can come from one message: count messages, so the numbers add up to the total.
-    const quoted = new Set(it.evidence.filter(x => re.test(x.quote)).map(x => x.at + x.channel)).size, more = it.matches ?? [];
-    body = `<div class="fb-wk"><p class="fb-sub"><b>${total}</b> messages with <span class="fb-mk" style="display:inline-flex">${it.markers.map(m => `<code>${esc(m)}</code>`).join("")}</span>:
-        ${quoted} quoted below with a stronger version${more.length ? `, ${more.length} more after them` : ""}.${it.evidence.length > quoted ? ` Claude also quoted ${it.evidence.length - quoted} that say it in other words, not counted.` : ""}</p>
+    const quoted = new Set(it.evidence.filter(x => re.test(x.quote)).map(x => x.at + x.channel)).size;
+    chart = `<div class="fb-wk"><p class="fb-sub"><b>${total}</b> messages with <span class="fb-mk" style="display:inline-flex">${it.markers.map(m => `<code>${esc(m)}</code>`).join("")}</span>:
+        ${quoted} quoted with a stronger version${more.length ? `, ${more.length} more below` : ""}.${it.evidence.length > quoted ? ` ${it.evidence.length - quoted} quoted say it in other words, not counted.` : ""}</p>
       <div class="fb-bars" style="--n:${it.trend.length}">${it.trend.map((c, j) => `<div class="b${j === it.trend.length - 1 ? " now" : ""}"><em>${c}</em><i style="--h:${c/mx}"></i></div>`).join("")}</div>
       <div class="fb-ax" style="--n:${it.trend.length}">${f.weeks.map(w => `<span>${wk(w)}</span>`).join("")}</div></div>`;
   }
-  const cards = `<div class="rws">${it.evidence.map(x => `<article class="rw${it.keep ? " keep" : ""}">
-      <div class="rw-h"><span class="rw-k">Situation</span><span>${esc(when(x))}</span>${x.url ? `<a class="ref" href="${esc(x.url)}" target="_blank" rel="noopener">open in Slack ↗</a>` : ""}</div>
-      <div class="rw-b"><span class="rw-k">Behavior</span><p class="rw-was">“${markQ(x.quote, it.markers)}”</p></div>
-      ${x.instead ? `<div class="rw-now"><span>Next time</span><p>${esc(x.instead)}</p></div>` : ""}</article>`).join("")}</div>`;
-  const more = it.matches?.length ? `<details class="fb-more"><summary>${it.matches.length} more message${it.matches.length > 1 ? "s" : ""} with these phrases, no rewrite</summary>
-      <ol>${it.matches.map(m => `<li><div class="rw-h"><span>${esc(when(m))}</span>${m.url ? `<a class="ref" href="${esc(m.url)}" target="_blank" rel="noopener">open in Slack ↗</a>` : ""}</div><p>${markQ(m.text, it.markers)}</p></li>`).join("")}</ol></details>` : "";
-  return `<div class="fb-fh"><span class="lbl">${it.keep ? "Strength" : `Pattern ${k + 1} of ${n}`}</span>${vdBtns(f, it.key, "Accept", "Reject")}</div>${vdNote(f, it.key)}${vdWhy(f, it.key)}
-    <h2>${esc(it.name)}</h2><div class="fb-imp"><span class="rw-k">${it.keep ? "Why it works" : "Impact"}</span><p class="fb-why">${esc(it.why)}</p></div>${srcOf(it)}${body}${cards}${more}`;
+  const label = [rest.length && `${rest.length} more example${rest.length > 1 ? "s" : ""}`, more.length && `${more.length} more message${more.length > 1 ? "s" : ""}`, !it.keep && "8-week count"].filter(Boolean).join(" · ");
+  const extra = label ? `<details class="fb-more"><summary>${label}</summary><div class="fb-more-in">${chart}${rest.length ? `<div class="rws">${rest.map(card).join("")}</div>` : ""}
+      ${more.length ? `<ol>${more.map(m => `<li><div class="rw-h"><span>${esc(when(m))}</span>${m.url ? `<a class="ref" href="${esc(m.url)}" target="_blank" rel="noopener">open in Slack ↗</a>` : ""}</div><p>${markQ(m.text, it.markers)}</p></li>`).join("")}</ol>` : ""}</div></details>` : "";
+  return `<div class="fb-fh"><h2>${esc(it.name)}</h2>${vdBtns(f, it.key, "Accept", "Reject")}</div>${vdNote(f, it.key)}${vdWhy(f, it.key)}
+    <p class="fb-why">${esc(it.why)}</p>${srcOf(it)}<div class="rws">${first ? card(first) : ""}</div>${extra}`;
 }
 function animFocus(all){
   const cards = [...document.querySelectorAll("#fb-focus .rw")];
@@ -1277,7 +1283,7 @@ function animFocus(all){
   G.from("#fb-focus .fb-bars .b i", {scaleY:0, duration:.6, ease:"expo.out", stagger:.04, clearProps:"transform"});
   if(all){ G.from("#fb .fb-try .fb-bars .b:not(.next) i", {scaleY:0, duration:.7, ease:"expo.out", stagger:.05, clearProps:"transform"});
     G.from("#fb .fb-do", {opacity:0, y:10, filter:"blur(6px)", duration:.6, ease:"power3.out", clearProps:"all"}); }
-  G.from("#fb-focus > .fb-fh, #fb-focus > h2, #fb-focus > .fb-imp, #fb-focus > .fb-src, #fb-focus > .fb-wk", {opacity:0, y:8, filter:"blur(6px)", duration:.45, ease:"power3.out", stagger:.04, clearProps:"all"});
+  G.from("#fb-focus > .fb-fh, #fb-focus > .fb-why, #fb-focus > .fb-src", {opacity:0, y:8, filter:"blur(6px)", duration:.45, ease:"power3.out", stagger:.04, clearProps:"all"});
   cards.forEach((c, k) => {
     G.from(c, {opacity:0, y:12, duration:.45, ease:"power3.out", delay:.12 + k*.1, clearProps:"all", onStart:() => setTimeout(() => c.classList.add("on"), 200)});
     const now = c.querySelector(".rw-now"); if(now) G.from(now, {opacity:0, x:-8, filter:"blur(4px)", duration:.5, ease:"power3.out", delay:.75 + k*.1, clearProps:"all"});
@@ -1294,7 +1300,7 @@ $("#v-feedback").addEventListener("click", e => {
   const b = e.target.closest("button"); if(!b || b.closest(".vd-why")) return;
   if(b.dataset.vd){ setVerdict(b.dataset.key, vdOf(FB[fbW], b.dataset.key) === b.dataset.vd ? null : b.dataset.vd); return; }
   if(b.dataset.fbw != null){ fbW = +b.dataset.fbw; fbP = 0; fbUrl(); renderFeedback(); }
-  else if(b.dataset.fbp != null){ fbP = +b.dataset.fbp; fbUrl();
+  else if(b.dataset.fbp != null){ fbP = +b.dataset.fbp; fbJust = null; fbUrl();
     document.querySelectorAll("#fb .fb-tab").forEach(x => x.setAttribute("aria-selected", x === b));
     const it = fbItems(FB[fbW])[fbP];
     $("#fb-focus").classList.toggle("rej", vdOf(FB[fbW], it.key) === "reject"); $("#fb-focus").innerHTML = focus(it, FB[fbW]); animFocus(false); }
