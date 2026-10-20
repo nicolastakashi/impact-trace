@@ -5,9 +5,9 @@ const WEEKS = ["W35","W36","W37","W38","W39","W40","W41","W42"];
 const REVIEWS = [28,19,22,27,17,27,15,10];
 const PERIOD = "2026-W35 – 2026-W42";
 const GOALS = [
-  {id:"o1", short:"Self-serve", title:"Customers manage their whole setup as code", color:"var(--m-solve)"},
-  {id:"o2", short:"Trusted alerts", title:"Alerts customers trust", color:"var(--m-clarify)"},
-  {id:"o3", short:"Industry voice", title:"A voice in the open-source community", color:"var(--m-elevate)"},
+  {id:"o1", short:"Self-serve", title:"Customers manage their whole setup as code", color:"var(--g1)"},
+  {id:"o2", short:"Trusted alerts", title:"Alerts customers trust", color:"var(--g2)"},
+  {id:"o3", short:"Industry voice", title:"A voice in the open-source community", color:"var(--g3)"},
 ];
 const PROJECTS = {
   access:{name:"Access model for shared assets", url:null, lead:null, status:"In Progress", goal:"o1", done:[2,3,4,5,7,4,3,2], open:6, ms:[]},

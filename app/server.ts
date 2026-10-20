@@ -238,7 +238,7 @@ function project(id: string) {
 
 // North and Trace: the threads you kept in review, the last 8 weeks. Same shape as sample-data.js.
 const SRC: Record<string, string> = { github: "GitHub", linear: "Linear", slack: "Slack", calendar: "Calendar", drive: "Docs" };
-const COLORS = ["var(--m-solve)", "var(--m-clarify)", "var(--m-elevate)", "var(--m-build)", "var(--m-prevent)", "var(--m-external)"];
+const COLORS = ["var(--g1)", "var(--g2)", "var(--g3)", "var(--g4)", "var(--g5)"];
 // Slack markup to what a person reads: <@U1|Ana> → @Ana, <url|label> → label, bare links dropped.
 const plain = (t: string) => t.replace(/<@[A-Z0-9]+\|([^>]+)>/g, "@$1").replace(/<@[A-Z0-9]+>/g, "@someone").replace(/<#[A-Z0-9]+\|([^>]*)>/g, "#$1")
   .replace(/<(?:https?|mailto):[^|>]+\|([^>]+)>/g, "$1").replace(/<(?:https?|mailto):[^>]+>/g, "").replace(/\s+/g, " ").trim();
