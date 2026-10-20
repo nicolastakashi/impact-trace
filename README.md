@@ -30,6 +30,7 @@ follow SBI (Situation, Behavior, Impact) and end with what to say next time.
 | Group events into threads and projects | [threads](docs/threads.md) |
 | Review: Claude suggests, you decide | [review](docs/review.md) |
 | North, Trace and Projects | [views](docs/views.md) |
+| Goals your work serves | [goals](docs/goals.md) |
 | Feedback on how you show up | [feedback](docs/feedback.md) |
 | The daily schedule, with no gaps | [schedule](docs/schedule.md) |
 
