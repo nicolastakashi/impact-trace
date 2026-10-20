@@ -38,15 +38,15 @@ collect() { # source tools [skill args]: the raw file is named after the source
 
 collect linear "$linear_tools"
 collect github "$github_tools" "$login ${orgs:--}"
-# One call per pass: a single call skipped the mention pass. Own messages go one day per
-# call: a busy week (338 rows) was too long for one answer.
+# One call per pass and per day: a single call skipped the mention pass, and a week in one
+# call came back as its first page only (11 pages read, 20 rows returned).
 for i in 0 1 2 3 4 5 6; do
   day=$(python3 -c 'import datetime as d,sys; print(d.date.fromisoformat(sys.argv[1])+d.timedelta(int(sys.argv[2])))' "$monday" "$i")
   # A day that has not happened has no messages; Haiku answered those with today's.
   [[ "$day" > "$(date +%F)" ]] && continue
   collect "slack_own_$((i + 1))" "$slack_tools" "own $day"
+  collect "slack_mention_$((i + 1))" "$slack_tools" "mention $day $name"
 done
-collect slack_mention "$slack_tools" "mention $name"
 collect calendar "$calendar_tools"
 collect drive "$drive_tools"
 
