@@ -54,16 +54,17 @@ const FEEDBACK = [{
   week:"2026-W42", weeks:["2026-W35","2026-W36","2026-W37","2026-W38","2026-W39","2026-W40","2026-W41","2026-W42"], messages:[48,61,55,40,52,70,58,63],
   patterns:[
     {name:"Asking sign-off on your own calls", why:"You own exports. Ending a plan with a question hands the decision to someone else, and the plan reads like a draft.",
-     markers:["any objection","wdyt","is that ok"], trend:[1,2,1,0,2,5,3,4], evidence:[
+     markers:["any objection","wdyt","is that ok"], trend:[0,0,0,0,0,1,1,1], matches:[
+      {text:"Thinking we move the sync to Tuesdays, is that ok with everyone?", week:"2026-W40", at:"2026-10-01T11:15:00", channel:"#team-api", url:null}], evidence:[
       {quote:"I'm thinking of dropping the v1 endpoint next sprint, any objection?", instead:"I'm dropping the v1 endpoint next sprint; tell me by Thursday if that breaks you.", week:"2026-W42", at:"2026-10-13T10:12:00", channel:"#project-exports", url:null},
       {quote:"Plan is to cut the release Friday, wdyt?", instead:"We cut the release Friday.", week:"2026-W41", at:"2026-10-07T16:40:00", channel:"#team-api", url:null}]},
     {name:"Making your own asks smaller", why:"Saying \"no rush\" on work that gates a release gives reviewers a reason to wait, and your dates slip.",
-     markers:["no rush","not urgent"], trend:[0,1,0,1,0,3,1,2], evidence:[
+     markers:["no rush","not urgent"], trend:[0,0,0,0,0,0,1,1], matches:[], evidence:[
       {quote:"No rush, but could someone look at the retry PR", instead:"The retry PR gates Friday's release; I need a review by Wednesday.", week:"2026-W42", at:"2026-10-14T09:05:00", channel:"#team-api", url:null},
-      {quote:"not urgent at all", instead:"This blocks the Terraform resource, please review it this week.", week:"2026-W40", at:"2026-09-30T14:20:00", channel:"DM", url:null}]}],
+      {quote:"not urgent at all", instead:"This blocks the Terraform resource, please review it this week.", week:"2026-W41", at:"2026-10-07T14:20:00", channel:"DM", url:null}]}],
   strength:{name:"Closing threads with a decision", why:"When a discussion stalls you write the decision and the reason, and the thread ends.", evidence:[
     {quote:"Decision: soft delete stays behind the flag until the restore path ships.", week:"2026-W42", at:"2026-10-15T11:30:00", channel:"#project-exports", url:null}]},
-  experiment:{pattern:"Asking sign-off on your own calls", do:"On your own projects, write each decision as \"I'm doing X, tell me by <day> if you object.\" Do not end it with a question.", markers:["any objection","wdyt","is that ok"], trend:[1,2,1,0,2,5,3,4]},
-  last_experiment:"You wrote deadlines on 3 review asks this week, and \"no rush\" went from 3 to 1.",
-  previous:{week:"2026-W41", pattern:"Making your own asks smaller", do:"Put the date and the reason on every review ask that gates a release.", markers:["no rush","not urgent"], before:3, after:1},
+  experiment:{pattern:"Asking sign-off on your own calls", do:"On your own projects, write each decision as \"I'm doing X, tell me by <day> if you object.\" Do not end it with a question.", markers:["any objection","wdyt","is that ok"], trend:[0,0,0,0,0,1,1,1]},
+  last_experiment:"You put a date on 2 review asks this week, but \"no rush\" stayed at 1.",
+  previous:{week:"2026-W41", pattern:"Making your own asks smaller", do:"Put the date and the reason on every review ask that gates a release.", markers:["no rush","not urgent"], before:1, after:1},
 }];
