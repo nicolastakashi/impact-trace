@@ -93,6 +93,17 @@ button.tile:hover{border-color:var(--line-2)}
 .cols>div:last-child{padding-right:0}
 .col-h{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--ink-2)}
 .t-now{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:12px}
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:0}
+.nums>div{display:flex;flex-direction:column;gap:8px;padding:2px 20px;border-left:1px solid var(--line)}
+.nums>div:first-child{border-left:0;padding-left:0}
+.nums .v{font:800 40px/.9 var(--f-num);font-variant-numeric:tabular-nums}
+.nums .v small{font-size:18px;color:var(--ink-3);margin-left:2px}
+.nums .d{font-size:12.5px;color:var(--ink-3)}
+.spk8{display:flex;gap:3px;align-items:flex-end;height:36px;flex:none;margin-top:auto;position:relative}
+.spk8 i{flex:1;background:var(--rest);border-radius:2px 2px 0 0;transform-origin:bottom}
+.spk8 i.now{background:var(--ink)}
+.spk8 .avg{position:absolute;left:0;right:0;border-top:1.5px dashed var(--ink-2)}
+@media (max-width:620px){ .nums>div{border-left:0;padding:12px 0;border-top:1px solid var(--line)} .nums>div:first-child{border-top:0} }
 .said-f{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
 .said-f .chip{max-width:100%;text-align:left}
 .recap-btn{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line-2);background:var(--s2);color:var(--ink);border-radius:999px;padding:8px 16px 8px 8px;font:500 13px var(--f-body);cursor:pointer}
@@ -811,6 +822,10 @@ nav .ex{font-size:8.5px;padding:2px 4px}
       <div class="th"><span class="lbl">How you delivered</span><a class="ref" href="#" data-v="trace">trace →</a></div>
       <div class="cols"><div id="t-mix"></div><div id="t-without"></div><div id="t-rev"></div></div>
     </div>
+    <div class="tile" id="t-nums" hidden>
+      <div class="th"><span class="lbl">Your weeks in numbers</span><span class="ref" id="nums-h"></span></div>
+      <div class="nums" id="nums"></div>
+    </div>
     <div class="tile" id="t-rec"></div>
     <div class="t-now">
       <button class="tile t-fb" id="t-fb" data-v="feedback" hidden></button>
@@ -1024,6 +1039,7 @@ function renderHome(){
     ${n - wn ? `<span class="by">${n - wn} not answered yet</span>` : ""}`;
 
   renderRec();
+  renderNums();
 
   // Reviews given: columns on a zero baseline, the average as a dashed line, this week in ink.
   // Not accent: a quiet week is not an alert.
@@ -1045,10 +1061,31 @@ function renderHome(){
     // fromTo, not from: renderHome runs twice on load, and a second from() would start at half opacity and stay there.
     G.fromTo(".north .tile",{y:14,opacity:0},{y:0,opacity:1,duration:.5,stagger:.05,ease:"power2.out",clearProps:"all"});
     // Bars grow from their baseline, left to right, so the eye reads the weeks in order.
-    G.fromTo("#v-home .stack",{scaleY:0},{scaleY:1,duration:.8,stagger:.04,ease:"expo.out",delay:.2});
+    G.fromTo("#v-home .stack, #v-home .spk8 i",{scaleY:0},{scaleY:1,duration:.8,stagger:.04,ease:"expo.out",delay:.2});
     G.fromTo("#v-home .hb .tr i, #v-home .part i",{scaleX:0},{scaleX:1,duration:.8,stagger:.04,ease:"expo.out",delay:.3});
     countUp($("#v-home"));
   }
+}
+/* NUMBERS: one value per week. Big number is this week; the bars are the 8 weeks, average dashed. */
+function renderNums(){
+  if(typeof NUMS === "undefined") return;
+  // Your time zone comes from this browser, so travel follows you. Work hours are a fixed 09–19.
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const f = new Intl.DateTimeFormat("en-GB", {timeZone: tz, weekday: "short", hour: "numeric", hourCycle: "h23"});
+  const late = t => { const p = Object.fromEntries(f.formatToParts(new Date(t)).map(x => [x.type, x.value])); return p.weekday === "Sat" || p.weekday === "Sun" || +p.hour < 9 || +p.hour >= 19; };
+  const out = NUMS.slackAt.map(ts => ts.length ? Math.round(ts.filter(late).length / ts.length * 100) : 0);
+  const T = [
+    {k:"Slack messages", v:NUMS.slack, d:`in ${NUMS.channels[LAST]} channels`},
+    {k:"Meetings", v:NUMS.meetings, u:"h", d:"hours accepted or tentative"},
+    {k:"Outside work hours", v:out, u:"%", d:"of your messages, before 09, after 19 or weekends"},
+    {k:"People who mention you", v:NUMS.reach, d:"different people in Slack"}];
+  $("#nums-h").textContent = `times in ${tz}`;
+  $("#nums").innerHTML = T.map(t => { const avg = t.v.reduce((a,b) => a+b, 0) / t.v.length, mx = Math.max(1, ...t.v);
+    return `<div><span class="col-h">${t.k}</span>
+      <span class="v"><span ${Number.isInteger(t.v[LAST]) ? `data-count="${t.v[LAST]}"` : ""}>${t.v[LAST]}</span>${t.u ? `<small>${t.u}</small>` : ""}</span>
+      <span class="d">${t.d} · average ${t.u === "h" ? avg.toFixed(1) : Math.round(avg)}</span>
+      <div class="spk8" role="img" aria-label="${t.k} per week: ${t.v.join(", ")}">${t.v.map((v,i) => `<i class="${i === LAST ? "now" : ""}" style="height:${v/mx*100}%" title="${WEEKS[i]}: ${v}${t.u ?? ""}"></i>`).join("")}<span class="avg" style="bottom:${avg/mx*100}%"></span></div></div>`; }).join("");
+  $("#t-nums").hidden = false;
 }
 // Legend and bars point at each other: hover a goal and only its series stays lit.
 const wgOn = id => document.querySelectorAll("#wg [data-s]").forEach(e => e.classList.toggle("dim", !!id && e.dataset.s !== id));
