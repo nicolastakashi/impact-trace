@@ -517,6 +517,24 @@ nav .ex{font-size:8.5px;padding:2px 4px}
 #v-goals{
   #go{display:grid;gap:14px}
   .go-new{justify-self:start}
+  .go-first{display:grid;gap:14px;background:var(--s1);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:clamp(18px,3vw,32px)}
+  .go-first h2{font:800 clamp(24px,3vw,34px)/1 var(--f-num);text-transform:uppercase;margin:0;text-wrap:balance}
+  .go-first p{margin:0;color:var(--ink-2);font-size:14.5px;max-width:60ch}
+  .go-first .lbl{margin-top:10px}
+  .go-kinds{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+  .go-kind{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center;text-align:left;font:inherit;color:var(--ink);background:var(--s2);border:1px solid var(--line-2);border-radius:14px;padding:16px 18px;cursor:pointer;transition:border-color .2s,transform .2s}
+  .go-kind[data-new="personal"]{border-style:dashed}
+  .go-kind:hover,.go-kind:focus-visible{border-color:var(--accent);transform:translateY(-1px)}
+  .go-kind svg{grid-row:span 2}
+  .go-kind b{font-size:16px}
+  .go-kind span{font-size:13.5px;color:var(--ink-2);line-height:1.45}
+  .go-seeds{display:flex;flex-wrap:wrap;gap:8px}
+  .go-seed{display:inline-flex;align-items:center;gap:8px;font:500 14px var(--f-body);color:var(--ink);background:none;border:1px dashed var(--line-2);border-radius:999px;padding:7px 8px 7px 14px;cursor:pointer}
+  .go-seed{text-align:left}
+  .go-seed span{font:500 11.5px var(--f-mono);color:var(--ink-3);white-space:nowrap}
+  .go-seed b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--s3);color:var(--accent);font-weight:600}
+  .go-seed:hover,.go-seed:focus-visible{border-style:solid;border-color:var(--accent)}
+  @media (prefers-reduced-motion:reduce){ .go-kind{transition:none} .go-kind:hover{transform:none} }
   .go-form{display:grid;gap:12px;background:var(--s1);border:1px solid var(--line-2);border-radius:18px;padding:18px clamp(14px,2.5vw,22px)}
   .go-form label{display:grid;gap:6px;font-size:13px;color:var(--ink-2)}
   .go-form input,.go-form textarea,.go-form select{font:inherit;font-size:14.5px;color:var(--ink);background:var(--s2);border:1px solid var(--line-2);border-radius:10px;padding:9px 12px}
@@ -1994,11 +2012,36 @@ function card(g, max){
       `<li><a href="#/review?week=${w}&key=${encodeURIComponent(t.key)}"><b>${esc(t.title ?? "Untitled")}</b>${t.direct ? `<span class="go-direct">linked in review</span>` : ""}${t.decided ? `<span class="ok">✓</span>` : `<span class="todo">to review</span>`}</a></li>`).join("")}</ul></div>`).join("")}</div>` : ""}
   </article>`;
 }
+const ring = dashed => `<svg viewBox="0 0 40 40" width="34" height="34" aria-hidden="true"><circle cx="20" cy="20" r="14" fill="none" stroke="var(--s3)" stroke-width="6"/>
+  <circle cx="20" cy="20" r="14" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" pathLength="100" stroke-dasharray="${dashed ? "6 6" : "68 100"}" transform="rotate(-90 20 20)"/></svg>`;
+// No goals yet: pick a kind, or start from the work you already do.
+function first(){
+  const top = d.projects.filter(p => p.threads).sort((a, b) => b.threads - a.threads).slice(0, 4);
+  return `<div class="go-first">
+    <h2>What does your work serve?</h2>
+    <p>Name two to four goals. North then shows how much of your work serves each one, and what serves none.</p>
+    <div class="go-kinds">
+      <button class="go-kind" data-new="team">${ring(false)}<b>Team or company goal</b><span>“Private Locations GA”. Usually served by projects.</span></button>
+      <button class="go-kind" data-new="personal">${ring(true)}<b>Personal goal</b><span>“Grow two engineers to lead projects”. Usually single threads: a pairing, a review that taught.</span></button></div>
+    ${top.length ? `<span class="lbl">Start from your work</span><p>Your busiest projects. One tap makes it a goal, linked, and opens it so you can rename it.</p>
+      <div class="go-seeds">${top.map(p => `<button class="go-seed" data-seed="${esc(p.id)}"><i class="src ${p.kind}"></i>${esc(p.name)}<span>${p.threads} threads</span><b>＋</b></button>`).join("")}</div>` : ""}
+  </div>`;
+}
 function render(){
   const max = Math.max(1, ...d.goals.flatMap(g => Object.values(g.weeks).map(t => t.length)));
-  $("#go").innerHTML = (edit === "new" ? form({}) : `<button class="todo big go-new" id="go-add">＋ new goal</button>`)
-    + (d.goals.map(g => card(g, max)).join("") || (edit === "new" ? "" : `<div class="empty">No goals yet. A goal can be a team or company one ("Private Locations GA"), or personal ("Be the OTel reference inside the company"). Then link the projects and threads that serve it.</div>`));
+  const list = d.goals.map(g => card(g, max)).join("");
+  $("#go").innerHTML = typeof edit === "string" ? form({kind: edit}) + list
+    : !d.goals.length ? first()
+    : `<button class="todo big go-new" id="go-add">＋ new goal</button>` + list;
   if(edit != null) $("#go-title")?.focus();
+}
+// A goal named after one of your projects, already linked, open for you to rename.
+async function seed(p){
+  const r = await post("/api/goal", {title: p.name, kind: "team"});
+  if(!r.ok) return toast(await r.text());
+  const {id} = await r.json();
+  await post("/api/goal-link", {goal_id: id, project_id: p.id, on: true});
+  RV.reset(); edit = id; toast(`Goal created from ${p.name}`); await open();
 }
 async function act(url, body, done){
   const r = await post(url, body);
@@ -2007,7 +2050,9 @@ async function act(url, body, done){
 }
 $("#v-goals").addEventListener("click", e => {
   const b = e.target.closest("button"); if(!b) return;
-  if(b.id === "go-add"){ edit = "new"; render(); }
+  if(b.id === "go-add"){ edit = "team"; render(); }
+  else if(b.dataset.new){ edit = b.dataset.new; render(); }
+  else if(b.dataset.seed){ const p = d.projects.find(x => x.id === b.dataset.seed); seed(p); }
   else if(b.id === "go-cancel"){ edit = null; render(); }
   else if(b.dataset.kind){ const f = b.closest("form"); f.dataset.kind = b.dataset.kind; f.querySelectorAll("[data-kind]").forEach(x => x.tagName === "BUTTON" && x.setAttribute("aria-pressed", x === b)); }
   else if(b.dataset.edit){ edit = +b.dataset.edit; render(); }

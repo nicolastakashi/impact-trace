@@ -150,6 +150,7 @@ const goalLinks = () => links(db);
 
 function goalList() {
   const weeks = (db.query("SELECT DISTINCT week FROM labels ORDER BY 1").all() as any[]).map((r) => r.week), L = goalLinks();
+  const busy = new Map<string, number>(); // threads per project, so you can start a goal from your busiest work
   const projects = db.query("SELECT p.id, p.name FROM goal_projects gp JOIN projects p ON p.id = gp.project_id WHERE gp.goal_id = ? ORDER BY p.name");
   const gs = new Map((db.query("SELECT id, title, kind, quarter, krs FROM goals ORDER BY kind = 'personal', id").all() as any[])
     .map((g) => [g.id, { ...g, projects: projects.all(g.id), weeks: {} as Record<string, any[]> }]));
@@ -158,9 +159,10 @@ function goalList() {
     if (d === "yes") continue;
     const v = (f: string) => (l.find((r) => r.field === f && r.source === "human") ?? l.find((r) => r.field === f && r.source === "claude"))?.value;
     const mine = direct(L, t);
+    if (t.projects[0]) busy.set(t.projects[0].id, (busy.get(t.projects[0].id) ?? 0) + 1);
     for (const id of goalsOf(L, t)) (gs.get(id)!.weeks[week] ??= []).push({ key: t.key, title: v("title"), decided: !!d, direct: mine.includes(id) });
   }
-  return { weeks, goals: [...gs.values()], projects: db.query(`SELECT id, name, kind FROM projects WHERE ${LIVE} ORDER BY name`).all() };
+  return { weeks, goals: [...gs.values()], projects: (db.query(`SELECT id, name, kind FROM projects WHERE ${LIVE} ORDER BY name`).all() as any[]).map((p) => ({ ...p, threads: busy.get(p.id) ?? 0 })) };
 }
 // Create, edit or delete one goal. Deleting it removes its links, never a project or a thread.
 function saveGoal(b: any) {
