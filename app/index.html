@@ -958,11 +958,13 @@ function renderHome(){
   // rings: share of threads per goal. A thread can serve two goals, so the shares can add up to more than 100%.
   const by = Object.fromEntries(GOALS.map(g => [g.id, ITEMS.filter(i => goalsOf(i).includes(g.id)).length])), n = ITEMS.length;
   const none = ITEMS.filter(i => !goalsOf(i).length).length, R = [96,74,52];
-  $("#rings").innerHTML = GOALS.slice(0, 3).map((g,i)=>`
+  // Most served first: only the top 3 get a ring.
+  const GS = [...GOALS].sort((a,b) => by[b.id] - by[a.id]);
+  $("#rings").innerHTML = GS.slice(0, 3).map((g,i)=>`
     <circle cx="120" cy="120" r="${R[i]}" fill="none" stroke="var(--s3)" stroke-width="16" ${g.kind === "personal" ? `stroke-dasharray="3 3" pathLength="100"` : ""}/>
     <circle class="ring" data-v="${by[g.id]/n*100}" cx="120" cy="120" r="${R[i]}" fill="none" stroke="${g.color}" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="${100-by[g.id]/n*100}" transform="rotate(-90 120 120)" style="filter:drop-shadow(0 0 6px color-mix(in srgb,${g.color} 60%,transparent))"/>`).join("")
     + `<text x="120" y="124" text-anchor="middle"><tspan data-count="${n-none}">${n-none}</tspan>/${n}</text><text class="sub" x="120" y="142" text-anchor="middle">${byGoals ? "SERVE A GOAL" : `IN THE TOP ${GOALS.length}`}</text>`;
-  $("#glist").innerHTML = GOALS.map(g=>`<li><button data-goal="${g.id}"><i class="dot" style="${g.kind === "personal" ? `border:2px solid ${g.color}` : `background:${g.color}`};margin-top:5px"></i><span class="gt">${esc(g.title)}${g.kind === "personal" ? ` <span class="lbl">personal</span>` : ""}</span><span class="gp num">${Math.round(by[g.id]/n*100)}%</span><span class="gs">${by[g.id]} threads · ${ITEMS.filter(i=>goalsOf(i).includes(g.id)&&i.wm==="wouldnt").length} wouldn't happen without you</span></button></li>`).join("")
+  $("#glist").innerHTML = GS.map(g=>`<li><button data-goal="${g.id}"><i class="dot" style="${g.kind === "personal" ? `border:2px solid ${g.color}` : `background:${g.color}`};margin-top:5px"></i><span class="gt">${esc(g.title)}${g.kind === "personal" ? ` <span class="lbl">personal</span>` : ""}</span><span class="gp num">${Math.round(by[g.id]/n*100)}%</span><span class="gs">${by[g.id]} thread${by[g.id] === 1 ? "" : "s"} · ${ITEMS.filter(i=>goalsOf(i).includes(g.id)&&i.wm==="wouldnt").length} wouldn't happen without you</span></button></li>`).join("")
     + `<li><button data-goal="none"><i class="dot" style="background:var(--line-2);margin-top:5px"></i><span class="gt" style="color:var(--ink-2)">${byGoals ? "Serves no goal" : "Everything else"}</span><span class="gp num" style="color:var(--ink-3)">${Math.round(none/n*100)}%</span><span class="gs">can be normal, or glue with no owner · <a class="ref" href="#" data-ref="glue">glue work</a></span></button></li>`;
   $("#rings-h").innerHTML = byGoals ? `<a class="ref" href="#/goals">goals →</a>` : `<a class="ref" href="#/goals">top projects for now · add your goals →</a>`;
 
@@ -1571,9 +1573,9 @@ function renderWm(){
   const ws = Object.keys(PENDING).sort(), left = ws.reduce((a,w)=>a+PENDING[w],0);
   $("#badge").textContent = left; $("#badge").hidden = !left;
   $("#t-wm").innerHTML = `<span class="lbl">To review</span>
-    <p class="do">${left ? `${left} threads wait for your answer` : `All ${ws.length} weeks reviewed`}</p>
+    <p class="do">${left ? `${left} threads wait for your answer` : ws.length ? `All ${ws.length} weeks reviewed` : "No weeks collected yet"}</p>
     <div class="prog">${ws.map(w=>`<i class="${PENDING[w]?"":"d"}" title="${w}: ${PENDING[w] ? PENDING[w]+" left" : "done"}"></i>`).join("")}</div>
-    <span class="ref">${left ? "open review →" : "review again →"}</span>`;
+    <span class="ref">${left || !ws.length ? "open review →" : "review again →"}</span>`;
 }
 const loadPending = () => fetch("/api/pending").then(r => r.ok ? r.json() : {}).then(p => { PENDING = p; renderWm(); }).catch(() => {});
 
