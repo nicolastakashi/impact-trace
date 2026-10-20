@@ -7,10 +7,11 @@ review they show fictional example data, marked "example".
 ## North
 
 One question per band, read top to bottom.
-- **Where the work goes:** a ring per [goal](goals.md), most served first, plus "serves no
-  goal". Before you write any goal, your top 3 projects stand in.
-- **How you delivered:** threads by mode, your own "without you" answers from review, and
-  reviews given against your normal.
+- **Where the work goes:** threads per week, stacked by [goal](goals.md), with a table of
+  totals. A thread that serves two goals counts once, in the goal served most, so each bar
+  adds up to its week. Before you write any goal, your top 3 projects stand in.
+- **How you delivered:** threads by mode, your "without you" answers as parts of one whole,
+  and reviews given per week against your average.
 - **What people said:** one quote at a time, starting at the week's highlight (a thread you
   said would not happen without you, with praise someone wrote).
 - **This week:** the current feedback experiment, and threads still waiting for review.
