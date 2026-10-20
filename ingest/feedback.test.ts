@@ -23,6 +23,8 @@ test("feedback keeps only quotes found in your messages and counts markers itsel
   // Whitespace differences still match; "unobjectionable" does not count as "objection".
   expect(v.patterns[0].evidence.map((e: any) => e.week)).toEqual(["2026-W42", "2026-W41"]);
   expect(v.patterns[0].trend).toEqual([1, 2]);
+  // The one counted message without a quote is listed, so 3 counted = 2 quotes + 1 match.
+  expect(v.patterns[0].matches.map((m: any) => m.text)).toEqual(["wdyt? Also, this is unobjectionable"]);
   expect(v.experiment?.trend).toEqual([1, 2]);
   expect(v.strength).toBeNull();
   expect(v.dropped).toBe(2);

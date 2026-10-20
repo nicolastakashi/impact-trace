@@ -28,6 +28,8 @@ const trend = (msgs: Msg[], weeks: string[], markers: string[]) => { const f = h
 function previous(db: Database, week: string, weeks: string[], msgs: Msg[]) {
   const row = db.query("SELECT week, output FROM feedback WHERE week < ? ORDER BY week DESC LIMIT 1").get(week) as any;
   if (!row) return null;
+  // You passed on that experiment: there is nothing to measure.
+  if ((db.query("SELECT verdict FROM feedback_verdicts WHERE week = ? AND item = 'experiment'").get(row.week) as any)?.verdict === "reject") return null;
   const o = JSON.parse(row.output), t = o.experiment?.markers?.length ? trend(msgs, weeks, o.experiment.markers) : null;
   return { week: row.week, pattern: o.experiment?.pattern, do: o.experiment?.do, markers: o.experiment?.markers ?? [],
     before: t ? t[weeks.indexOf(row.week)] ?? null : null, after: t ? t.at(-1) : null };
@@ -66,13 +68,24 @@ export function emit(db: Database, week: string) {
     verdicts: db.query("SELECT week, item, verdict, why FROM feedback_verdicts WHERE week < ? ORDER BY week DESC LIMIT 40").all(week) };
 }
 
+// Every counted message you do not see as a quote, so the count and the page always agree.
+// A snippet around the first phrase, so long messages still show why they counted.
+function others(msgs: Msg[], p: any) {
+  const f = hits(p.markers), shown = (m: Msg) => p.evidence.some((e: any) => norm(m.text ?? "").includes(e.quote));
+  return msgs.filter((m) => f(m) && !shown(m)).map((m) => {
+    const t = norm(m.text ?? ""), low = t.toLowerCase(), i = Math.min(...p.markers.map((x: string) => low.indexOf(x)).filter((n: number) => n >= 0));
+    const a = Math.max(0, i - 110), b = Math.min(t.length, i + 170);
+    return { week: m.week, at: m.at, channel: m.channel, url: m.url, text: `${a ? "… " : ""}${t.slice(a, b)}${b < t.length ? " …" : ""}` };
+  });
+}
+
 export function verify(db: Database, week: string, out: any) {
   const weeks = window8(db, week), msgs = messages(db, weeks);
   const find = (q: string) => { const n = norm(q); return n.length >= 8 ? msgs.find((m) => norm(m.text ?? "").includes(n)) : undefined; };
   const cite = (e: any) => { const m = find(e.quote); return m && { ...e, quote: norm(e.quote), week: m.week, at: m.at, channel: m.channel, url: m.url }; };
   const patterns = (out.patterns ?? []).map((p: any) => ({ ...p, markers: p.markers.map((x: string) => x.toLowerCase()), evidence: p.evidence.map(cite).filter(Boolean) }))
     .filter((p: any) => p.evidence.length >= 2)
-    .map((p: any) => ({ ...p, trend: trend(msgs, weeks, p.markers) }));
+    .map((p: any) => ({ ...p, trend: trend(msgs, weeks, p.markers), matches: others(msgs, p) }));
   const sev = (out.strength?.evidence ?? []).map(cite).filter(Boolean);
   const target = patterns.find((p: any) => p.name === out.experiment?.pattern);
   return { week, weeks, messages: weeks.map((w) => msgs.filter((m) => m.week === w).length), patterns,

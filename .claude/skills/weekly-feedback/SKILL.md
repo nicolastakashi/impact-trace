@@ -36,7 +36,8 @@ weakens or builds their authority, for example:
 - `last_experiment`: when `previous` is not null, one or two sentences on what the counts
   and messages show about it. Use the counts in `previous`, do not count yourself. Else null.
 - `verdicts` are the engineer's judgment and win over yours. Do not bring back a pattern
-  they rejected, unless new messages show it clearly; then say in `why` what is new.
+  they rejected, unless new messages show it clearly; then say in `why` what is new. Do not
+  propose an experiment they rejected again.
   Learn from their reasons: a rejected "hedging" with "I was asking a real question" means
   real questions are not hedging. Keep tracking accepted patterns while they still show.
 - Plain English, short sentences, no praise padding. Return `week` as given.
