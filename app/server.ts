@@ -3,8 +3,9 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CONFIG, LIVE, open, PLACED } from "../ingest/ingest";
 import { labelsOf, reviewThreads } from "../ingest/review";
+import { CATEGORIES } from "../ingest/feedback";
 
-const db = open();
+let db = open();
 const page = join(import.meta.dir, "index.html");
 // North and Trace read /data.js: built from your decisions, or the fictional sample before you have any.
 const sample = join(import.meta.dir, "sample-data.js");
@@ -225,10 +226,28 @@ function north() {
   return [js("WEEKS", weeks.map((w) => w.slice(5))), js("REVIEWS", reviews), js("PERIOD", `${weeks[0]} – ${weeks.at(-1)}`),
     js("GOALS", top.map((id, i) => ({ id, short: P[id].name, title: P[id].name, color: COLORS[i] }))),
     js("PROJECTS", P), js("REC", rec), js("ITEMS", items), js("HIGHLIGHT", { item: big.id, when: big.rec != null ? rec[big.rec].when : "" }),
+    // Feedback, newest week first: what the code verified, never the raw Claude output.
+    js("FEEDBACK", (db.query("SELECT week, output FROM feedback ORDER BY week DESC").all() as any[]).map((r) => ({ ...JSON.parse(r.output),
+      verdicts: Object.fromEntries((db.query("SELECT item, verdict, why FROM feedback_verdicts WHERE week = ?").all(r.week) as any[]).map((v) => [v.item, { v: v.verdict, why: v.why }])) }))),
     // One story screen per week: its threads, then its first praise.
     js("PHASES", weeks.flatMap((wk, w) => { const r = rec.findIndex((x) => x.w === w);
       return items.some((i) => i.w === w) ? [{ k: wk.slice(5), h: `${items.filter((i) => i.w === w).length} threads kept`, from: w, to: w }, ...(r >= 0 ? [{ k: wk.slice(5), rec: r }] : [])] : []; })),
   ].join("\n");
+}
+
+// Accept or reject one piece of feedback; verdict null takes it back.
+function verdict(b: any) {
+  const row = db.query("SELECT output FROM feedback WHERE week = ?").get(String(b?.week ?? "")) as any;
+  if (!row) return new Response("No feedback for that week", { status: 400 });
+  const o = JSON.parse(row.output), item = String(b?.item ?? "");
+  const items = ["experiment", ...(o.strength ? ["strength"] : []), ...o.patterns.map((p: any) => `pattern:${p.name}`)];
+  if (!items.includes(item)) return new Response("Unknown feedback item", { status: 400 });
+  if (b.verdict === null) { db.query("DELETE FROM feedback_verdicts WHERE week = ? AND item = ?").run(b.week, item); return Response.json({ ok: true }); }
+  if (b.verdict !== "accept" && b.verdict !== "reject") return new Response("Verdict is accept or reject", { status: 400 });
+  const why = b.why == null ? null : String(b.why).trim().slice(0, 400) || null;
+  db.query(`INSERT INTO feedback_verdicts VALUES (?, ?, ?, ?, ?) ON CONFLICT (week, item) DO UPDATE SET verdict = excluded.verdict, why = excluded.why, at = excluded.at`)
+    .run(b.week, item, b.verdict, why, new Date().toISOString());
+  return Response.json({ ok: true });
 }
 
 // Setup: who you are, so the collectors search for you. ?guess=1 fills the form from the CLIs you already use.
@@ -262,6 +281,9 @@ const server = Bun.serve({
   // HOST is 0.0.0.0 and compose publishes the port on 127.0.0.1 only.
   hostname: process.env.HOST ?? "127.0.0.1",
   async fetch(req) {
+    // Collection writes from the host. Over Docker's file share an open connection can keep reading
+    // old pages, so each request reads with a fresh one.
+    db.close(); db = open();
     const url = new URL(req.url);
     // No cache: after an update or a new review, the next load shows it.
     if (url.pathname === "/") return new Response(Bun.file(page), { headers: { "cache-control": "no-cache" } });
@@ -285,8 +307,10 @@ const server = Bun.serve({
     if (url.pathname === "/api/merge" && json) return merge(await req.json().catch(() => null));
     if (url.pathname === "/api/delete" && json) return del(await req.json().catch(() => null));
     if (url.pathname === "/api/restore" && json) return restore(await req.json().catch(() => null));
+    if (url.pathname === "/api/feedback" && json) return verdict(await req.json().catch(() => null));
     if (url.pathname === "/api/unmerge" && json) return unmerge(await req.json().catch(() => null));
-    if (url.pathname === "/data.js") { const d = north(); return new Response(d ?? Bun.file(sample), { headers: { "content-type": "text/javascript", "cache-control": "no-cache" } }); }
+    // The feedback categories and their sources come with the data, the example too.
+    if (url.pathname === "/data.js") { const d = north() ?? await Bun.file(sample).text(); return new Response(`const FB_CATS = ${JSON.stringify(CATEGORIES)};\n${d}`, { headers: { "content-type": "text/javascript", "cache-control": "no-cache" } }); }
     if (url.pathname === "/api/projects") {
       const weeks = (url.searchParams.get("weeks") ?? "").split(",").filter((w) => /^\d{4}-W\d{2}$/.test(w));
       return Response.json(projects(weeks));

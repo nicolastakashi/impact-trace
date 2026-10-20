@@ -34,10 +34,24 @@ PLIST
     rm -f "$plist"; echo "Removed"
     ;;
   run)
-    # Monday closes last week, weekend included. Other days collect this week so far.
-    mkdir -p data/logs
-    if [ "$(date +%u)" = 1 ]; then monday=$(date -v-7d +%F); else monday=$(date -v-$(( $(date +%u) - 1 ))d +%F); fi
-    ./run.sh "$monday" > "data/logs/$(date +%F).log" 2>&1
+    # First close every ended week that has no feedback yet, oldest first: usually last week on
+    # a Monday, but also a Monday the Mac slept through or a run that failed. launchd runs a missed
+    # job on wake, on whatever day that is, so the day alone cannot decide. Then, after Monday,
+    # collect this week so far. A failed week does not stop the others; tomorrow retries it.
+    mkdir -p data/logs; log="data/logs/$(date +%F).log"; failed=0
+    # A failure here must not read as "nothing pending".
+    pending=$(bun ingest/feedback.ts pending) || { echo "✗ could not read pending weeks" >> "$log"; exit 1; }
+    for monday in $pending; do
+      echo "━━ close week of $monday" >> "$log"
+      ./run.sh "$monday" >> "$log" 2>&1 || { echo "✗ week of $monday failed, retried next run" >> "$log"; failed=1; }
+    done
+    if [ "$(date +%u)" != 1 ]; then
+      echo "━━ this week so far" >> "$log"
+      ./run.sh "$(date -v-$(( $(date +%u) - 1 ))d +%F)" >> "$log" 2>&1 || failed=1
+    fi
+    # A failure retries on its own, but a broken login would fail every day in silence: say so.
+    [ "$failed" = 0 ] || osascript -e "display notification \"A run failed. See $log\" with title \"impact-trace\"" 2>/dev/null || true
+    exit $failed
     ;;
   *) echo "usage: ./schedule.sh install | remove | run" >&2; exit 2 ;;
 esac

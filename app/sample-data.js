@@ -49,3 +49,22 @@ const PHASES = [
   {k:"Phase 3 · W41–W42", h:"Exports, and a customer unblocked", from:6, to:7},
   {k:"Phase 3 · W42", rec:5},
 ];
+// Fictional feedback, the shape bun ingest/feedback.ts saves: quotes checked, counts made by code.
+const FEEDBACK = [{
+  week:"2026-W42", weeks:["2026-W35","2026-W36","2026-W37","2026-W38","2026-W39","2026-W40","2026-W41","2026-W42"], messages:[48,61,55,40,52,70,58,63],
+  patterns:[
+    {category:"permission", name:"Asking permission on what you own", why:"You own exports. Ending a plan with a question hands the decision to someone else, and the plan reads like a draft.",
+     markers:["any objection","wdyt","is that ok"], trend:[0,0,0,0,0,1,1,1], matches:[
+      {text:"Thinking we move the sync to Tuesdays, is that ok with everyone?", week:"2026-W40", at:"2026-10-01T11:15:00", channel:"#team-api", url:null}], evidence:[
+      {quote:"I'm thinking of dropping the v1 endpoint next sprint, any objection?", instead:"I'm dropping the v1 endpoint next sprint; tell me by Thursday if that breaks you.", week:"2026-W42", at:"2026-10-13T10:12:00", channel:"#project-exports", url:null},
+      {quote:"Plan is to cut the release Friday, wdyt?", instead:"We cut the release Friday.", week:"2026-W41", at:"2026-10-07T16:40:00", channel:"#team-api", url:null}]},
+    {category:"late-escalation", name:"Apologising for escalating", why:"The retry work sat stuck for a week before you raised it, and the apology tells the platform team it was a favour, not a normal call.",
+     markers:["sorry to escalate","sorry to pull you in"], trend:[0,0,0,0,0,0,1,1], matches:[], evidence:[
+      {quote:"Sorry to escalate, but the retry PR has been stuck since last Tuesday", instead:"Raising this to platform: the retry PR is stuck on the queue limit and gates Friday's release.", week:"2026-W42", at:"2026-10-14T09:05:00", channel:"#team-api", url:null},
+      {quote:"sorry to pull you in on this one", instead:"Pulling you in: we need a call on the export quota by Thursday.", week:"2026-W41", at:"2026-10-07T14:20:00", channel:"DM", url:null}]}],
+  strength:{category:"closing", name:"Closing with a written decision", why:"When a discussion stalls you write the decision and the reason, and the thread ends.", evidence:[
+    {quote:"Decision: soft delete stays behind the flag until the restore path ships.", week:"2026-W42", at:"2026-10-15T11:30:00", channel:"#project-exports", url:null}]},
+  experiment:{pattern:"Asking permission on what you own", do:"On your own projects, write each decision as \"I'm doing X, tell me by <day> if you object.\" Do not end it with a question.", markers:["any objection","wdyt","is that ok"], trend:[0,0,0,0,0,1,1,1]},
+  last_experiment:"You raised one blocker on the day it stuck this week, but \"sorry to escalate\" stayed at 1.",
+  previous:{week:"2026-W41", pattern:"Apologising for escalating", do:"Raise a blocker the day it sticks, with no apology: what is stuck, and what you need by when.", markers:["sorry to escalate","sorry to pull you in"], before:1, after:1},
+}];

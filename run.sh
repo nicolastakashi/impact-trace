@@ -70,3 +70,14 @@ bun ingest/review.ts emit "$week" > "$out/threads.json"
 claude -p "/suggest-labels $week" --model sonnet --output-format json \
   --json-schema "$(cat schemas/labels.json)" < "$out/threads.json" > "$out/labels.run.json"
 bun ingest/review.ts save "$week" "$out/labels.run.json"
+
+# Feedback on how you show up, from your own messages: Claude quotes, the code checks quotes and counts.
+# Once per week, after it ends: the weekday runs would pay for feedback on half a week.
+if [[ "$(date +%F)" > "$sunday" ]]; then
+  echo "▶ feedback $week"
+  if [ "$(bun ingest/feedback.ts count "$week")" = 0 ]; then bun ingest/feedback.ts empty "$week"; else
+  bun ingest/feedback.ts emit "$week" > "$out/feedback.json"
+  claude -p "/weekly-feedback $week" --model sonnet --output-format json \
+    --json-schema "$(cat schemas/feedback.json)" < "$out/feedback.json" > "$out/feedback.run.json"
+  bun ingest/feedback.ts save "$week" "$out/feedback.run.json"; fi
+fi

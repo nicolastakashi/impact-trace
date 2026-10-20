@@ -12,6 +12,27 @@ claude -p (skills) ━▶ data/raw/<week>/*.json ━▶ ingest ━▶ data/impac
 North and Trace show the threads you kept in review, the last 8 weeks. Before your first
 review they show fictional example data, marked as such.
 
+Feedback reads the Slack messages you wrote in the last 8 weeks and names patterns in how you
+show up, with your own words quoted and a stronger version. It runs once a week, after the week
+ends. The code drops any quote it cannot find in your messages and makes every count, so the
+one experiment it proposes is measured the next week. Accept or reject each piece, with a reason if you want:
+the next run reads your verdicts and does not repeat what you rejected.
+
+Claude may only flag the categories in `ingest/feedback-categories.json`. Each one has a source
+(Reilly, Larson, Marquet, research on hedges), shown on its card as "Why this counts". Cards
+follow SBI (Situation, Behavior, Impact) and end with what to say next time.
+
+## How it works
+
+| Part | Doc |
+|---|---|
+| Collect from 5 sources, checked by code | [collect](docs/collect.md) |
+| Group events into threads and projects | [threads](docs/threads.md) |
+| Review: Claude suggests, you decide | [review](docs/review.md) |
+| North, Trace and Projects | [views](docs/views.md) |
+| Feedback on how you show up | [feedback](docs/feedback.md) |
+| The daily schedule, with no gaps | [schedule](docs/schedule.md) |
+
 `data/` holds your work data and `config.json`. It is git-ignored and must never be pushed.
 
 ## Before you start
@@ -37,8 +58,9 @@ login and connectors are; both read and write the same `data/`.
 docker compose up -d --build   # http://127.0.0.1:4317, rebuild after code changes
 ```
 
-Collect on a schedule (macOS, launchd): weekdays at 18:00. Monday closes last week,
-weekend included; the other days collect this week so far.
+Collect on a schedule (macOS, launchd): weekdays at 18:00. Each run first closes every ended
+week that has no feedback yet, weekend included: usually last week on a Monday, but also a
+Monday the Mac slept through or a run that failed. After Monday it also collects this week so far.
 
 ```bash
 ./schedule.sh install    # or: remove. Logs in data/logs/
@@ -48,5 +70,5 @@ weekend included; the other days collect this week so far.
 clone with its own `data/` to try the setup from scratch.
 
 One week cost $0.67 on 2026-10-19: collection with Haiku, projects and labels with Sonnet.
-Each scheduled run costs about that, so weekdays add up to about $3.35 a week. `ingest` exits 2 when a source failed or when
+Each scheduled run costs about that, so weekdays add up to about $3.35 a week. Feedback adds $0.66, once a week. `ingest` exits 2 when a source failed or when
 Claude returned fewer GitHub PRs than `gh` counts on its own.
