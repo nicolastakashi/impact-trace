@@ -172,14 +172,14 @@ test("dayOf: Monday of an ISO week, at midnight UTC", () => {
   expect(new Date(dayOf("2027-W01", 0)).toISOString()).toBe("2027-01-04T00:00:00.000Z");
 });
 
-test("reviews given count PRs you reviewed in the week, not PRs updated in it", () => {
+test("reviews given count people's PRs you reviewed in the week, not PRs updated in it", () => {
   const dir = mkdtempSync(join(tmpdir(), "rv-"));
   const db = new Database(":memory:", { strict: true });
   migrate(db);
-  const rv = (number: number, submitted_at: string) => ({ repo: "acme/api", number, author: "blair", state: "APPROVED", submitted_at });
+  const rv = (number: number, submitted_at: string, author = "blair") => ({ repo: "acme/api", number, author, state: "APPROVED", submitted_at });
   writeFileSync(join(dir, "reviews.run.json"), JSON.stringify({ session_id: "s", structured_output: { from: "2026-10-05", prs_read: 3,
-    reviews: [rv(7, "2026-10-13T09:00:00Z"), rv(7, "2026-10-14T09:00:00Z"), rv(8, "2026-10-16T09:00:00Z"), rv(9, "2026-10-08T09:00:00Z")] } }));
-  writeFileSync(join(dir, "reviews.expected"), "4\n");
+    reviews: [rv(7, "2026-10-13T09:00:00Z"), rv(7, "2026-10-14T09:00:00Z"), rv(8, "2026-10-16T09:00:00Z"), rv(9, "2026-10-08T09:00:00Z"), rv(10, "2026-10-15T09:00:00Z", "renovate[bot]")] } }));
+  writeFileSync(join(dir, "reviews.expected"), "5\n");
   // One PR from the search is missing from the rows: flagged.
   expect(ingestWeek(db, dir, "2026-W42", ME)).toEqual({ reviews: "count_mismatch" });
   expect(JSON.parse((db.query("SELECT payload FROM events WHERE kind = 'reviews_given'").get() as any).payload)).toEqual({ count: 2, submissions: 3 });

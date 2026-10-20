@@ -1074,16 +1074,19 @@ function renderNums(){
   const f = new Intl.DateTimeFormat("en-GB", {timeZone: tz, weekday: "short", hour: "numeric", hourCycle: "h23"});
   const late = t => { const p = Object.fromEntries(f.formatToParts(new Date(t)).map(x => [x.type, x.value])); return p.weekday === "Sat" || p.weekday === "Sun" || +p.hour < 9 || +p.hour >= 19; };
   const out = NUMS.slackAt.map(ts => ts.length ? Math.round(ts.filter(late).length / ts.length * 100) : 0);
+  // Give vs take: PRs you reviewed per PR you merged. A week with no merge shows 0, not infinity.
+  const give = REVIEWS.map((r, i) => NUMS.merged[i] ? +(r / NUMS.merged[i]).toFixed(1) : 0);
   const T = [
     {k:"Slack messages", v:NUMS.slack, d:`in ${NUMS.channels[LAST]} channels`},
-    {k:"Meetings", v:NUMS.meetings, u:"h", d:"hours accepted or tentative"},
+    {k:"Meetings", v:NUMS.meetings, u:"h", dp:1, d:"hours accepted or tentative"},
     {k:"Outside work hours", v:out, u:"%", d:"of your messages, before 09, after 19 or weekends"},
-    {k:"People who mention you", v:NUMS.reach, d:"different people in Slack"}];
+    {k:"People who mention you", v:NUMS.reach, d:"different people in Slack"},
+    {k:"Give vs take", v:give, u:"×", dp:1, d:`${REVIEWS[LAST]} PRs reviewed, ${NUMS.merged[LAST]} merged`}];
   $("#nums-h").textContent = `times in ${tz}`;
   $("#nums").innerHTML = T.map(t => { const avg = t.v.reduce((a,b) => a+b, 0) / t.v.length, mx = Math.max(1, ...t.v);
     return `<div><span class="col-h">${t.k}</span>
       <span class="v"><span ${Number.isInteger(t.v[LAST]) ? `data-count="${t.v[LAST]}"` : ""}>${t.v[LAST]}</span>${t.u ? `<small>${t.u}</small>` : ""}</span>
-      <span class="d">${t.d} · average ${t.u === "h" ? avg.toFixed(1) : Math.round(avg)}</span>
+      <span class="d">${t.d} · average ${t.dp ? avg.toFixed(1) : Math.round(avg)}</span>
       <div class="spk8" role="img" aria-label="${t.k} per week: ${t.v.join(", ")}">${t.v.map((v,i) => `<i class="${i === LAST ? "now" : ""}" style="height:${v/mx*100}%" title="${WEEKS[i]}: ${v}${t.u ?? ""}"></i>`).join("")}<span class="avg" style="bottom:${avg/mx*100}%"></span></div></div>`; }).join("");
   $("#t-nums").hidden = false;
 }

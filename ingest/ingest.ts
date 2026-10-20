@@ -242,7 +242,8 @@ function ingestSlack(db: Database, out: any, week: string, runId: string, event:
 
 // Reviews given: the PRs you reviewed this week, counted by when you submitted the review.
 function ingestReviews(out: any, week: string, runId: string, event: any, me: Config) {
-  const mine = out.reviews.filter((r: any) => r.author !== me.github && r.submitted_at && isoWeek(r.submitted_at) === week);
+  // A review on a bot's PR (dependabot, renovate) is not help given to a person.
+  const mine = out.reviews.filter((r: any) => r.author !== me.github && !r.author.endsWith("[bot]") && r.submitted_at && isoWeek(r.submitted_at) === week);
   event.run(`github:reviews_given:${week}`, "github", "reviews_given", week, null, null, null, me.github, null, null,
     JSON.stringify({ count: new Set(mine.map((r: any) => `${r.repo}#${r.number}`)).size, submissions: mine.length }), runId);
 }
