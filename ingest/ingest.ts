@@ -14,6 +14,8 @@ export function config(): Config {
   return JSON.parse(readFileSync(CONFIG, "utf8"));
 }
 type Status = "ok" | "count_mismatch" | "error";
+// Rows per Slack search page; the collect-slack skill asks for `limit: 20`.
+const SLACK_PAGE = 20;
 
 export function open(path = join(ROOT, "data/impact.db")) {
   // A fresh clone has no data/ yet.
@@ -111,11 +113,15 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
       else if (source === "calendar") got = out.events.length;
       else if (source === "drive") got = out.files.length;
       else {
-        // No source gives Slack a total, so the only check left is that paging finished.
+        // No source gives Slack a total. Every page but the last is full, so N pages hold at
+        // least (N-1) x 20 rows: Haiku read 11 pages and returned the first 20, saying it was done.
         got = out.messages.length;
+        expected = Math.max(0, (out.pages_read - 1) * SLACK_PAGE);
         if (!out.exhausted) console.warn(`slack ${week}: paging did not finish after ${out.pages_read} pages`);
+        if (got < expected) console.warn(`${source} ${week}: ${out.pages_read} pages read but ${got} rows returned`);
       }
-      status = (expected == null || expected === got) && out.exhausted !== false ? "ok" : "count_mismatch";
+      const counted = expected == null || (source.startsWith("slack") ? got! >= expected : expected === got);
+      status = counted && out.exhausted !== false ? "ok" : "count_mismatch";
     }
     result[source] = status;
 
