@@ -1024,9 +1024,9 @@ const EVK = {pr_merged:"PR merged", pr_open:"PR opened", issue_completed:"issue 
   reviews_given:"reviews given", slack_message:"Slack", slack_mention:"mention", meeting:"meeting", doc_created:"doc created", doc_edited:"doc edited"};
 // Heatmap rows, longest on top like a duration axis: label and lower bound in hours.
 const BUCKETS = [["3d +", 72], ["1–3 d", 24], ["< 1 d", .25], ["instant", 0]];
-// ponytail: the year comes from the period start, so a range across New Year puts January weeks a year early.
-const YEAR = +PERIOD.slice(0,4);
-const monday = w => { const j = new Date(YEAR, 0, 4); return new Date(YEAR, 0, 4 - (j.getDay()+6)%7 + (+WEEKS[w].slice(1)-1)*7).getTime(); };
+// WEEKS carry no year; the 8 weeks cross a new year at most once.
+const yearOf = w => +PERIOD.slice(0,4) + (+WEEKS[w].slice(1) < +WEEKS[0].slice(1));
+const monday = w => { const y = yearOf(w), j = new Date(y, 0, 4); return new Date(y, 0, 4 - (j.getDay()+6)%7 + (+WEEKS[w].slice(1)-1)*7).getTime(); };
 const fmtDay = t => new Date(t).toLocaleDateString("en", {month:"short", day:"numeric"});
 const fmtWhen = t => { const d = new Date(t); return `${DOW[(d.getDay()+6)%7]} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; };
 const fmtDur = i => { const h = i.hrs; if(h == null) return "no time"; if(h < 1/60) return "instant"; if(h < 1) return `${Math.round(h*60)}m`;
@@ -1153,7 +1153,7 @@ function drawSide(){
       ${i.summary ? `<p class="sb-sum">${esc(i.summary)}</p>` : ""}
       <span class="lbl">Span events · ${i.ev.length}</span>
       <ol class="evl">${timed.map(ev).join("")}${untimed.map(ev).join("")}</ol>
-      ${typeof SAMPLE === "undefined" ? `<a class="ref" href="#/review?week=${YEAR}-${esc(WEEKS[i.w])}&key=${encodeURIComponent(i.id)}">change it in review →</a>` : ""}`;
+      ${typeof SAMPLE === "undefined" ? `<a class="ref" href="#/review?week=${yearOf(i.w)}-${esc(WEEKS[i.w])}&key=${encodeURIComponent(i.id)}">change it in review →</a>` : ""}`;
   }
   if(G && !$("#v-trace").hidden){
     G.from("#sb > *", {y:8, opacity:0, filter:"blur(6px)", duration:.4, ease:"power3.out", stagger:.03, clearProps:"filter,transform,opacity"});
@@ -1228,7 +1228,7 @@ function openItem(id){
     <div class="two">
       <div class="why"><span class="lbl">Why this counts · ${MODES[m]}</span><p>“${esc(ref.q)}”</p><a class="ref" href="${ref.url}" target="_blank" rel="noopener">${esc(ref.who)} ↗</a><a class="ref" href="#" data-ref="${m}">all sources →</a></div>
       <div class="sec"><span class="lbl">Without you, would it have happened?</span><p class="oneline" style="font-size:20px;margin:0">${it.wm ? esc(WMS[it.wm]) : "not answered"}</p>
-        ${typeof SAMPLE === "undefined" ? `<a class="ref" href="#/review?week=2026-${esc(WEEKS[it.w])}&key=${encodeURIComponent(it.id)}">change it in review →</a>` : ""}<a class="ref" href="#" data-ref="counterfactual">why this question →</a></div>
+        ${typeof SAMPLE === "undefined" ? `<a class="ref" href="#/review?week=${yearOf(it.w)}-${esc(WEEKS[it.w])}&key=${encodeURIComponent(it.id)}">change it in review →</a>` : ""}<a class="ref" href="#" data-ref="counterfactual">why this question →</a></div>
     </div>`;
   $("#sheet").hidden = false; $("#x").focus();
   if(G){ G.from("#sheet-in",{y:40,opacity:0,duration:.35,ease:"power3.out",clearProps:"all"}); G.from("#sheet-in .flame .sp",{scaleX:0,duration:.5,stagger:.04,ease:"power2.out",clearProps:"transform"}); }
