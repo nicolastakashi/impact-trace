@@ -18,6 +18,10 @@ ends. The code drops any quote it cannot find in your messages and makes every c
 one experiment it proposes is measured the next week. Accept or reject each piece, with a reason if you want:
 the next run reads your verdicts and does not repeat what you rejected.
 
+Claude may only flag the categories in `ingest/feedback-categories.json`. Each one has a source
+(Reilly, Larson, Marquet, research on hedges), shown on its card as "Why this counts". Cards
+follow SBI (Situation, Behavior, Impact) and end with what to say next time.
+
 `data/` holds your work data and `config.json`. It is git-ignored and must never be pushed.
 
 ## Before you start
