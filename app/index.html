@@ -93,7 +93,7 @@ button.tile:hover{border-color:var(--line-2)}
 .cols>div:last-child{padding-right:0}
 .col-h{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--ink-2)}
 .t-now{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:12px}
-.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:0}
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(170px,100%),1fr));gap:0}
 .nums>div{display:flex;flex-direction:column;gap:8px;padding:2px 20px;border-left:1px solid var(--line)}
 .nums>div:first-child{border-left:0;padding-left:0}
 .nums .v{font:800 40px/.9 var(--f-num);font-variant-numeric:tabular-nums}
@@ -1081,6 +1081,7 @@ function renderNums(){
     {k:"Meetings", v:NUMS.meetings, u:"h", dp:1, d:"hours accepted or tentative"},
     {k:"Outside work hours", v:out, u:"%", d:"of your messages, before 09, after 19 or weekends"},
     {k:"People who mention you", v:NUMS.reach, d:"different people in Slack"},
+    {k:"Lead time", v:NUMS.lead, u:"h", dp:1, d:"median, opened to merged"},
     {k:"Give vs take", v:give, u:"×", dp:1, d:`${REVIEWS[LAST]} PRs reviewed, ${NUMS.merged[LAST]} merged`}];
   $("#nums-h").textContent = `times in ${tz}`;
   $("#nums").innerHTML = T.map(t => { const avg = t.v.reduce((a,b) => a+b, 0) / t.v.length, mx = Math.max(1, ...t.v);

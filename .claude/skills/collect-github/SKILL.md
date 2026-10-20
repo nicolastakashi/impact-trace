@@ -17,11 +17,11 @@ You are read-only. Only run `gh search prs` and `gh api` **GET** calls. Never pa
 
 ## 2. PRs
 
-Merged in the window (`at` = `closedAt`):
+Merged in the window (`at` = `closedAt`, `opened` = `createdAt`):
 
 ```
 gh search prs --author LOGIN --merged --merged-at FROM..TO --limit 200 \
-  --json number,title,repository,url,closedAt,body
+  --json number,title,repository,url,createdAt,closedAt,body
 ```
 
 Opened in the window and still open (`at` = `createdAt`):

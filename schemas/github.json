@@ -21,6 +21,7 @@
           "title",
           "url",
           "at",
+          "opened",
           "linear_refs"
         ],
         "properties": {
@@ -37,6 +38,9 @@
             "type": "string"
           },
           "at": {
+            "type": "string"
+          },
+          "opened": {
             "type": "string"
           },
           "linear_refs": {
