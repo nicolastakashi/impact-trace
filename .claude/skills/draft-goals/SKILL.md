@@ -33,9 +33,15 @@ Draft 3 to 5 objectives for `quarter`. Fewer is better than weak ones.
 - Prefer a `metric` key from `metrics`, or a `milestone:<id>` from `milestones`. Copy the key
   exactly. Use `null` only when nothing measured fits, and then give a `start` you can read
   in the facts, or `null`.
-- `target` must be reachable in a quarter from `now`, in the metric's unit (a rate per week
-  for counts). Mind `better`: for `down`, the target is below `now`.
+- Each metric has an `agg`:
+  - `rate`: per week, over the last 4 weeks. The target is a weekly number, reachable from
+    `now`. Mind `better`: for `down`, the target is below `now`.
+  - `total`: counted from 0 over the quarter, for things that do not happen every week. The
+    target is the quarter's total; `last_quarter` shows what one whole quarter held. Never
+    phrase it "a week". `now` covers only `quarter_weeks_so_far` weeks (a quarter has 13):
+    never read a low `now` against `last_quarter` as a drop.
 - `start` for a metric is set by code; send `null`.
 - Mix leading signals (reviews, requests that name you) with outcomes (a milestone, lead
   time). Never a key result that is only "ship X": that is a task.
+- Never put a number you worked out (an average, a sum) in any text. Code drops it.
 - Never a target on recognition alone: praise is a signal, not a goal to chase.

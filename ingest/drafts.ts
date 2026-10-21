@@ -6,18 +6,21 @@ import { createHash } from "crypto";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { isoWeek, open, ROOT } from "./ingest";
-import { known, measure, METRICS, quarterWeeks } from "./metrics";
+import { current, known, METRICS, quarterAll } from "./metrics";
 
 export const quarterOf = (d: Date) => `${d.getUTCFullYear()}-Q${Math.floor(d.getUTCMonth() / 3) + 1}`;
+const lastQuarter = (q: string) => { const [y, n] = q.split("-Q").map(Number); return n > 1 ? `${y}-Q${n - 1}` : `${y - 1}-Q4`; };
 
 // What Claude reads: what the app can measure and where you are on it, your projects'
 // milestones, the goals you already have, and the facts North shows.
 export function draftInput(db: Database, facts: any, now = new Date()) {
-  const w = quarterWeeks(db, null, isoWeek(now.toISOString()));
+  const week = isoWeek(now.toISOString()), q = quarterOf(now);
   const cfg = (() => { try { return JSON.parse(readFileSync(join(ROOT, "data/config.json"), "utf8")); } catch { return {}; } })();
   return {
-    quarter: quarterOf(now), level: cfg.level ?? null,
-    metrics: Object.entries(METRICS).map(([key, m]) => ({ key, label: m.label, unit: m.unit, better: m.better, now: measure(db, key, w) })),
+    quarter: q, quarter_weeks_so_far: quarterAll(db, q, week).length, level: cfg.level ?? null,
+    // A rate is per week, last 4 weeks. A total is this quarter so far; last_quarter is its whole total.
+    metrics: Object.entries(METRICS).map(([key, m]) => ({ key, label: m.label, unit: m.unit, better: m.better, agg: m.agg, now: current(db, key, q, week),
+      ...(m.agg === "total" ? { last_quarter: current(db, key, lastQuarter(q), week) } : {}) })),
     milestones: db.query(`SELECT 'milestone:' || m.id metric, m.name, m.progress, p.name project FROM milestones m JOIN projects p ON p.id = m.project_id
       WHERE m.progress < 100 ORDER BY p.name, m.name`).all(),
     your_goals: db.query("SELECT title FROM goals").all().map((g: any) => g.title),
@@ -32,7 +35,7 @@ export function saveDrafts(db: Database, run: any, input: any, version: string, 
   const out = run.structured_output, text = JSON.stringify(input), dropped: string[] = [];
   const inData = (n: string) => new RegExp(`(?<![\\d.])${n.replace(".", "\\.")}(?![\\d])`).test(text);
   if (run.is_error || !Array.isArray(out?.objectives)) throw new Error(`Claude failed: ${run.result ?? "no objectives"}`);
-  const w = quarterWeeks(db, null, isoWeek(now.toISOString()));
+  const week = isoWeek(now.toISOString()), q = quarterOf(now);
   const drafts = out.objectives.slice(0, 5).flatMap((o: any) => {
     const title = str(o.title, 120), why = str(o.why, 400);
     if (!title || !why || !["team", "personal"].includes(o.kind) || !["committed", "aspirational"].includes(o.type)) { dropped.push(`${o.title}: bad fields`); return []; }
@@ -46,15 +49,18 @@ export function saveDrafts(db: Database, run: any, input: any, version: string, 
     const krs = (o.key_results ?? []).slice(0, 5).flatMap((k: any) => {
       const t = str(k.text, 200), metric = k.metric || null;
       if (!t || !Number.isFinite(k.target) || (metric && !known(db, metric))) { dropped.push(`${title} / ${k.text}: bad key result`); return []; }
+      const madeKr = (t.match(/\d+(?:\.\d+)?/g) ?? []).filter((n) => n !== String(k.target) && !inData(n));
+      if (madeKr.length) { dropped.push(`${title} / ${t}: numbers not in your data: ${madeKr.join(", ")}`); return []; }
       // A start the app can measure is code's. Any other start must be copied from your data:
       // Claude averaged weeks itself once (2.75), so a number it worked out stays empty for you.
-      const start = metric ? measure(db, metric, w) : Number.isFinite(k.start) && inData(String(k.start)) ? k.start : null;
+      // A quarter total starts at 0.
+      const start = metric ? (METRICS[metric]?.agg === "total" ? 0 : current(db, metric, q, week)) : Number.isFinite(k.start) && inData(String(k.start)) ? k.start : null;
       return [{ text: t, metric, start, target: k.target }];
     });
     if (!krs.length) { dropped.push(`${title}: no key result left`); return []; }
     return [{ title, kind: o.kind, type: o.type, why, based_on, krs }];
   });
-  const at = now.toISOString(), q = quarterOf(now);
+  const at = now.toISOString();
   db.transaction(() => {
     db.query("DELETE FROM goal_drafts").run();
     const put = db.query("INSERT INTO goal_drafts (title, kind, type, quarter, why, based_on, krs, model, prompt_version, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
