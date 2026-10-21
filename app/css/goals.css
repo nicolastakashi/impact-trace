@@ -1,3 +1,5 @@
+/* Keyframes cannot nest inside a rule: the bundler rejects them there. */
+@keyframes dr-in{from{opacity:0;transform:translateY(10px);filter:blur(4px)}}
 #v-goals{
   #go{display:grid;gap:14px}
   .go-new{justify-self:start}
@@ -51,7 +53,6 @@
   .dr-dots button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .dr-n{margin-left:auto;font:600 15px var(--f-num);color:var(--ink-3)}
   .dr-card{display:grid;gap:14px;padding:clamp(18px,3vw,30px);background:var(--s1);border:1px solid var(--line-2);border-radius:18px;box-shadow:var(--shadow);animation:dr-in .35s cubic-bezier(.16,1,.3,1)}
-  @keyframes dr-in{from{opacity:0;transform:translateY(10px);filter:blur(4px)}}
   @media (prefers-reduced-motion:reduce){ .dr-card{animation:none} }
   .dr-meta{display:flex;flex-wrap:wrap;gap:8px}
   .dr-title{margin:0;font:800 clamp(26px,3.4vw,40px)/1.02 var(--f-num);text-transform:uppercase;text-wrap:balance;max-width:40ch}
