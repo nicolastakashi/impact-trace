@@ -172,6 +172,9 @@ function goalList() {
   // What a key result can measure: the app's metrics, and milestones of the projects a goal serves.
   const milestones = db.query(`SELECT m.id, m.name, m.progress, p.name project FROM milestones m JOIN projects p ON p.id = m.project_id WHERE p.id IN (SELECT id FROM projects WHERE ${LIVE}) ORDER BY p.name, m.name`).all();
   return { week: isoWeek(new Date().toISOString()), metrics: Object.entries(METRICS).map(([key, m]) => ({ key, label: m.label, unit: m.unit, better: m.better })), milestones,
+    // Claude's drafts wait here until you use or dismiss them. A metric start is code's (ingest/drafts.ts).
+    drafts: (db.query("SELECT id, title, kind, type, quarter, why, based_on, krs FROM goal_drafts ORDER BY id").all() as any[])
+      .map((r) => ({ ...r, based_on: JSON.parse(r.based_on), krs: JSON.parse(r.krs) })),
     weeks, goals: [...gs.values()], projects: (db.query(`SELECT id, name, kind FROM projects WHERE ${LIVE} ORDER BY name`).all() as any[]).map((p) => ({ ...p, threads: busy.get(p.id) ?? 0 })) };
 }
 // Create, edit or delete one goal. Deleting it removes its links, never a project or a thread.
@@ -204,6 +207,8 @@ function saveGoal(b: any) {
     else db.query("UPDATE goals SET title = ?, kind = ?, type = ?, quarter = ?, krs = NULL, at = ? WHERE id = ?").run(title, b.kind, type, quarter, at, gid);
     db.query("DELETE FROM key_results WHERE goal_id = ?").run(gid);
     rows.forEach((k: any, i: number) => put.run(gid, i, k.text, k.metric, k.start, k.target, k.current, at));
+    // A draft you used is now this goal.
+    if (b.draft_id != null) db.query("DELETE FROM goal_drafts WHERE id = ?").run(Number(b.draft_id));
   })();
   return Response.json({ ok: true, id: gid });
 }
@@ -436,6 +441,8 @@ const server = Bun.serve({
     if (url.pathname === "/api/restore" && json) return restore(await req.json().catch(() => null));
     if (url.pathname === "/api/feedback" && json) return verdict(await req.json().catch(() => null));
     if (url.pathname === "/api/goal" && json) return saveGoal(await req.json().catch(() => null));
+    if (url.pathname === "/api/draft-dismiss" && json) { const b = await req.json().catch(() => null);
+      return db.query("DELETE FROM goal_drafts WHERE id = ?").run(Number(b?.id)).changes ? Response.json({ ok: true }) : new Response("Unknown draft", { status: 400 }); }
     if (url.pathname === "/api/checkin" && json) return checkin(await req.json().catch(() => null));
     if (url.pathname === "/api/goal-link" && json) return linkGoal(await req.json().catch(() => null));
     if (url.pathname === "/api/unmerge" && json) return unmerge(await req.json().catch(() => null));
