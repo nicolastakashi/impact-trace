@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "qa": "bun build web/index.html --outdir qa/.data/build > /dev/null && bun qa/fixture.ts && playwright test -c qa"
+    "qa": "bun qa/build.ts && bun qa/fixture.ts && playwright test -c qa"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
@@ -11,7 +11,14 @@
     "@types/react-dom": "19.3.0"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "1.5.0",
+    "bun-plugin-tailwind": "0.1.2",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "1.59.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "tailwind-merge": "3.7.0",
+    "tailwindcss": "4.3.3"
   }
 }

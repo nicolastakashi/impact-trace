@@ -24,7 +24,7 @@ function App() {
         <div className="brand"><span className="mark" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M1 8h3l2-5 4 10 2-5h3" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></span><b>Impact Trace</b></div>
         <nav role="tablist" aria-label="Views">
           {TABS.map(([v, l]) => <button key={v} role="tab" id={`t-${v}`} data-v={v} aria-selected={r.v === v} onClick={() => go(v!)}>{l}
-            {(v === "trace" || v === "feedback") && <> <span className="ex sample-tag" hidden={!sample}>example</span></>}
+            {(v === "trace" || v === "feedback") && <> <span className="rounded border border-dashed px-1 py-0.5 font-mono text-[8.5px] leading-none tracking-wider text-ink-3 uppercase" hidden={!sample}>example</span></>}
             {v === "review" && <> <span className="badge" id="badge" hidden={!left}>{left}</span></>}</button>)}
         </nav>
         <div className="hright">
