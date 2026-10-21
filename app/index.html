@@ -105,18 +105,32 @@ button.tile:hover{border-color:var(--line-2)}
 .spk8 .avg{position:absolute;left:0;right:0;border-top:1.5px dashed var(--ink-2)}
 @media (max-width:620px){ .nums>div{border-left:0;padding:12px 0;border-top:1px solid var(--line)} .nums>div:first-child{border-top:0} }
 .said-f{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
-.said2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr));gap:12px}
+.said2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr));gap:12px}
 .rec-full{margin:0;font-size:13.5px;line-height:1.5;color:var(--ink-2)}
-.rec-more summary{cursor:pointer;font-size:13px;color:var(--ink-2)}
-.rec-more ul,.asks{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:2px}
-.rec-more button{all:unset;box-sizing:border-box;width:100%;display:flex;justify-content:space-between;gap:12px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:13.5px}
-.rec-more button:hover,.rec-more button:focus-visible{background:var(--s2)}
-.asks{gap:12px;margin:0}
-.asks li{display:grid;gap:5px}
-.ask-h{display:flex;justify-content:space-between;gap:12px;font-size:14px}
-.ask-h .num{font:700 14px var(--f-num);font-variant-numeric:tabular-nums}
-.ask-bar{height:6px;border-radius:3px;background:var(--s2)}
-.ask-bar i{display:block;height:100%;border-radius:3px;background:var(--ink-2)}
+.big-q.long{font-size:clamp(17px,1.6vw,20px)}
+.rec-who{display:flex;align-items:center;gap:10px;min-width:0}
+.rec-who b{font-size:14px}
+.av{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--s3);color:var(--ink-2);font:700 11px var(--f-num);letter-spacing:.04em}
+.rec-act{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ghost{all:unset;cursor:pointer;margin-left:auto;font-size:12.5px;color:var(--ink-3);padding:4px 2px;border-radius:6px}
+.ghost:hover{color:var(--ink)}
+.ghost:focus-visible,.rs-d button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.rec-strip{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;margin-top:auto;padding-top:12px;border-top:1px solid var(--line)}
+.rs-d{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;align-items:flex-end;min-height:14px}
+.rs-d button{width:12px;height:12px;padding:0;border:0;border-radius:50%;background:var(--rest);cursor:pointer;transition:transform .15s}
+.rs-d button:hover{transform:scale(1.25)}
+.rs-d button.on{background:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 28%,transparent)}
+.rec-strip span{display:block;margin-top:6px;text-align:center;font:500 10.5px var(--f-mono);color:var(--ink-3)}
+.asks{list-style:none;margin:0;padding:0;display:grid}
+.asks li{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.asks li:first-child{border-top:0;padding-top:0}
+.ask-m{display:grid;gap:2px;min-width:0}
+.ask-m b{font-size:14px}
+.ask-t{font-size:12.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ask-spk{display:flex;gap:2px;align-items:flex-end;height:22px}
+.ask-spk i{width:5px;min-height:2px;border-radius:1px;background:var(--rest)}
+.ask-spk i.now{background:var(--ink)}
+.asks .num{font:700 20px/1 var(--f-num);font-variant-numeric:tabular-nums;min-width:2ch;text-align:right}
 .said-f .chip{max-width:100%;text-align:left}
 .recap-btn{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line-2);background:var(--s2);color:var(--ink);border-radius:999px;padding:8px 16px 8px 8px;font:500 13px var(--f-body);cursor:pointer}
 .recap-btn:hover{border-color:var(--accent)}
@@ -382,7 +396,12 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .fb-try.rej .fb-do,.fb-try.rej .fb-chart{opacity:.45}
 .t-fb{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 24px;align-items:center;text-align:left;cursor:pointer;min-height:0}
 .t-now .do{margin:0;font:600 17px/1.35 var(--f-body);color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.t-fb .spk{height:34px}
+.t-fb .spk{height:34px;display:flex;gap:3px;align-items:flex-end}
+.t-fb .spk i{background:var(--rest);border-radius:2px 2px 0 0}
+.t-fb .spk i:last-child{background:var(--ink)}
+.do-full{margin:0;font:600 16px/1.45 var(--f-body);color:var(--ink);text-wrap:pretty}
+.fb-n{display:grid;gap:4px;justify-items:end;align-self:start}
+.fb-n .num{font:800 40px/.9 var(--f-num)}
 .t-fb .spk i{width:8px;height:calc(var(--h) * 30px + 2px)}
 @media (max-width:860px){ .fb-try{grid-template-columns:minmax(0,1fr)} }
 @media (prefers-reduced-motion:reduce){ .rw-was mark{background-size:100% 45%} }
@@ -411,6 +430,9 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .prog i{flex:1;height:4px;border-radius:2px;background:var(--s3)}
 .prog i.d{background:var(--accent)}
 .prog i.c{background:var(--ink-2)}
+.prog i.p{background:var(--accent)}
+#t-wm{text-align:left;cursor:pointer}
+#t-wm .wm-n{font:800 28px/1 var(--f-num);color:var(--accent);margin-right:4px}
 .sec{display:grid;gap:10px}
 .keys{display:flex;flex-wrap:wrap;gap:10px 18px;font-size:12px;color:var(--ink-3);align-items:center}
 .keys span{display:inline-flex;gap:4px;align-items:center}
@@ -1117,23 +1139,31 @@ async function setMention(id, kind){
 }
 function renderRec(){
   const r = REC[recI], head = `<div class="th"><span class="lbl">Recognition</span><span class="by">${REC.length} in ${WEEKS.length} weeks</span></div>`;
-  if(!r){ $("#t-rec").innerHTML = `${head}<p class="rec-full">No praise yet. Shoutouts and thanks that name your work show up here.</p>`; return; }
-  const it = ITEMS.find(i => i.id === r.item), url = /^https:\/\//.test(r.url ?? "") ? r.url : null;
-  const rest = REC.map((x, i) => [x, i]).filter(([, i]) => i !== recI).reverse();
+  if(!r){ $("#t-rec").innerHTML = `${head}<p class="rec-full">No praise yet. Shoutouts and thanks that name your work show up here.</p>
+    ${recUndo ? `<p class="rec-full">Removed: ${esc(recUndo.who)}. <button class="chip" data-recundo>Undo</button></p>` : ""}`; return; }
+  const it = ITEMS.find(i => i.id === r.item), url = /^https:\/\//.test(r.url ?? "") ? r.url : null, q = r.q ?? r.t;
+  const ini = s => s.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+  // One dot per praise, in its week: the rhythm at a glance, and the way to pick one.
+  const strip = WEEKS.map((w, k) => `<div><div class="rs-d">${REC.map((x, i) => [x, i]).filter(([x]) => x.w === k)
+    .map(([x, i]) => `<button data-reci="${i}" class="${i === recI ? "on" : ""}" aria-label="${esc(x.who)}, ${w}${i === recI ? ", shown" : ""}" title="${esc(x.who)} · ${esc(x.about ?? x.where ?? "")}"></button>`).join("")}</div><span>${w}</span></div>`).join("");
   $("#t-rec").innerHTML = `${head}
-    <p class="big-q">${esc(r.q ?? r.t)}</p>
+    <p class="big-q${q.length > 110 ? " long" : ""}">${esc(q)}</p>
     ${r.q && r.q.length < r.t.length * .7 ? `<p class="rec-full">${esc(r.t)}</p>` : ""}
-    <div class="said-f"><span class="by">${esc(r.who)}${r.role?` · ${esc(r.role)}`:""} · ${esc(r.where ?? "")} · ${r.when ? esc(r.when) : WEEKS[r.w]}</span>${url ? `<a class="chip" href="${esc(url)}" target="_blank" rel="noopener">Slack ↗</a>` : ""}${it ? `<button class="chip" data-item="${it.id}">${esc(it.title)} →</button>` : ""}${r.id ? `<button class="chip" data-notrec="${esc(r.id)}">Not recognition</button>` : ""}</div>
+    <div class="rec-who"><span class="av" aria-hidden="true">${esc(ini(r.who))}</span><div style="display:grid;min-width:0"><b>${esc(r.who)}</b><span class="by">${esc(r.where ?? "")} · ${r.when ? esc(r.when) : WEEKS[r.w]}</span></div></div>
+    <div class="rec-act">${url ? `<a class="chip" href="${esc(url)}" target="_blank" rel="noopener">Slack ↗</a>` : ""}${it ? `<button class="chip" data-item="${it.id}">${esc(it.title)} →</button>` : ""}${r.id ? `<button class="ghost" data-notrec="${esc(r.id)}">Not recognition</button>` : ""}</div>
     ${recUndo ? `<p class="rec-full">Removed: ${esc(recUndo.who)}, "${esc((recUndo.q ?? recUndo.t).slice(0, 60))}". <button class="chip" data-recundo>Undo</button></p>` : ""}
-    ${rest.length ? `<details class="rec-more"${recOpen ? " open" : ""}><summary>${rest.length} more</summary><ul>${rest.map(([x, i]) => `<li><button data-reci="${i}"><span>${esc(x.who)}</span><span class="by">${esc(x.about ?? x.where ?? "")} · ${WEEKS[x.w]}</span></button></li>`).join("")}</ul></details>` : ""}`;
+    <div class="rec-strip" role="group" aria-label="Praise per week">${strip}</div>`;
 }
 /* WHO COMES TO YOU: people who asked you for a review, a decision or an answer in Slack. */
 function renderAsks(){
-  const head = `<div class="th"><span class="lbl">Who comes to you</span><span class="by">asks in Slack, ${WEEKS.length} weeks</span></div>`;
-  if(typeof ASKS === "undefined" || !ASKS.length){ $("#t-asks").innerHTML = `${head}<p class="rec-full">No asks yet. Reviews, decisions and questions people bring you show up here.</p>`; return; }
-  const mx = Math.max(...ASKS.map(a => a.n));
-  $("#t-asks").innerHTML = `${head}<ol class="asks">${ASKS.map(a => `<li><div class="ask-h"><b>${esc(a.who)}</b><span class="num">${a.n}</span></div>
-    <div class="ask-bar" role="img" aria-label="${a.n} asks"><i style="width:${a.n/mx*100}%"></i></div><span class="rec-full">${a.about.map(esc).join(" · ")}</span></li>`).join("")}</ol>`;
+  const head = n => `<div class="th"><span class="lbl">Who comes to you</span><span class="by">${n}</span></div>`;
+  if(typeof ASKS === "undefined" || !ASKS.length){ $("#t-asks").innerHTML = `${head("Slack")}<p class="rec-full">No asks yet. Reviews, decisions and questions people bring you show up here.</p>`; return; }
+  const ini = s => s.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?", mx = Math.max(1, ...ASKS.flatMap(a => a.per));
+  $("#t-asks").innerHTML = `${head(`asks in Slack · ${WEEKS[0]}–${WEEKS.at(-1)}`)}<ol class="asks">${ASKS.map(a => `<li>
+    <span class="av" aria-hidden="true">${esc(ini(a.who))}</span>
+    <div class="ask-m"><b>${esc(a.who)}</b><span class="ask-t" title="${esc(a.about.join(" · "))}">${esc(a.about.join(" · "))}</span></div>
+    <span class="ask-spk" role="img" aria-label="per week: ${a.per.join(", ")}">${a.per.map((n, k) => `<i class="${k === LAST ? "now" : ""}" style="height:${n ? n/mx*100 : 0}%" title="${WEEKS[k]}: ${n}"></i>`).join("")}</span>
+    <span class="num">${a.n}</span></li>`).join("")}</ol>`;
 }
 
 /* TRACE: your weeks as traces. A week is a trace, a kept thread is a span, its PRs, issues and messages are span events. */
@@ -1487,8 +1517,8 @@ function renderFbTile(){
   const f = FB[0], e = vdOf(f, "experiment") === "reject" ? null : f?.experiment, el = $("#t-fb");
   el.hidden = !e;
   if(!e) return;
-  el.innerHTML = `<div style="display:grid;gap:8px;min-width:0"><span class="lbl">Try this week · feedback</span><p class="do">${esc(e.do)}</p></div>
-    <div style="display:grid;gap:6px;justify-items:end">${e.trend ? spark(e.trend) : ""}<span class="ref">${e.trend ? `${e.trend.at(-1)} in ${wk(f.week)} · ` : ""}open →</span></div>`;
+  el.innerHTML = `<div style="display:grid;gap:8px;min-width:0"><span class="lbl">Try this week</span><p class="do-full">${esc(e.do)}</p><span class="by">from the pattern “${esc(e.pattern ?? "")}” · open feedback →</span></div>
+    ${e.trend ? `<div class="fb-n"><span class="num">${e.trend.at(-1)}</span><span class="by">times in ${wk(f.week)}</span>${spark(e.trend)}</div>` : ""}`;
 }
 $("#v-feedback").addEventListener("click", e => {
   const b = e.target.closest("button"); if(!b || b.closest(".vd-why")) return;
@@ -1692,10 +1722,12 @@ let PENDING = {};
 function renderWm(){
   const ws = Object.keys(PENDING).sort(), left = ws.reduce((a,w)=>a+PENDING[w],0);
   $("#badge").textContent = left; $("#badge").hidden = !left;
+  // Red only where something waits for you; done weeks stay quiet.
+  $("#t-wm").classList.toggle("wait", !!left);
   $("#t-wm").innerHTML = `<span class="lbl">To review</span>
-    <p class="do">${left ? `${left} threads wait for your answer` : ws.length ? `All ${ws.length} weeks reviewed` : "No weeks collected yet"}</p>
-    <div class="prog">${ws.map(w=>`<i class="${PENDING[w]?"":"d"}" title="${w}: ${PENDING[w] ? PENDING[w]+" left" : "done"}"></i>`).join("")}</div>
-    <span class="ref">${left || !ws.length ? "open review →" : "review again →"}</span>`;
+    ${left ? `<p class="do"><span class="wm-n">${left}</span> thread${left > 1 ? "s" : ""} wait for your answer</p>` : `<p class="do">${ws.length ? "✓ All caught up" : "No weeks collected yet"}</p>`}
+    <div class="prog">${ws.map(w=>`<i class="${PENDING[w]?"p":"c"}" title="${w}: ${PENDING[w] ? PENDING[w]+" left" : "done"}"></i>`).join("")}</div>
+    <span class="ref">${left ? "open review →" : ws.length ? `${ws.length} weeks reviewed · review again →` : "open review →"}</span>`;
 }
 const loadPending = () => fetch("/api/pending").then(r => r.ok ? r.json() : {}).then(p => { PENDING = p; renderWm(); }).catch(() => {});
 
