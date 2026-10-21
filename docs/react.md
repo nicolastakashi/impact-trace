@@ -8,14 +8,14 @@ The views move to React one at a time. Both apps run in the same server, on the 
               a view it does not have yet ━▶ the old app, same address
 ```
 
-- **Same look:** `web/` uses the same `app/css/` files and class names. Screenshots of both apps
-  were compared pixel by pixel on the fixture, at 1280 and 400 px wide. What differs is focus
-  and scroll: React keeps the button you clicked, the old app redraws it.
+- **shadcn components** (`web/ui/`) with Tailwind. Their colors and fonts point at the app's
+  tokens in `app/css/base.css`, so both apps share one palette, light and dark.
 - **Same behaviour:** a view moves only when its specs pass on both apps (`bun run qa`).
 - **Done here:** Goals, Setup. **Next:** Review, then Projects.
-- When a view needs a component library piece (a dialog, a command menu), shadcn comes in then.
+- Selects stay native: phone pickers, keyboard and `selectOption` in specs work as on any form.
 
 A bundle error shows an empty page and no error, so `bun run qa` bundles `web/` first and
 stops on the error.
 
-Code: `web/main.tsx` (header and routes), `web/lib.tsx`, one file per view.
+Code: `web/main.tsx` (header and routes), `web/styles.css` (the token mapping), `web/ui/`, one
+file per view.
