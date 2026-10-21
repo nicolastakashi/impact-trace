@@ -33,6 +33,7 @@ follow SBI (Situation, Behavior, Impact) and end with what to say next time.
 | Goals your work serves | [goals](docs/goals.md) |
 | Feedback on how you show up | [feedback](docs/feedback.md) |
 | The daily schedule, with no gaps | [schedule](docs/schedule.md) |
+| Ask questions about your data | [ask](docs/ask.md) |
 
 `data/` holds your work data and `config.json`. It is git-ignored and must never be pushed.
 
