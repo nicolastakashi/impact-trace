@@ -1,6 +1,6 @@
 @import "tailwindcss";
 /* The app's colors, fonts and header. In the base layer, so component classes win over it. */
-@import "../app/css/base.css" layer(base);
+@import "./base.css" layer(base);
 
 /* shadcn's color names, pointed at the app's tokens, so components look like the app.
    brand = the app's red (--accent). shadcn's "accent" is its hover fill: here a surface. */

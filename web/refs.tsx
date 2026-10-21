@@ -49,5 +49,4 @@ export function Refs({ k: asked }: { k: string | null }) {
   </section>;
 }
 
-export const ready = true;
 export const View = ({ p }: { p: URLSearchParams }) => <Refs k={p.get("k")} />;

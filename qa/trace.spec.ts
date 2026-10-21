@@ -85,12 +85,7 @@ test("the summary, then one span and its events; Esc lets go", async ({ page, vi
 
 test("the thread sheet: title, chips, evidence; Esc closes it and keeps the span", async ({ page, view }) => {
   await view(`trace?w=W41&s=${encodeURIComponent("2026-W41:github:acme/api#220")}`);
-  // The old Trace has no way to the sheet: there it opens from Search.
-  if (test.info().project.name === "old") {
-    await page.getByRole("button", { name: /Search/ }).click();
-    await page.keyboard.type("part 2");
-    await page.getByRole("option", { name: new RegExp(P2) }).click();
-  } else await page.getByRole("complementary").getByRole("button", { name: "open thread" }).click();
+  await page.getByRole("complementary").getByRole("button", { name: "open thread" }).click();
   const sheet = page.getByRole("dialog");
   await expect(sheet.getByRole("heading", { name: P2 })).toBeVisible();
   await expect(sheet.getByRole("button", { name: /close/ })).toBeFocused();
@@ -110,15 +105,10 @@ test("a recognised thread shows who said it in the sheet", async ({ page, view }
   await page.setViewportSize({ width: 400, height: 860 });
   await view("trace?w=W40");
   await page.getByRole("button", { name: "acme-eng instant" }).first().click();
-  if (test.info().project.name === "old") {
-    await page.getByRole("button", { name: /Search/ }).click();
-    await page.keyboard.type("blair");
-    await page.getByRole("option").first().click();
-  } else await page.getByRole("complementary").getByRole("button", { name: "open thread" }).click();
+  await page.getByRole("complementary").getByRole("button", { name: "open thread" }).click();
   const sheet = page.getByRole("dialog");
   await expect(sheet).toContainText("★ Blair Ito");
-  // The old sheet scrolls 13px sideways here; the new one must not.
-  if (test.info().project.name !== "old") expect(await sheet.evaluate((e) => e.scrollWidth - e.clientWidth)).toBeLessThanOrEqual(0);
+  expect(await sheet.evaluate((e) => e.scrollWidth - e.clientWidth)).toBeLessThanOrEqual(0);
   await expect(sheet).toContainText("“Thanks @Riley Chen, the review on exports step 3 taught me a lot”");
   await sheet.getByRole("button", { name: /close/ }).click();
   await expect(sheet).toBeHidden();

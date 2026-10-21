@@ -11,7 +11,7 @@ export function Search() {
   const [d] = useNorth(), [open, setOpen] = useState(false), [q, setQ] = useState(""), [sel, setSel] = useState("");
   // A result moves focus on (a view, the sheet, the recap): then do not hand it back to the header.
   const went = useRef(false);
-  // ⌘K again closes it, like the old app.
+  // ⌘K again closes it.
   useEvent("open-search", () => { setOpen((o) => !o); setQ(""); setSel(""); went.current = false; });
   const all: R[] = !d ? [] : [
     ...VIEWS.map(([v, l]) => ({ id: `v:${v}`, label: `Go to ${l}`, t: "view", run: () => { location.hash = `#/${v}`; } })),
@@ -42,5 +42,4 @@ export function Search() {
   </Dialog>;
 }
 
-export const ready = true;
 export const View = (_: { p: URLSearchParams }) => <Search />;

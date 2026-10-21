@@ -285,5 +285,4 @@ function Seg({ label, opts, keys, value, sug, color, set }: { label: string; opt
       {sug === k && <i className="absolute top-1 right-1 size-1.5 rounded-full bg-ink-3" />}</button>)}</div>;
 }
 
-export const ready = true;
 export const View = ({ p }: { p: URLSearchParams }) => <Review p={p} />;

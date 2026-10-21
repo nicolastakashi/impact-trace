@@ -270,5 +270,4 @@ function Draft({ d, i, keys, go, add, skip, use }: { d: D; i: number; keys: bool
     </Card></section>;
 }
 
-export const ready = true;
 export const View = ({ p }: { p: URLSearchParams }) => <Goals focus={p.get("id")} />;

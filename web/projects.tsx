@@ -85,7 +85,6 @@ function Projects() {
   </section>;
 }
 
-export const ready = true;
 // The old address #/projects?p=<id> opens that project.
 export function View({ p }: { p: URLSearchParams }) {
   const id = p.get("p");

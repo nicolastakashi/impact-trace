@@ -2,9 +2,8 @@ import { expect, test, type Page } from "./helpers";
 
 // Week labels follow today's date, so read them from the same data the page reads.
 const north = async (request: any) => (await (await request.get("/api/north")).json());
-// Most links go to views /next/ may not have yet: keep the address change, stop the route.
-// Registered before the app's own listener, so it runs first. The old app's tiles route
-// without a hashchange, so each test clicks one of those last.
+// A test clicks several North links in a row: keep the address change, stop the route.
+// Registered before the app's own listener, so it runs first.
 const stay = (page: Page) => page.addInitScript(() => addEventListener("hashchange", (e) => e.stopImmediatePropagation()));
 
 test("the header counts what you kept", async ({ page, view, request }) => {

@@ -1,4 +1,4 @@
-// Shared by the views, like app/js/core.js.
+// Shared by the views.
 import { useEffect, useRef, useState } from "react";
 
 // One JSON POST: the server takes a write only with this exact content-type.
@@ -27,7 +27,7 @@ export function Strip({ weeks, count, max }: { weeks: string[]; count: (w: strin
 export const By = ({ className = "", ...p }: React.ComponentProps<"span">) => <span className={`font-mono text-[11.5px] font-medium text-ink-3 ${className}`} {...p} />;
 
 // North, Trace, Feedback and Search read one object: your kept threads, or the sample.
-// Same shape as app/sample-data.js; SAMPLE is true only for the sample.
+// Same shape as app/sample.json; SAMPLE is true only for the sample.
 export type North = Record<string, any> & { WEEKS: string[]; ITEMS: any[]; GOALS: any[]; PROJECTS: Record<string, any>; REC: any[]; FEEDBACK: any[]; SAMPLE?: boolean };
 let north: Promise<North> | null = null;
 export const loadNorth = (fresh = false) => (!fresh && north) || (north = fetch("/api/north").then((r) => r.json()));

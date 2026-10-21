@@ -32,9 +32,7 @@ test("arrows move the selection; Enter goes to the view", async ({ page, view })
   await expect(box(page)).toBeHidden();
 });
 
-// A click, not Enter: on the old app Enter also presses the sheet's close button, which takes focus.
 test("a thread result opens its sheet", async ({ page, view }) => {
-  // Not on Goals: the old Goals reads A and S as its own keys, even while you type here.
   await view("setup");
   await page.keyboard.press("ControlOrMeta+k");
   await box(page).fill("part 2");

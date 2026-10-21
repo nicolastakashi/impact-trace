@@ -277,5 +277,4 @@ function Home() {
   </section>;
 }
 
-export const ready = true;
 export const View = (_: { p: URLSearchParams }) => <Home />;

@@ -83,5 +83,4 @@ export function Story() {
   </Dialog>;
 }
 
-export const ready = true;
 export const View = (_: { p: URLSearchParams }) => <Story />;

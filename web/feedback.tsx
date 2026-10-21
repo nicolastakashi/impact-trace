@@ -228,5 +228,4 @@ export function Feedback({ p }: { p: URLSearchParams }) {
   </section>;
 }
 
-export const ready = true;
 export const View = ({ p }: { p: URLSearchParams }) => <Feedback p={p} />;

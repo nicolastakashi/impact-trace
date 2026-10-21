@@ -1,5 +1,4 @@
-// The shell: header, hash routes, toast and overlays. Each view is one file that exports
-// `ready` and `View`; a view that is not ready yet opens in the old app, same address.
+// The shell: header, hash routes, toast and overlays. Each view is one file that exports `View`.
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { loadNorth, openSearch, Toast, useEvent } from "./lib";
@@ -16,7 +15,7 @@ import * as refs from "./refs";
 import * as story from "./story";
 import * as search from "./search";
 
-type V = { ready: boolean; View: (p: { p: URLSearchParams }) => React.ReactNode };
+type V = { View: (p: { p: URLSearchParams }) => React.ReactNode };
 const VIEWS: Record<string, V> = { home, goals, projects, project, trace, feedback, review, refs, setup };
 const TABS = [["home", "North"], ["goals", "Goals"], ["projects", "Projects"], ["trace", "Trace"], ["feedback", "Feedback"], ["review", "Review"], ["refs", "References"]];
 const parse = () => { const [path, qs] = location.hash.replace(/^#\/?/, "").split("?"); return { v: path || "home", p: new URLSearchParams(qs) }; };
@@ -31,9 +30,9 @@ function App() {
   // Before you keep a thread, North and Trace show the fictional sample: its tabs say so.
   useEffect(() => { loadNorth().then((d) => setSample(!!d.SAMPLE)).catch(() => {}); }, []);
   const view = VIEWS[r.v] ?? VIEWS.home!;
-  useEffect(() => { if (view.ready) scrollTo(0, 0); else location.replace("/" + (location.hash || "#/home")); }, [r.v]);
+  useEffect(() => { scrollTo(0, 0); }, [r.v]);
   useEffect(() => {
-    const k = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); search.ready ? openSearch() : location.assign("/" + location.hash); } };
+    const k = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openSearch(); } };
     addEventListener("keydown", k); return () => removeEventListener("keydown", k);
   }, []);
   const go = (v: string) => { location.hash = "#/" + v; };
@@ -49,14 +48,14 @@ function App() {
         </nav>
         <div className="hright">
           <button className="cmdk-btn" id="setup-btn" data-v="setup" title="Who you are, and your tools" aria-current={r.v === "setup" ? "page" : "false"} onClick={() => go("setup")}>Setup</button>
-          <button className="cmdk-btn" id="cmdk-open" onClick={() => search.ready ? openSearch() : location.assign("/" + location.hash)}>Search <kbd>⌘</kbd><kbd>K</kbd></button>
+          <button className="cmdk-btn" id="cmdk-open" onClick={openSearch}>Search <kbd>⌘</kbd><kbd>K</kbd></button>
         </div>
       </header>
-      {view.ready && <view.View key={r.v} p={r.p} />}
+      <view.View key={r.v} p={r.p} />
     </div>
     <ItemSheet />
-    {story.ready && <story.View p={r.p} />}
-    {search.ready && <search.View p={r.p} />}
+    <story.View p={r.p} />
+    <search.View p={r.p} />
     <Toast />
   </>;
 }

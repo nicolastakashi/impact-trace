@@ -9,7 +9,7 @@ const recap = async (page: any) => {
   await expect(page.getByRole("option", { name: /Open recap \(Wrapped\)/ })).toBeVisible();
   await page.keyboard.press("Enter");
 };
-// The old app keeps hidden views in the page: North says "How you delivered" too.
+// Only the recap's text: the view behind it may say the same words.
 const see = (page: any, t: string | RegExp, exact?: boolean) => page.getByText(t, { exact }).filter({ visible: true });
 
 test("the recap starts with the period and steps with keys and taps", async ({ page, view }) => {

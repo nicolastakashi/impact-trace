@@ -257,5 +257,4 @@ function Span({ d, i, items, close }: { d: North; i: D; items: D[]; close: () =>
   </>;
 }
 
-export const ready = true;
 export const View = ({ p }: { p: URLSearchParams }) => <Trace p={p} />;

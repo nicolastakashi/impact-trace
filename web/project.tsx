@@ -112,5 +112,4 @@ function Project({ pid }: { pid: string }) {
   </>;
 }
 
-export const ready = true;
 export const View = ({ p }: { p: URLSearchParams }) => <section className="view" id="v-project"><div className="grid gap-5"><Project pid={p.get("id") ?? ""} /></div></section>;
