@@ -5,7 +5,9 @@ import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 export const ROOT = join(import.meta.dir, "..");
-export const CONFIG = join(ROOT, "data/config.json");
+// Your data. IMPACT_DATA points a second copy (QA, screenshots) at its own folder.
+export const DATA = process.env.IMPACT_DATA ?? join(ROOT, "data");
+export const CONFIG = join(DATA, "config.json");
 
 // Who you are, from the setup page. Git-ignored, like the rest of data/.
 export type Config = { name: string; github: string; orgs: string[]; level: string };
@@ -17,7 +19,7 @@ type Status = "ok" | "count_mismatch" | "error";
 // Rows per Slack search page; the collect-slack skill asks for `limit: 20`.
 const SLACK_PAGE = 20;
 
-export function open(path = join(ROOT, "data/impact.db")) {
+export function open(path = join(DATA, "impact.db")) {
   // A fresh clone has no data/ yet.
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const db = new Database(path, { create: true, strict: true });
@@ -386,7 +388,7 @@ export function threads(db: Database, weeks: string[]) {
 if (import.meta.main) {
   const week = process.argv[2];
   check(/^\d{4}-W\d{2}$/.test(week ?? ""), "usage: bun ingest/ingest.ts 2026-W42");
-  const res = ingestWeek(open(), join(ROOT, "data/raw", week), week);
+  const res = ingestWeek(open(), join(DATA, "raw", week), week);
   for (const [s, st] of Object.entries(res)) console.log(`${st === "ok" ? "✓" : "✗"} ${s} ${week}: ${st}`);
   if (Object.values(res).some((s) => s !== "ok")) process.exit(2);
 }
