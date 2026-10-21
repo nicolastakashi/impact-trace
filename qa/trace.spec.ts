@@ -17,7 +17,7 @@ test("opens on this week; the address picks weeks", async ({ page, view }) => {
 
 test("drag across weeks, shift-click adds one, Enter picks one", async ({ page, view }) => {
   await view("trace?w=W43");
-  const wk = (w: string) => page.getByRole("button", { name: new RegExp(`^${w} (Sep|Oct)`) });
+  const wk = (w: string) => page.getByRole("button", { name: new RegExp(`^${w} (Sep|Oct) \\d+$`) });
   const a = (await wk("W40").boundingBox())!, b = (await wk("W42").boundingBox())!;
   await page.mouse.move(a.x + 5, a.y + a.height / 2); await page.mouse.down();
   await page.mouse.move(b.x + 5, b.y + b.height / 2, { steps: 6 }); await page.mouse.up();
@@ -58,7 +58,7 @@ test("the summary, then one span and its events; Esc lets go", async ({ page, vi
   const side = page.getByRole("complementary");
   await expect(side).toContainText("Trace summary");
   await expect(side).toContainText("6spans in W41–W42");
-  await expect(page.getByRole("button", { name: "▶ replay" }).or(page.getByRole("button", { name: "Play the week again" }))).toBeVisible();
+  await page.getByRole("button", { name: /replay/ }).click();
   await side.getByRole("button", { name: `${P2} · 2d 0h` }).click();
   await expect.poll(() => url(page)).toBe("#/trace?w=W41,W42&s=2026-W41:github:acme/api#220");
   await expect(page.getByRole("button", { name: `${P2} 2d 0h` })).toHaveAttribute("aria-pressed", "true");
@@ -93,6 +93,7 @@ test("the thread sheet: title, chips, evidence; Esc closes it and keeps the span
   } else await page.getByRole("complementary").getByRole("button", { name: "open thread" }).click();
   const sheet = page.getByRole("dialog");
   await expect(sheet.getByRole("heading", { name: P2 })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: /close/ })).toBeFocused();
   for (const c of ["build", "wouldn't happen", "execution"]) await expect(sheet.getByRole("button", { name: c, exact: true })).toBeVisible();
   await expect(sheet.getByText("Exports API", { exact: true }).first()).toBeVisible();
   await expect(sheet).toContainText("Evidence");
