@@ -3,9 +3,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "qa": "bun qa/fixture.ts && playwright test -c qa"
+    "qa": "bun build web/index.html --outdir qa/.data/build > /dev/null && bun qa/fixture.ts && playwright test -c qa"
   },
   "devDependencies": {
-    "@playwright/test": "1.56.1"
+    "@playwright/test": "1.56.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   }
 }
