@@ -106,6 +106,8 @@ test("the thread sheet: title, chips, evidence; Esc closes it and keeps the span
 });
 
 test("a recognised thread shows who said it in the sheet", async ({ page, view }) => {
+  // A phone: the sheet must not scroll sideways.
+  await page.setViewportSize({ width: 400, height: 860 });
   await view("trace?w=W40");
   await page.getByRole("button", { name: "acme-eng instant" }).first().click();
   if (test.info().project.name === "old") {
@@ -115,6 +117,8 @@ test("a recognised thread shows who said it in the sheet", async ({ page, view }
   } else await page.getByRole("complementary").getByRole("button", { name: "open thread" }).click();
   const sheet = page.getByRole("dialog");
   await expect(sheet).toContainText("★ Blair Ito");
+  // The old sheet scrolls 13px sideways here; the new one must not.
+  if (test.info().project.name !== "old") expect(await sheet.evaluate((e) => e.scrollWidth - e.clientWidth)).toBeLessThanOrEqual(0);
   await expect(sheet).toContainText("“Thanks @Riley Chen, the review on exports step 3 taught me a lot”");
   await sheet.getByRole("button", { name: /close/ }).click();
   await expect(sheet).toBeHidden();

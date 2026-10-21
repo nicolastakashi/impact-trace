@@ -26,13 +26,15 @@ export function ItemSheet() {
   const tint = (p: number) => ({ background: `color-mix(in srgb, ${mc(m)} ${p}%, var(--s3))` });
   const chip = "h-auto gap-1.5 rounded-full px-2.5 py-1 text-[12.5px]";
   return <Dialog open onOpenChange={(o) => !o && setId(null)}>
-    <DialogContent aria-describedby={undefined}>
-      <nav className="flex flex-wrap items-center gap-1.5 font-mono text-[11.5px] text-ink-2" aria-label="Item link chain">
+    {/* One track that may shrink: long evidence rows truncate instead of widening the sheet past a phone. */}
+    <DialogContent aria-describedby={undefined} className="grid-cols-[minmax(0,1fr)]">
+      {/* Not the header's tab pill: base.css styles every nav like it. */}
+      <nav className="flex flex-wrap items-center gap-1.5 overflow-visible rounded-none border-0 bg-transparent p-0 font-mono text-[11.5px] text-ink-2" aria-label="Item link chain">
         {g ? <Badge variant="dashed" className="gap-1.5 normal-case"><Dot c={g.color} />{g.short}</Badge> : <Badge variant="dashed" className="normal-case">no goal</Badge>}
         <ChevronRight className="size-3 text-ink-3" />
         {st.url ? <a href={st.url} target="_blank" rel="noopener">{st.name}<ExternalLink className="ml-1 inline size-3" /></a> : <b className="font-medium">{st.name}</b>}
         {it.ms && <><ChevronRight className="size-3 text-ink-3" /><b className="font-medium">{it.ms}</b></>}
-        <ChevronRight className="size-3 text-ink-3" /><b className="font-medium">{`${it.id} · ${d.WEEKS[it.w]}`}</b>
+        <ChevronRight className="size-3 text-ink-3" /><b className="font-medium wrap-anywhere">{`${it.id} · ${d.WEEKS[it.w]}`}</b>
         <Button variant="outline" size="xs" className="ml-auto rounded-full font-mono text-xs text-ink-2" onClick={() => setId(null)}>close <kbd>esc</kbd></Button>
       </nav>
       <DialogTitle className="m-0 font-num text-[clamp(26px,3.4vw,38px)] leading-none font-extrabold text-balance uppercase">{it.title}</DialogTitle>
@@ -42,8 +44,8 @@ export function ItemSheet() {
         <Button variant="outline" className={chip} onClick={() => ref("tracking")}>{PILLAR[it.pillar]}</Button>
         <Badge variant="soft" className="gap-1.5 rounded-full px-2.5 py-1">{g ? <><Dot c={g.color} />{g.short}</> : "no goal"}</Badge>
       </div>
-      <section className="grid gap-2.5"><span className="lbl">Evidence</span>
-        <div className="grid gap-0.75" aria-label="Item evidence, as a flame graph">
+      <section className="grid grid-cols-[minmax(0,1fr)] gap-2.5"><span className="lbl">Evidence</span>
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-0.75" aria-label="Item evidence, as a flame graph">
           <div className="flex gap-0.75"><span className={`${span} text-[#0b0b0b]`} style={{ background: mc(m) }}>{`${it.id} · ${MODES[m]}`}</span></div>
           {lv2.length > 0 && <>
             <div className="flex gap-0.75">{lv2.map((s) => <span key={s} className={`${span} text-[#0b0b0b]`} style={{ flex: srcs[s], ...tint(62) }}>{`${s} · ${srcs[s]}`}</span>)}</div>
