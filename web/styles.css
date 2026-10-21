@@ -22,7 +22,8 @@
   --animate-in: in .35s cubic-bezier(.16,1,.3,1);
 }
 @keyframes in { from { opacity: 0; transform: translateY(10px); filter: blur(4px); } }
-@media (prefers-reduced-motion: reduce) { .animate-in { animation: none; } }
+/* Variants too: a dialog animates with data-[state=open]:animate-in. */
+@media (prefers-reduced-motion: reduce) { [class*="animate-in"] { animation: none; } }
 
 /* shadcn's base: borders and rings take the theme color, not the text color. */
 @layer base {
