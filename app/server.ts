@@ -2,7 +2,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CONFIG, isoWeek, LIVE, open, PLACED, plain } from "../ingest/ingest";
-import { known, measure, METRICS, progress, quarterWeeks } from "../ingest/metrics";
+import { current, known, METRICS, progress } from "../ingest/metrics";
 import { labelsOf, reviewThreads } from "../ingest/review";
 import { CATEGORIES } from "../ingest/feedback";
 import { correct } from "../ingest/mentions";
@@ -156,10 +156,10 @@ function goalList() {
   const projects = db.query("SELECT p.id, p.name FROM goal_projects gp JOIN projects p ON p.id = gp.project_id WHERE gp.goal_id = ? ORDER BY p.name");
   const krs = db.query("SELECT id, text, metric, start, target, current FROM key_results WHERE goal_id = ? ORDER BY pos");
   const checkins = db.query("SELECT week, confidence FROM goal_checkins WHERE goal_id = ? ORDER BY week");
-  const gs = new Map((db.query("SELECT id, title, kind, type, quarter FROM goals ORDER BY kind = 'personal', id").all() as any[])
-    .map((g) => { const qw = quarterWeeks(db, g.quarter, isoWeek(new Date().toISOString()));
-      // An auto key result reads its metric over the quarter's weeks; a manual one is what you typed.
-      const k = (krs.all(g.id) as any[]).map((r) => { const value = r.metric ? measure(db, r.metric, qw) : r.current; return { ...r, value, progress: progress(r.start, r.target, value) }; });
+  const gs = new Map((db.query("SELECT id, title, description, kind, type, quarter FROM goals ORDER BY kind = 'personal', id").all() as any[])
+    .map((g) => { const now = isoWeek(new Date().toISOString());
+      // An auto key result reads its metric (a rate or the quarter's total); a manual one is what you typed.
+      const k = (krs.all(g.id) as any[]).map((r) => { const value = r.metric ? current(db, r.metric, g.quarter, now) : r.current; return { ...r, value, progress: progress(r.start, r.target, value) }; });
       return [g.id, { ...g, krs: k, checkins: checkins.all(g.id), projects: projects.all(g.id), weeks: {} as Record<string, any[]> }]; }));
   for (const week of weeks) for (const t of reviewThreads(db, week)) {
     const l = labelsOf(db, t), d = l.find((r) => r.field === "discard" && r.source === "human")?.value;
@@ -171,7 +171,10 @@ function goalList() {
   }
   // What a key result can measure: the app's metrics, and milestones of the projects a goal serves.
   const milestones = db.query(`SELECT m.id, m.name, m.progress, p.name project FROM milestones m JOIN projects p ON p.id = m.project_id WHERE p.id IN (SELECT id FROM projects WHERE ${LIVE}) ORDER BY p.name, m.name`).all();
-  return { week: isoWeek(new Date().toISOString()), metrics: Object.entries(METRICS).map(([key, m]) => ({ key, label: m.label, unit: m.unit, better: m.better })), milestones,
+  return { week: isoWeek(new Date().toISOString()), metrics: Object.entries(METRICS).map(([key, m]) => ({ key, label: m.label, unit: m.unit, better: m.better, agg: m.agg })), milestones,
+    // Claude's drafts wait here until you use or dismiss them. A metric start is code's (ingest/drafts.ts).
+    drafts: (db.query("SELECT id, title, kind, type, quarter, why, based_on, krs FROM goal_drafts ORDER BY id").all() as any[])
+      .map((r) => ({ ...r, based_on: JSON.parse(r.based_on), krs: JSON.parse(r.krs) })),
     weeks, goals: [...gs.values()], projects: (db.query(`SELECT id, name, kind FROM projects WHERE ${LIVE} ORDER BY name`).all() as any[]).map((p) => ({ ...p, threads: busy.get(p.id) ?? 0 })) };
 }
 // Create, edit or delete one goal. Deleting it removes its links, never a project or a thread.
@@ -182,6 +185,8 @@ function saveGoal(b: any) {
   const title = typeof b?.title === "string" ? b.title.trim() : "";
   const quarter = b?.quarter ? String(b.quarter) : null;
   if (!title || title.length > 120) return new Response("A goal needs a title, up to 120 characters", { status: 400 });
+  const description = typeof b?.description === "string" && b.description.trim() ? b.description.trim() : null;
+  if (description && description.length > 600) return new Response("The description fits in 600 characters", { status: 400 });
   if (!["team", "personal"].includes(b?.kind)) return new Response("Pick team or personal", { status: 400 });
   if (quarter && !QUARTER.test(quarter)) return new Response("Quarter looks like 2026-Q4", { status: 400 });
   const type = b?.type ?? "aspirational";
@@ -200,10 +205,12 @@ function saveGoal(b: any) {
   const put = db.query("INSERT INTO key_results (goal_id, pos, text, metric, start, target, current, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
   let gid = id;
   db.transaction(() => {
-    if (gid == null) gid = Number(db.query("INSERT INTO goals (title, kind, type, quarter, at) VALUES (?, ?, ?, ?, ?)").run(title, b.kind, type, quarter, at).lastInsertRowid);
-    else db.query("UPDATE goals SET title = ?, kind = ?, type = ?, quarter = ?, krs = NULL, at = ? WHERE id = ?").run(title, b.kind, type, quarter, at, gid);
+    if (gid == null) gid = Number(db.query("INSERT INTO goals (title, description, kind, type, quarter, at) VALUES (?, ?, ?, ?, ?, ?)").run(title, description, b.kind, type, quarter, at).lastInsertRowid);
+    else db.query("UPDATE goals SET title = ?, description = ?, kind = ?, type = ?, quarter = ?, krs = NULL, at = ? WHERE id = ?").run(title, description, b.kind, type, quarter, at, gid);
     db.query("DELETE FROM key_results WHERE goal_id = ?").run(gid);
     rows.forEach((k: any, i: number) => put.run(gid, i, k.text, k.metric, k.start, k.target, k.current, at));
+    // A draft you used is now this goal.
+    if (b.draft_id != null) db.query("DELETE FROM goal_drafts WHERE id = ?").run(Number(b.draft_id));
   })();
   return Response.json({ ok: true, id: gid });
 }
@@ -436,6 +443,8 @@ const server = Bun.serve({
     if (url.pathname === "/api/restore" && json) return restore(await req.json().catch(() => null));
     if (url.pathname === "/api/feedback" && json) return verdict(await req.json().catch(() => null));
     if (url.pathname === "/api/goal" && json) return saveGoal(await req.json().catch(() => null));
+    if (url.pathname === "/api/draft-dismiss" && json) { const b = await req.json().catch(() => null);
+      return db.query("DELETE FROM goal_drafts WHERE id = ?").run(Number(b?.id)).changes ? Response.json({ ok: true }) : new Response("Unknown draft", { status: 400 }); }
     if (url.pathname === "/api/checkin" && json) return checkin(await req.json().catch(() => null));
     if (url.pathname === "/api/goal-link" && json) return linkGoal(await req.json().catch(() => null));
     if (url.pathname === "/api/unmerge" && json) return unmerge(await req.json().catch(() => null));

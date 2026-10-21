@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
 import { migrate } from "./ingest";
-import { measure, progress, quarterWeeks } from "./metrics";
+import { current, measure, progress, quarterWeeks } from "./metrics";
 
 const db = () => { const d = new Database(":memory:", { strict: true }); migrate(d); return d; };
 const ev = (d: Database, id: string, kind: string, week: string, payload: any) => d.query(`INSERT INTO events (id, source, kind, week, occurred_at, title, url, author, project_id, milestone_id, payload, run_id)
@@ -48,4 +48,19 @@ test("key results written as text become key results", () => {
   migrate(d);
   expect(d.query("SELECT pos, text, metric FROM key_results ORDER BY pos").all()).toEqual([{ pos: 1, text: "3 customers on it", metric: null }, { pos: 3, text: "docs live", metric: null }]);
   expect((d.query("SELECT type FROM goals").get() as any).type).toBe("aspirational");
+});
+
+test("a rare event is the quarter's total so far, this week too; a flow is a rate of closed weeks", () => {
+  const d = db();
+  // W39 is Q3. W41–W43 are Q4, and W43 is this week, still open.
+  for (const w of ["2026-W39", "2026-W41", "2026-W43"]) {
+    ev(d, `m${w}`, "slack_mention", w, {}); d.query("INSERT INTO mention_kinds (event_id, kind, about, quote, model, prompt_version, at) VALUES (?, 'praise', null, null, 'm', 'v', 'x')").run(`m${w}`);
+    ev(d, `r${w}`, "reviews_given", w, { count: 6 });
+  }
+  expect(current(d, "recognition", "2026-Q4", "2026-W43")).toBe(2);
+  expect(current(d, "recognition", "2026-Q3", "2026-W43")).toBe(1);
+  // W39 and W41 are the closed weeks, whatever the quarter.
+  expect(current(d, "reviews_given", "2026-Q4", "2026-W43")).toBe(6);
+  ev(d, "r2026-W42", "reviews_given", "2026-W42", { count: 0 });
+  expect(current(d, "reviews_given", "2026-Q4", "2026-W43")).toBe(4);
 });

@@ -1,6 +1,7 @@
 # Goals
 
-What your work serves. You write each objective and its key results; code measures the ones it can.
+What your work serves. You write each objective and its key results, or start from a
+[Claude draft](goal-cycle.md); code measures the ones it can.
 
 ```
 ╭──────────────╮    ╭──────────────╮    ╭──────────────╮
@@ -30,10 +31,14 @@ What your work serves. You write each objective and its key results; code measur
 - **Measured by code or by you.** Pick a metric (reviews, give vs take, lead time,
   recognition, requests that name you, elevate or external threads), a milestone, or
   "I update it" and type "now" yourself.
-- **Now is a rate.** Counts are per week, over the last 4 closed weeks of the quarter. A
-  quarter's sum only grows, so a "drop from 8 to 3" could never be read from it.
+- **Now is a rate or a total.** Flow you have every week (reviews, lead time, requests) is a
+  rate over the last 4 closed weeks: a quarter's sum only grows, so "drop from 8 to 3" could
+  never be read from it. Rare events (recognition, elevate and external threads) count from 0
+  over the quarter: a week with no praise is normal, not a miss.
 - **Committed or aspirational.** Committed must reach 1.0. Aspirational is on track at 0.7,
   the tick on each bar.
+- **One open at a time.** Each goal is one line: a bar per key result, the score (their
+  mean) and this week's confidence, "?" if you have not given it. Open one to change it.
 - **Confidence, weekly.** 1 to 10, only for this week: it records what you knew then.
 
 ## Why it works this way

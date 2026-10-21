@@ -30,7 +30,7 @@ export function facts(d: any, tz: string, week?: string) {
       no_goal: d.ITEMS.filter((x: any) => !x.g.length).length, project: tally(d.ITEMS.map((x: any) => d.PROJECTS[x.s]?.name ?? x.s)) },
     weeks,
     // Your goals with their key results. "now" is code's: a rate over the last 4 closed weeks, or what you typed.
-    objectives: (d.OBJECTIVES ?? []).map((g: any) => ({ title: g.title, kind: g.kind, type: g.type, quarter: g.quarter,
+    objectives: (d.OBJECTIVES ?? []).map((g: any) => ({ title: g.title, description: g.description ?? null, kind: g.kind, type: g.type, quarter: g.quarter,
       key_results: g.krs.map((k: any) => ({ text: k.text, measured_by: k.metric ?? "you", start: k.start, target: k.target, now: k.value, progress: k.progress })),
       confidence: g.checkins.map((c: any) => ({ week: c.week, value: c.confidence })) })),
     // Praise Claude found and code checked (the quote is in the message), and who asks you for things.

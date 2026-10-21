@@ -31,6 +31,7 @@ follow SBI (Situation, Behavior, Impact) and end with what to say next time.
 | Review: Claude suggests, you decide | [review](docs/review.md) |
 | North, Trace and Projects | [views](docs/views.md) |
 | Goals your work serves | [goals](docs/goals.md) |
+| Draft, follow and close a quarter of goals | [goal cycle](docs/goal-cycle.md) |
 | Feedback on how you show up | [feedback](docs/feedback.md) |
 | The daily schedule, with no gaps | [schedule](docs/schedule.md) |
 | Ask questions about your data | [ask](docs/ask.md) |
@@ -50,6 +51,7 @@ follow SBI (Situation, Behavior, Impact) and end with what to say next time.
 ```bash
 bun app/server.ts        # first run opens the setup page: tools, who you are, first week
 ./run.sh 2026-10-12      # collect and ingest the week of that Monday (default: this week)
+./draft-goals.sh         # Claude drafts objectives from your data; you use or dismiss them
 bun test                 # ingest self-check
 ```
 
