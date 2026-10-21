@@ -13,6 +13,7 @@ One week of your work, from 6 sources, into `data/impact.db`.
 |---|---|---|
 | GitHub | PRs, review comments received | `collect-github` |
 | Reviews | every review you submitted, with its date | `collect-reviews` |
+| Requests | who asked you or your teams for a review, with its date | `collect-requests` |
 | Linear | your issues and their projects | `collect-linear` |
 | Slack | your messages and mentions of you, one call per day each | `collect-slack` |
 | Calendar | meetings with someone else that you did not decline | `collect-calendar` |
@@ -30,6 +31,9 @@ One week of your work, from 6 sources, into `data/impact.db`.
 - **Reviews by date, not by PR.** Search can only filter PRs by their last update, so a PR
   you reviewed weeks ago counted again when its author pushed. Each review now counts in
   the week you submitted it (W42: 9 counted before, 5 real).
+- **Asked you, or asked your team.** A request that names you and a CODEOWNERS request to
+  your team are two numbers. Since W36: 32 PRs still wait on you, 722 on you or a team.
+  Search shows only requests still open, so the PR timeline gives the date of each one.
 - **Slack in small calls.** A week in one call came back as its first page: 11 pages read,
   20 rows returned. Code checks that the rows fill the pages read, and drops rows from
   other days.

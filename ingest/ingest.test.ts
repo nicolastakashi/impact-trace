@@ -205,3 +205,21 @@ test("PRs opened are counted per week and checked against the search", () => {
   write([pr(1)], 2);
   expect(ingestWeek(db, dir, "2026-W42", ME)).toEqual({ github: "count_mismatch" });
 });
+
+test("review requests count PRs that asked you, and PRs that asked your teams, apart", () => {
+  const dir = mkdtempSync(join(tmpdir(), "rq-"));
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  const rq = (at: string, reviewer: string) => ({ at, reviewer, requester: "blair" });
+  writeFileSync(join(dir, "requests.run.json"), JSON.stringify({ session_id: "s", structured_output: { from: "2026-10-05", prs: [
+    { repo: "acme/api", number: 1, author: "blair", requests: [rq("2026-10-13T09:00:00Z", "rchen"), rq("2026-10-14T09:00:00Z", "rchen")] },
+    { repo: "acme/api", number: 2, author: "blair", requests: [rq("2026-10-13T09:00:00Z", "team:acme/iac"), rq("2026-10-13T09:00:00Z", "team:acme/other")] },
+    { repo: "acme/api", number: 3, author: "blair", requests: [rq("2026-10-06T09:00:00Z", "rchen")] },
+    { repo: "acme/api", number: 4, author: "renovate[bot]", requests: [rq("2026-10-13T09:00:00Z", "team:acme/iac")] },
+    { repo: "acme/api", number: 5, author: "blair", requests: [] }] } }));
+  writeFileSync(join(dir, "requests.expected"), "5\n");
+  writeFileSync(join(dir, "teams.txt"), "team:acme/iac\n");
+  expect(ingestWeek(db, dir, "2026-W42", ME)).toEqual({ requests: "ok" });
+  // #1 twice in the week counts once; #3 is W41; #2 only through your team; the bot PR is out.
+  expect(JSON.parse((db.query("SELECT payload FROM events WHERE kind = 'review_requests'").get() as any).payload)).toEqual({ direct: 1, team: 1 });
+});
