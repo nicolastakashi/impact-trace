@@ -8,5 +8,7 @@ export default defineConfig({
   use: { channel: "chrome", contextOptions: { reducedMotion: "reduce" }, timezoneId: "America/New_York", trace: "retain-on-failure" },
   webServer: { command: "bun app/server.ts", cwd: ROOT, url: `http://127.0.0.1:${PORT}/api/setup`, reuseExistingServer: false,
     env: { PORT: String(PORT), IMPACT_DATA: `${ROOT}qa/.data/live` } },
-  projects: [{ name: "old", use: { baseURL: `http://127.0.0.1:${PORT}/` } }],
+  projects: [{ name: "old", use: { baseURL: `http://127.0.0.1:${PORT}/` } },
+    // The React app runs only the specs of the views it has.
+    { name: "next", use: { baseURL: `http://127.0.0.1:${PORT}/next/` }, testMatch: ["goals.spec.ts", "setup.spec.ts"] }],
 });
