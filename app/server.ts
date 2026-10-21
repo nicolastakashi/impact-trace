@@ -2,7 +2,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CONFIG, isoWeek, LIVE, open, PLACED, plain } from "../ingest/ingest";
-import { known, measure, METRICS, progress, quarterWeeks } from "../ingest/metrics";
+import { current, known, METRICS, progress } from "../ingest/metrics";
 import { labelsOf, reviewThreads } from "../ingest/review";
 import { CATEGORIES } from "../ingest/feedback";
 import { correct } from "../ingest/mentions";
@@ -157,9 +157,9 @@ function goalList() {
   const krs = db.query("SELECT id, text, metric, start, target, current FROM key_results WHERE goal_id = ? ORDER BY pos");
   const checkins = db.query("SELECT week, confidence FROM goal_checkins WHERE goal_id = ? ORDER BY week");
   const gs = new Map((db.query("SELECT id, title, kind, type, quarter FROM goals ORDER BY kind = 'personal', id").all() as any[])
-    .map((g) => { const qw = quarterWeeks(db, g.quarter, isoWeek(new Date().toISOString()));
-      // An auto key result reads its metric over the quarter's weeks; a manual one is what you typed.
-      const k = (krs.all(g.id) as any[]).map((r) => { const value = r.metric ? measure(db, r.metric, qw) : r.current; return { ...r, value, progress: progress(r.start, r.target, value) }; });
+    .map((g) => { const now = isoWeek(new Date().toISOString());
+      // An auto key result reads its metric (a rate or the quarter's total); a manual one is what you typed.
+      const k = (krs.all(g.id) as any[]).map((r) => { const value = r.metric ? current(db, r.metric, g.quarter, now) : r.current; return { ...r, value, progress: progress(r.start, r.target, value) }; });
       return [g.id, { ...g, krs: k, checkins: checkins.all(g.id), projects: projects.all(g.id), weeks: {} as Record<string, any[]> }]; }));
   for (const week of weeks) for (const t of reviewThreads(db, week)) {
     const l = labelsOf(db, t), d = l.find((r) => r.field === "discard" && r.source === "human")?.value;
@@ -171,7 +171,7 @@ function goalList() {
   }
   // What a key result can measure: the app's metrics, and milestones of the projects a goal serves.
   const milestones = db.query(`SELECT m.id, m.name, m.progress, p.name project FROM milestones m JOIN projects p ON p.id = m.project_id WHERE p.id IN (SELECT id FROM projects WHERE ${LIVE}) ORDER BY p.name, m.name`).all();
-  return { week: isoWeek(new Date().toISOString()), metrics: Object.entries(METRICS).map(([key, m]) => ({ key, label: m.label, unit: m.unit, better: m.better })), milestones,
+  return { week: isoWeek(new Date().toISOString()), metrics: Object.entries(METRICS).map(([key, m]) => ({ key, label: m.label, unit: m.unit, better: m.better, agg: m.agg })), milestones,
     // Claude's drafts wait here until you use or dismiss them. A metric start is code's (ingest/drafts.ts).
     drafts: (db.query("SELECT id, title, kind, type, quarter, why, based_on, krs FROM goal_drafts ORDER BY id").all() as any[])
       .map((r) => ({ ...r, based_on: JSON.parse(r.based_on), krs: JSON.parse(r.krs) })),
