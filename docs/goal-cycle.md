@@ -24,8 +24,9 @@ draft before you see it:
 
 ## 2. Decide
 
-"Use and edit" opens the draft in the form, so you rename it, change targets or drop key
-results before you save. Nothing is a goal until you save it. Aim for 2 to 4 objectives.
+One draft at a time. Keep (✓) or drop (✕) each key result, fix a target or a missing start,
+then "Add as goal" (`A`). "Skip" (`S`) deletes the draft; `←` `→` move between drafts. "Edit
+all fields" opens the full form. Nothing is a goal until you add it. Aim for 2 to 4.
 
 ## 3. Each week
 
