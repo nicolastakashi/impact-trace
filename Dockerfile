@@ -3,7 +3,11 @@
 FROM oven/bun:1.4.2
 USER bun
 WORKDIR /app
+# React, Tailwind and shadcn's parts only: the QA tools stay on your machine.
+COPY --chown=bun package.json bun.lock tsconfig.json bunfig.toml ./
+RUN bun install --frozen-lockfile --production
 COPY --chown=bun app app
+COPY --chown=bun web web
 COPY --chown=bun ingest ingest
 COPY --chown=bun db db
 ENV HOST=0.0.0.0 COLLECT_ON_HOST=1

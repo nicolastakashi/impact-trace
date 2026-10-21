@@ -1,0 +1,3 @@
+# Tailwind for the React app (web/), when Bun.serve bundles it.
+[serve.static]
+plugins = ["bun-plugin-tailwind"]

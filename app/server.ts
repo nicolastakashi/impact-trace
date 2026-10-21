@@ -7,6 +7,8 @@ import { labelsOf, reviewThreads } from "../ingest/review";
 import { CATEGORIES } from "../ingest/feedback";
 import { correct } from "../ingest/mentions";
 import { direct, goalsOf, links, viaProject } from "../ingest/goals";
+// The React app, view by view (web/). Bun bundles it from the HTML.
+import next from "../web/index.html";
 
 let db = open();
 const page = join(import.meta.dir, "index.html");
@@ -412,6 +414,9 @@ const server = Bun.serve({
   // Your work data and a write endpoint: never reachable from the network. In the container
   // HOST is 0.0.0.0 and compose publishes the port on 127.0.0.1 only.
   hostname: process.env.HOST ?? "127.0.0.1",
+  // Bundled once, without the dev reloader: the app runs the same in Docker and in QA.
+  development: false,
+  routes: { "/next/": next },
   async fetch(req) {
     const url = new URL(req.url);
     // No cache: after an update or a new review, the next load shows it.

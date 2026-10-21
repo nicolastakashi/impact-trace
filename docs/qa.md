@@ -15,6 +15,8 @@ React stays safe: each spec passes on the old app first, then on the new one.
   spec then runs on both apps.
 - **A console error fails the test,** and so does a page file that does not load. A refused
   API call does not: specs check those.
+- **Two apps, one spec.** Project `old` runs every spec on `/`, project `next` runs the specs of
+  the views React has on `/next/`. A spec that lands in the old app from `/next/` fails.
 - **Your Chrome,** not a downloaded browser (`channel: "chrome"`).
 
 Report: `qa/report/`. A failed test keeps a trace: `bunx playwright show-trace <file>`.
