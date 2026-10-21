@@ -13,7 +13,7 @@
   --color-accent: var(--s3); --color-accent-foreground: var(--ink);
   --color-destructive: var(--accent);
   --color-border: var(--line-2); --color-input: var(--line-2); --color-ring: var(--accent);
-  --color-brand: var(--accent); --color-ok: var(--ok); --color-line: var(--line);
+  --color-brand: var(--accent); --color-ok: var(--ok); --color-line: var(--line); --color-line-2: var(--line-2);
   --color-s1: var(--s1); --color-s2: var(--s2); --color-s3: var(--s3);
   --color-ink: var(--ink); --color-ink-2: var(--ink-2); --color-ink-3: var(--ink-3);
   --font-sans: var(--f-body); --font-mono: var(--f-mono); --font-num: var(--f-num);

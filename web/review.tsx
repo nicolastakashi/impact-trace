@@ -207,7 +207,7 @@ export function Review({ p }: { p: URLSearchParams }) {
 
       <main ref={cardRef} className="grid min-w-0 gap-5.5 rounded-2xl border border-line bg-card p-[clamp(18px,3vw,32px)] shadow-card">
         <div className="flex gap-0.75" aria-hidden="true">{ts.map((x, i) =>
-          <i key={x.key} className={cn("h-1 flex-1 rounded-sm bg-s3", x.human.discard === "yes" ? "bg-(--line-2)" : x.human.discard ? "bg-(--m-build)" : i === s.cur && "bg-brand")} />)}</div>
+          <i key={x.key} className={cn("h-1 flex-1 rounded-sm bg-s3", x.human.discard === "yes" ? "bg-line-2" : x.human.discard ? "bg-(--m-build)" : i === s.cur && "bg-brand")} />)}</div>
 
         <div className="relative flex flex-wrap items-center gap-2">
           {back && <a className={crumb} href={`#/project?id=${encodeURIComponent(back.id)}`}><ArrowLeft className="mr-1 inline size-3" />{back.name}</a>}
@@ -238,13 +238,13 @@ export function Review({ p }: { p: URLSearchParams }) {
 
         <div className="grid gap-2.5">
           <input id="rv-title" aria-label="Thread title" value={dr.title} onChange={(e) => { dr.title = e.target.value; render(); }}
-            className="w-full rounded-none border-0 border-b border-dashed border-(--line-2) bg-transparent px-0 pt-0.5 pb-1.5 font-num text-[clamp(26px,3vw,34px)] leading-tight font-bold text-ink outline-none focus:border-brand focus-visible:outline-none" />
+            className="w-full rounded-none border-0 border-b border-dashed border-line-2 bg-transparent px-0 pt-0.5 pb-1.5 font-num text-[clamp(26px,3vw,34px)] leading-tight font-bold text-ink outline-none focus:border-brand focus-visible:outline-none" />
           <Textarea id="rv-summary" rows={2} aria-label="Summary of what you did" placeholder="No summary yet" value={dr.summary} onChange={(e) => { dr.summary = e.target.value; render(); }}
-            className="-mx-2 -mt-1.5 min-h-[2lh] max-w-[72ch] resize-none border-transparent bg-transparent px-2 py-1.5 text-base leading-relaxed text-ink-2 [field-sizing:content] hover:bg-s2 focus-visible:border-(--line-2) focus-visible:bg-s2 focus-visible:text-ink focus-visible:ring-0" /></div>
+            className="-mx-2 -mt-1.5 min-h-[2lh] max-w-[72ch] resize-none border-transparent bg-transparent px-2 py-1.5 text-base leading-relaxed text-ink-2 [field-sizing:content] hover:bg-s2 focus-visible:border-line-2 focus-visible:bg-s2 focus-visible:text-ink focus-visible:ring-0" /></div>
 
         <div className="grid gap-2.5">
           <button aria-expanded={s.all} onClick={() => { s.all = !s.all; render(); }}
-            className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-line bg-transparent px-3 py-2.5 text-left font-mono text-xs font-medium text-ink-3 hover:border-(--line-2) hover:text-ink-2">
+            className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-line bg-transparent px-3 py-2.5 text-left font-mono text-xs font-medium text-ink-3 hover:border-line-2 hover:text-ink-2">
             <span>{kinds}</span><span className="lbl inline-flex items-center gap-1">{s.all ? "hide" : "evidence"}{s.all ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}</span></button>
           {s.all && <ul id="rv-events" className="m-0 max-h-75 list-none overflow-auto rounded-xl border border-line p-0">{evs.map((e) =>
             <li key={e.id} data-ev={ev.has(e.id) || undefined} className="grid gap-0.5 border-t border-line px-3 py-2.25 text-[13.5px] first:border-t-0 data-ev:bg-brand/7 sm:grid-cols-[110px_1fr] sm:gap-3">

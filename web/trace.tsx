@@ -83,7 +83,7 @@ export function Trace({ p }: { p: URLSearchParams }) {
       gsap.from(el.querySelectorAll("[data-mix]"), { scaleX: 0, duration: .6, ease: "expo.out", stagger: .04, clearProps: "transform" }); }); }, [span, sel, tf]);
 
   const head = (lead: React.ReactNode) => <>
-    {d?.SAMPLE && <a className="block rounded-xl border border-dashed border-(--line-2) bg-s2 px-3.5 py-2.5 text-[13.5px] text-ink-2 no-underline" href="#/review">Example data, not yours. <b className="font-semibold text-brand">Open Review →</b></a>}
+    {d?.SAMPLE && <a className="block rounded-xl border border-dashed border-line-2 bg-s2 px-3.5 py-2.5 text-[13.5px] text-ink-2 no-underline" href="#/review">Example data, not yours. <b className="font-semibold text-brand">Open Review →</b></a>}
     <div className="vhead"><h1>How I deliver, <em>week by week</em></h1><p>{lead}</p></div></>;
   if (!d) return <section className="view" id="v-trace">{head("Loading your traces…")}</section>;
   if (!items.length) return <section className="view" id="v-trace">{head("No threads kept yet. Keep one in Review and it shows here.")}</section>;
@@ -150,7 +150,7 @@ export function Trace({ p }: { p: URLSearchParams }) {
 
 function Chip({ c, on, dim, n, click, title, children }: { c: string; on: boolean; dim?: boolean; n: number; click: () => void; title?: string; children: React.ReactNode }) {
   return <Button variant="outline" size="xs" aria-pressed={on} title={title} onClick={click} style={cvar(c)}
-    className={cn("h-auto gap-2 rounded-full border-line bg-s2 py-1.25 pr-2.75 pl-2.5 text-[12.5px] font-normal text-ink-2 hover:border-(--line-2) hover:bg-s2 hover:text-ink",
+    className={cn("h-auto gap-2 rounded-full border-line bg-s2 py-1.25 pr-2.75 pl-2.5 text-[12.5px] font-normal text-ink-2 hover:border-line-2 hover:bg-s2 hover:text-ink",
       "aria-pressed:border-(--c) aria-pressed:bg-[color-mix(in_srgb,var(--c)_14%,var(--s2))] aria-pressed:text-ink", dim && "opacity-45")}>
     {children}<b className="font-mono text-[11.5px] font-semibold text-ink-3">{n}</b></Button>;
 }
@@ -161,7 +161,7 @@ const row = "relative z-1 grid grid-cols-[var(--lc)_minmax(0,1fr)] max-sm:grid-c
 const name = "flex min-w-0 cursor-pointer items-center gap-2.5 border-0 bg-transparent py-1.75 pr-3.5 text-left";
 function Waterfall({ d, items, ws, passes, label, span, toggle, hover, roots, setRoots, replay }: WF) {
   const shown = items.filter((i) => ws.includes(i.w) && passes(i));
-  const ctl = "border-line bg-s2 font-mono text-xs font-medium text-ink-2 hover:border-(--line-2) hover:bg-s2 hover:text-ink";
+  const ctl = "border-line bg-s2 font-mono text-xs font-medium text-ink-2 hover:border-line-2 hover:bg-s2 hover:text-ink";
   return <Card className="gap-0 overflow-hidden p-0 sm:p-0">
     <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-4.5 pb-3.5">
       <div><span className="lbl">Trace view</span>
@@ -187,7 +187,7 @@ function Waterfall({ d, items, ws, passes, label, span, toggle, hover, roots, se
               {open ? <ChevronDown className="size-3 text-ink-3" /> : <ChevronRight className="size-3 text-ink-3" />}{d.WEEKS[w]}
               <span className="flex-1 font-mono text-[11.5px] font-medium tracking-normal text-ink-3">{`${fmtDay(m0)} – ${fmtDay(m0 + 6 * DAY)}`}</span>
               <span className="font-mono text-[11.5px] font-medium tracking-normal text-ink-3 tabular-nums">{plural(t.length, "span")}</span></button>
-            <div className="relative min-h-8">{timed.length > 0 && <span data-at={a} data-bar="1" className="absolute top-1/2 -mt-px h-0.5 origin-left rounded-[1px] bg-(--line-2)" style={{ left: `${a}%`, width: `${b - a}%` }} />}
+            <div className="relative min-h-8">{timed.length > 0 && <span data-at={a} data-bar="1" className="absolute top-1/2 -mt-px h-0.5 origin-left rounded-[1px] bg-line-2" style={{ left: `${a}%`, width: `${b - a}%` }} />}
               {timed.map((i) => <i key={i.id} data-at={pos(i.t0)} className="absolute top-1/2 -mt-1.5 -ml-[1.5px] h-3 w-0.75 rounded-[2px]" style={{ left: `${pos(i.t0)}%`, background: mc(i.mode) }} />)}</div>
           </div>
           {open && (t.length ? t.map((i) => <SpanRow key={i.id} i={i} pos={pos} on={span === i.id} toggle={toggle} hover={hover} />)
@@ -204,7 +204,7 @@ function SpanRow({ i, pos, on, toggle, hover }: { i: D; pos: (t: number) => numb
     <button data-row aria-pressed={on} onClick={(e) => { e.stopPropagation(); toggle(i.id); }} className={cn(name, "pl-10.5 text-[13.5px] group-hover:text-ink max-sm:pl-4", on ? "text-ink" : "text-ink-2")}>
       <i className={swatch} /><span className="min-w-0 flex-1 truncate">{i.title}</span><span className="font-mono text-[11.5px] font-medium whitespace-nowrap text-ink-3 tabular-nums">{fmtDur(i)}</span></button>
     <div className="relative min-h-8 max-sm:min-h-6"><span data-at={L} data-bar="1" title={`${i.title} · ${fmtDur(i)} · ${i.ev.length} events`} style={{ left: `${L}%`, width: `${W}%` }}
-      className={cn("absolute top-1/2 -mt-1.75 h-3.5 min-w-2 origin-left rounded-sm", i.t0 == null ? "border border-dashed border-(--line-2)"
+      className={cn("absolute top-1/2 -mt-1.75 h-3.5 min-w-2 origin-left rounded-sm", i.t0 == null ? "border border-dashed border-line-2"
         : cn("bg-[color-mix(in_srgb,var(--c)_88%,transparent)]", i.wm === "wouldnt" ? "shadow-[0_0_0_1.5px_var(--ink),0_0_18px_-4px_var(--c)]" : "shadow-[0_0_0_1px_color-mix(in_srgb,var(--c)_45%,transparent),0_0_18px_-6px_var(--c)]"))}>
       {/* An instant span is its one event: no ticks inside. */}
       {W >= .4 && i.ev.filter((e: D) => e[1]).map((e: D, k: number) => <i key={k} className="absolute inset-y-0.75 -ml-px w-0.5 rounded-[1px] bg-[color-mix(in_srgb,var(--ground)_72%,transparent)]" style={{ left: `${(pos(Date.parse(e[1])) - L) / W * 100}%` }} />)}
