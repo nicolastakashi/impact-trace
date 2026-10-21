@@ -63,12 +63,13 @@ export function build(now = new Date()) {
     // You kept every thread of the closed weeks. This week waits for you in Review.
     if (k > 0) for (const [i, t] of threads.entries()) for (const [f, v] of [["discard", "no"], ["without_me", i % 2 ? "slower" : "wouldnt"]])
       db.query("INSERT INTO labels (thread_key, week, field, value, source, events, at) VALUES (?, ?, ?, ?, 'human', ?, ?)").run(t.key, week, f, v, JSON.stringify(t.events.map((e) => e.id)), iso(mon));
-    // Feedback on the last closed week, with quotes code checks against your messages.
+    // Feedback on the last closed week, shaped like schemas/feedback.json, with quotes code checks against your messages.
     if (k === 1) db.query("INSERT INTO feedback VALUES (?, ?, 'qa', 'qa', 0, ?)").run(week, JSON.stringify(verify(db, week, {
-      patterns: [{ category: "permission", markers: ["is it ok if i"], summary: "You ask before acting on what you own.",
-        evidence: [{ quote: "Is it ok if I merge the export retry today?" }, { quote: "Is it ok if I change the timeout default to 30s for exports?" }] }],
-      strength: { category: "closing", summary: "You close with a written decision.", evidence: [{ quote: "Decision: batch exports ship behind a flag, written in the doc." }] },
-      experiment: { pattern: "permission", try: "Say what you will do and when, then do it." }, last_experiment: null })), iso(mon));
+      patterns: [{ category: "permission", markers: ["is it ok if i"], why: "You ask before acting on what you own.",
+        evidence: [{ quote: "Is it ok if I merge the export retry today?", instead: "I merge the export retry today." },
+          { quote: "Is it ok if I change the timeout default to 30s for exports?", instead: "I change the exports timeout default to 30s." }] }],
+      strength: { category: "closing", why: "You close with a written decision.", evidence: [{ quote: "Decision: batch exports ship behind a flag, written in the doc." }] },
+      experiment: { pattern: "permission", do: "Say what you will do and when, then do it." }, last_experiment: null })), iso(mon));
   }
   // Two drafts, as Claude would leave them: one on a milestone, one measured.
   const input = { facts: { projects: ["Exports API", "Alert routing"], threads: [{ title: "Retry exports on timeout, part 4" }] } };
