@@ -1,0 +1,54 @@
+/* projects: one card per project; a week strip, then its threads week by week. */
+/* Goals reuse the project list styles: cards, week strips, chips. */
+:is(#v-projects, #v-goals){
+  .filters{display:flex;gap:6px}
+  .filters button{font:500 12px var(--f-mono);color:var(--ink-2);background:var(--s1);border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer}
+  .filters button[aria-pressed="true"]{color:var(--ink);border-color:var(--ink-2);background:var(--s3)}
+  .grp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(520px,100%),1fr));gap:12px;align-items:start}
+  .facts{font:500 11.5px var(--f-mono);color:var(--ink-3);margin-top:-8px}
+  .facts a{text-decoration:none}
+  .facts a:hover{color:var(--accent)}
+  .ms{display:grid;gap:6px}
+  .mrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
+  .mrow select{font:500 12px var(--f-mono);padding:4px 6px}
+  .mchip{display:inline-flex;align-items:center;gap:6px;font:500 11.5px var(--f-mono);color:var(--ink-2);background:var(--s2);border:1px solid var(--line);border-radius:8px;padding:2px 4px 2px 8px}
+  .mchip button{all:unset;cursor:pointer;color:var(--ink-3);padding:0 4px;border-radius:4px}
+  .mchip button:hover,.mchip button:focus-visible{color:var(--accent)}
+  .grp{background:var(--s1);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px clamp(14px,2.5vw,22px);display:grid;gap:14px;scroll-margin-top:96px}
+  .grp.on{border-color:var(--accent);box-shadow:var(--glow)}
+  .gh{all:unset;cursor:pointer;display:flex;align-items:baseline;gap:8px 14px}
+  .gh:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:6px}
+  .gh .todo{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+  .gh .chev{margin-left:auto;color:var(--ink-3)}
+  .gh h2{font:800 22px/1.02 var(--f-num);text-transform:uppercase;margin:0;text-wrap:balance}
+  .strip{display:grid;grid-template-columns:repeat(var(--n),minmax(26px,1fr));gap:4px}
+  .strip i{display:grid;place-items:center;height:26px;border-radius:6px;background:var(--s3);font:500 11px var(--f-mono);font-style:normal;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .strip i.on{background:color-mix(in srgb,var(--accent) calc(25% + var(--v) * 60%),var(--s3));color:var(--ink)}
+  .strip span{font:500 10px var(--f-mono);color:var(--ink-3);text-align:center}
+  .weeks{display:grid;gap:10px}
+  .wk{display:grid;grid-template-columns:40px 1fr;gap:12px}
+  .wk ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .wk a{text-decoration:none;display:block;border-radius:10px;padding:6px 10px;margin:-6px -10px}
+  .wk a:hover{background:var(--s2)}
+  .wk b{font-weight:500}
+  .wk small{display:block;color:var(--ink-2);font-size:13px}
+  .wk .n{font:500 11px var(--f-mono);color:var(--ink-3);margin-left:6px}
+  .wk .ok{color:var(--m-build);margin-left:6px}
+  .wk .todo{font:500 10px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-left:6px}
+}
+@media (max-width:560px){ #v-projects .wk{grid-template-columns:1fr;gap:4px} }
+#v-projects .grp-a{display:grid;gap:14px;text-decoration:none;color:inherit;border-radius:12px}
+#v-projects .grp-a:focus-visible{outline:2px solid var(--accent);outline-offset:6px}
+#v-projects .grp-act{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:12px;border-top:1px solid var(--line);font-size:13.5px;color:var(--ink-2)}
+#v-projects .grp-act select{font:500 11.5px var(--f-mono);color:var(--ink-2);background:none;border:1px dashed var(--line-2);border-radius:6px;padding:2px 6px;cursor:pointer}
+#v-projects .grp-act .undo{font:500 11.5px var(--f-mono);color:var(--ink-2);background:none;border:1px dashed var(--line-2);border-radius:6px;padding:2px 8px;cursor:pointer}
+#v-projects .grp-act .del{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+#v-projects .grp-act .end{margin-left:auto}
+#v-projects .grp-deleted ul{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}
+#v-projects .grp-deleted li{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink-2)}
+#v-projects .grp-deleted summary{cursor:pointer}
+#v-projects .grp-deleted .undo{font:500 11.5px var(--f-mono);color:var(--ink-2);background:none;border:1px dashed var(--line-2);border-radius:6px;padding:2px 8px;cursor:pointer}
+#v-projects .grp:hover{border-color:var(--line-2)}
+.src{display:inline-block;width:8px;height:8px;transform:rotate(45deg);border-radius:2px;margin-right:6px;flex:none}
+.src.linear{background:var(--m-elevate)}
+.src.topic{background:var(--m-solve)}
