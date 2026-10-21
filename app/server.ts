@@ -253,6 +253,8 @@ function north() {
       if (l.find((r) => r.field === "discard" && r.source === "human")?.value !== "no") continue;
       const it: any = { id: t.key, w, s: t.projects[0]?.id ?? "none", title: v("title") ?? t.events[0].title, summary: v("summary"),
         mode: v("mode"), pillar: v("pillar"), wm: v("without_me"), g: goalsOf(L, t).map((id) => `g${id}`),
+        // Who set each label: facts for another session must say when a value is only Claude's guess.
+        by: Object.fromEntries(["title", "mode", "pillar", "without_me"].map((f) => [f, l.some((r) => r.field === f && r.source === "human") ? "you" : "claude"])),
         links: t.events.filter((e) => e.url).map((e) => [SRC[e.id.split(":")[0]] ?? "Other", e.title ?? e.kind, e.url]),
         // Span events for Trace: [kind, when or null, title, url]. Review comments and open issues have no time.
         ev: t.events.map((e) => [e.kind, (meta.get(e.id) as any)?.occurred_at || null, e.title ?? "", e.url ?? null]) };
@@ -287,7 +289,7 @@ function north() {
   const reviews = weekly("reviews_given");
   const last = items.filter((i) => i.w === weeks.length - 1);
   const big = [...last.filter((i) => i.wm === "wouldnt" && i.rec != null), ...last.filter((i) => i.rec != null), ...last, ...items.slice().reverse()][0];
-  const js = (k: string, v: any) => `const ${k} = ${JSON.stringify(v)};`;
+  const o: any = {}, js = (k: string, v: any) => { o[k] = v; };
   // Numbers: everything collected, not only kept threads. Times go out raw: the browser
   // knows your time zone, the container does not.
   const per = (k: string) => weeks.map((w) => (db.query("SELECT occurred_at t, payload p FROM events WHERE kind = ? AND week = ?").all(k, w) as any[]).map((r) => ({ t: r.t, ...JSON.parse(r.p) })));
@@ -296,7 +298,7 @@ function north() {
   const median = (xs: number[]) => { const s = xs.sort((a, b) => a - b), h = s.length >> 1; return s.length ? +(s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2).toFixed(1) : 0; };
   const prs = per("pr_merged");
   const hours = (m: any) => String(m.start).includes("T") ? (Date.parse(m.end) - Date.parse(m.start)) / 36e5 : 0;
-  return [js("WEEKS", weeks.map((w) => w.slice(5))), js("REVIEWS", reviews), js("PERIOD", `${weeks[0]} – ${weeks.at(-1)}`),
+  [js("WEEKS", weeks.map((w) => w.slice(5))), js("REVIEWS", reviews), js("PERIOD", `${weeks[0]} – ${weeks.at(-1)}`),
     js("GOALS", goals.map((g, i) => ({ ...g, color: COLORS[i % COLORS.length] }))), js("GOALS_FROM", from),
     js("NUMS", { slack: msgs.map((m) => m.length), channels: msgs.map((m) => new Set(m.map((x) => x.channel_name)).size), slackAt: msgs.map((m) => m.map((x) => x.t)),
       meetings: per("meeting").map((m) => +m.reduce((a, x) => a + hours(x), 0).toFixed(1)), reach: ments.map((m) => new Set(m.map((x) => x.author_name)).size), merged: prs.map((m) => m.length), opened: weekly("prs_opened"),
@@ -308,7 +310,8 @@ function north() {
     // One story screen per week: its threads, then its first praise.
     js("PHASES", weeks.flatMap((wk, w) => { const r = rec.findIndex((x) => x.w === w);
       return items.some((i) => i.w === w) ? [{ k: wk.slice(5), h: `${items.filter((i) => i.w === w).length} threads kept`, from: w, to: w }, ...(r >= 0 ? [{ k: wk.slice(5), rec: r }] : [])] : []; })),
-  ].join("\n");
+  ];
+  return o;
 }
 
 // Accept or reject one piece of feedback; verdict null takes it back.
@@ -388,7 +391,9 @@ const server = Bun.serve({
     if (url.pathname === "/api/goal-link" && json) return linkGoal(await req.json().catch(() => null));
     if (url.pathname === "/api/unmerge" && json) return unmerge(await req.json().catch(() => null));
     // The feedback categories and their sources come with the data, the example too.
-    if (url.pathname === "/data.js") { const d = north() ?? await Bun.file(sample).text(); return new Response(`const FB_CATS = ${JSON.stringify(CATEGORIES)};\n${d}`, { headers: { "content-type": "text/javascript", "cache-control": "no-cache" } }); }
+    // Same data as North, as JSON, for ingest/facts.ts. No sample: facts are only ever yours.
+    if (url.pathname === "/api/facts") { const d = north(); return d ? Response.json(d) : new Response("No kept threads yet", { status: 404 }); }
+    if (url.pathname === "/data.js") { const n = north(), d = n ? Object.entries(n).map(([k, v]) => `const ${k} = ${JSON.stringify(v)};`).join("\n") : await Bun.file(sample).text(); return new Response(`const FB_CATS = ${JSON.stringify(CATEGORIES)};\n${d}`, { headers: { "content-type": "text/javascript", "cache-control": "no-cache" } }); }
     if (url.pathname === "/api/goals") return Response.json(goalList());
     if (url.pathname === "/api/projects") {
       const weeks = (url.searchParams.get("weeks") ?? "").split(",").filter((w) => /^\d{4}-W\d{2}$/.test(w));
