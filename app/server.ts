@@ -156,7 +156,7 @@ function goalList() {
   const projects = db.query("SELECT p.id, p.name FROM goal_projects gp JOIN projects p ON p.id = gp.project_id WHERE gp.goal_id = ? ORDER BY p.name");
   const krs = db.query("SELECT id, text, metric, start, target, current FROM key_results WHERE goal_id = ? ORDER BY pos");
   const checkins = db.query("SELECT week, confidence FROM goal_checkins WHERE goal_id = ? ORDER BY week");
-  const gs = new Map((db.query("SELECT id, title, kind, type, quarter FROM goals ORDER BY kind = 'personal', id").all() as any[])
+  const gs = new Map((db.query("SELECT id, title, description, kind, type, quarter FROM goals ORDER BY kind = 'personal', id").all() as any[])
     .map((g) => { const now = isoWeek(new Date().toISOString());
       // An auto key result reads its metric (a rate or the quarter's total); a manual one is what you typed.
       const k = (krs.all(g.id) as any[]).map((r) => { const value = r.metric ? current(db, r.metric, g.quarter, now) : r.current; return { ...r, value, progress: progress(r.start, r.target, value) }; });
@@ -185,6 +185,8 @@ function saveGoal(b: any) {
   const title = typeof b?.title === "string" ? b.title.trim() : "";
   const quarter = b?.quarter ? String(b.quarter) : null;
   if (!title || title.length > 120) return new Response("A goal needs a title, up to 120 characters", { status: 400 });
+  const description = typeof b?.description === "string" && b.description.trim() ? b.description.trim() : null;
+  if (description && description.length > 600) return new Response("The description fits in 600 characters", { status: 400 });
   if (!["team", "personal"].includes(b?.kind)) return new Response("Pick team or personal", { status: 400 });
   if (quarter && !QUARTER.test(quarter)) return new Response("Quarter looks like 2026-Q4", { status: 400 });
   const type = b?.type ?? "aspirational";
@@ -203,8 +205,8 @@ function saveGoal(b: any) {
   const put = db.query("INSERT INTO key_results (goal_id, pos, text, metric, start, target, current, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
   let gid = id;
   db.transaction(() => {
-    if (gid == null) gid = Number(db.query("INSERT INTO goals (title, kind, type, quarter, at) VALUES (?, ?, ?, ?, ?)").run(title, b.kind, type, quarter, at).lastInsertRowid);
-    else db.query("UPDATE goals SET title = ?, kind = ?, type = ?, quarter = ?, krs = NULL, at = ? WHERE id = ?").run(title, b.kind, type, quarter, at, gid);
+    if (gid == null) gid = Number(db.query("INSERT INTO goals (title, description, kind, type, quarter, at) VALUES (?, ?, ?, ?, ?, ?)").run(title, description, b.kind, type, quarter, at).lastInsertRowid);
+    else db.query("UPDATE goals SET title = ?, description = ?, kind = ?, type = ?, quarter = ?, krs = NULL, at = ? WHERE id = ?").run(title, description, b.kind, type, quarter, at, gid);
     db.query("DELETE FROM key_results WHERE goal_id = ?").run(gid);
     rows.forEach((k: any, i: number) => put.run(gid, i, k.text, k.metric, k.start, k.target, k.current, at));
     // A draft you used is now this goal.
