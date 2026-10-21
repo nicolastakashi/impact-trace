@@ -215,8 +215,7 @@ function Fb({ d }: { d: D }) {
   const t: number[] | undefined = e.trend, good = !!t && t.at(-1)! < t.reduce((a, b) => a + b, 0) / t.length, mx = Math.max(1, ...(t ?? []));
   return <button data-tile className={cn(btile, "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-2.5")} onClick={() => go("#/feedback")}>
     <div className="grid min-w-0 gap-2"><span className="lbl">Try this week</span>
-      {/* Claude writes `try`; the old app read `do` and showed "undefined". */}
-      <p className="m-0 text-base leading-[1.45] font-semibold text-pretty">{e.do ?? e.try}</p>
+      <p className="m-0 text-base leading-[1.45] font-semibold text-pretty">{e.do}</p>
       <By>from the pattern “{e.pattern ?? ""}” · open feedback →</By></div>
     {t && <div className="grid gap-1 self-start justify-items-end">
       <span className={cn("num font-num text-[40px] leading-[.9] font-extrabold", good ? "text-ok" : "text-brand")}>{t.at(-1)}</span>
