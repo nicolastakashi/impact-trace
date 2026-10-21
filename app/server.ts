@@ -413,12 +413,18 @@ const server = Bun.serve({
   // HOST is 0.0.0.0 and compose publishes the port on 127.0.0.1 only.
   hostname: process.env.HOST ?? "127.0.0.1",
   async fetch(req) {
-    // Collection writes from the host. Over Docker's file share an open connection can keep reading
-    // old pages, so each request reads with a fresh one.
-    db.close(); db = open();
     const url = new URL(req.url);
     // No cache: after an update or a new review, the next load shows it.
     if (url.pathname === "/") return new Response(Bun.file(page), { headers: { "cache-control": "no-cache" } });
+    // The page's styles and scripts, one file per view. The pattern allows no other path.
+    // Before the database: a page load asks for 21 of these, and none reads data.
+    if (/^\/(css\/[a-z]+\.css|js\/[a-z]+\.js)$/.test(url.pathname)) {
+      const f = Bun.file(join(import.meta.dir, url.pathname));
+      return (await f.exists()) ? new Response(f, { headers: { "cache-control": "no-cache" } }) : new Response("Not found", { status: 404 });
+    }
+    // Collection writes from the host. Over Docker's file share an open connection can keep reading
+    // old pages, so each request reads with a fresh one.
+    db.close(); db = open();
     // Old addresses: review and groups now live inside the one page.
     if (url.pathname === "/review" || url.pathname === "/groups") return new Response(null, { status: 302, headers: { location: `/#${url.pathname === "/groups" ? "/projects" : url.pathname}${url.search}` } });
     if (url.pathname === "/api/setup" && req.method === "GET") return setup(url.searchParams.has("guess"));

@@ -39,5 +39,5 @@ Each Linear project and topic with its threads per week. Merge two projects, spl
 out, or move a thread to another project. A merged project keeps pointing to the one it went
 into, so old links still open.
 
-Code: `app/server.ts` (`north()`), `app/index.html`. Images: [north](north.jpg),
+Code: `app/server.ts` (`north()`), `app/js/north.js`, `app/js/trace.js`, `app/js/projects.js`. Images: [north](north.jpg),
 [trace](trace.jpg), [projects](projects.jpg).
