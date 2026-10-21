@@ -1,6 +1,7 @@
 # Goals
 
-What your work serves. You write each objective and its key results; code measures the ones it can.
+What your work serves. You write each objective and its key results, or start from a
+[Claude draft](goal-cycle.md); code measures the ones it can.
 
 ```
 ╭──────────────╮    ╭──────────────╮    ╭──────────────╮
