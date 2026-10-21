@@ -1109,7 +1109,12 @@ $("#wg").addEventListener("focusin", e => wgOn(e.target.closest("[data-s]")?.dat
 $("#wg").addEventListener("focusout", () => wgOn(null));
 /* RECOGNITION: praise that names your work, Claude's pick checked by code (the quote is in the message).
    One in focus, the rest one click away. */
-let recOpen = false;
+let recOpen = false, recUndo = null;
+// You correct Claude: the mention becomes information, and Claude sees it as an example next time.
+async function setMention(id, kind){
+  const r = await fetch("/api/mention", {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({id, kind})});
+  return r.ok;
+}
 function renderRec(){
   const r = REC[recI], head = `<div class="th"><span class="lbl">Recognition</span><span class="by">${REC.length} in ${WEEKS.length} weeks</span></div>`;
   if(!r){ $("#t-rec").innerHTML = `${head}<p class="rec-full">No praise yet. Shoutouts and thanks that name your work show up here.</p>`; return; }
@@ -1118,7 +1123,8 @@ function renderRec(){
   $("#t-rec").innerHTML = `${head}
     <p class="big-q">${esc(r.q ?? r.t)}</p>
     ${r.q && r.q.length < r.t.length * .7 ? `<p class="rec-full">${esc(r.t)}</p>` : ""}
-    <div class="said-f"><span class="by">${esc(r.who)}${r.role?` · ${esc(r.role)}`:""} · ${esc(r.where ?? "")} · ${r.when ? esc(r.when) : WEEKS[r.w]}</span>${url ? `<a class="chip" href="${esc(url)}" target="_blank" rel="noopener">Slack ↗</a>` : ""}${it ? `<button class="chip" data-item="${it.id}">${esc(it.title)} →</button>` : ""}</div>
+    <div class="said-f"><span class="by">${esc(r.who)}${r.role?` · ${esc(r.role)}`:""} · ${esc(r.where ?? "")} · ${r.when ? esc(r.when) : WEEKS[r.w]}</span>${url ? `<a class="chip" href="${esc(url)}" target="_blank" rel="noopener">Slack ↗</a>` : ""}${it ? `<button class="chip" data-item="${it.id}">${esc(it.title)} →</button>` : ""}${r.id ? `<button class="chip" data-notrec="${esc(r.id)}">Not recognition</button>` : ""}</div>
+    ${recUndo ? `<p class="rec-full">Removed: ${esc(recUndo.who)}, "${esc((recUndo.q ?? recUndo.t).slice(0, 60))}". <button class="chip" data-recundo>Undo</button></p>` : ""}
     ${rest.length ? `<details class="rec-more"${recOpen ? " open" : ""}><summary>${rest.length} more</summary><ul>${rest.map(([x, i]) => `<li><button data-reci="${i}"><span>${esc(x.who)}</span><span class="by">${esc(x.about ?? x.where ?? "")} · ${WEEKS[x.w]}</span></button></li>`).join("")}</ul></details>` : ""}`;
 }
 /* WHO COMES TO YOU: people who asked you for a review, a decision or an answer in Slack. */
@@ -1658,6 +1664,10 @@ document.addEventListener("click", e=>{
   if(d.item){ openItem(d.item); return; }
   if(t.id==="x"){ $("#sheet").hidden = true; return; }
   if(d.reci != null){ recI = +d.reci; recOpen = true; renderRec(); return; }
+  if(d.notrec){ const i = REC.findIndex(r => r.id === d.notrec);
+    setMention(d.notrec, "info").then(ok => { if(!ok || i < 0) return; recUndo = {...REC[i], at:i}; REC.splice(i, 1); recI = Math.min(recI, REC.length-1); renderRec(); }); return; }
+  if(d.recundo != null && recUndo){ const u = recUndo;
+    setMention(u.id, null).then(ok => { if(!ok) return; REC.splice(u.at, 0, u); recI = u.at; recUndo = null; renderRec(); }); return; }
 });
 $("#sheet").addEventListener("click", e=>{ if(e.target.id==="sheet") $("#sheet").hidden = true; });
 $("#cmdk").addEventListener("click", e=>{ if(e.target.id==="cmdk") $("#cmdk").hidden = true; });

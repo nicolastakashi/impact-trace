@@ -14,7 +14,8 @@ One question per band, read top to bottom.
   and reviews given per week against your average.
 - **Recognition:** praise that names your work, one in focus, the rest one click away.
   Claude sorts every Slack mention of you (praise, ask, information, bot); a bare "thanks"
-  is not praise. Code keeps praise only when its quote is in the message.
+  is not praise. Code keeps praise only when its quote is in the message. "Not recognition"
+  corrects Claude; your correction stays and goes to Claude as an example next time.
 - **Who comes to you:** the people who asked you for a review, a decision or an answer, and
   about what. It shows where your opinion is sought.
 - **This week:** the current feedback experiment, and threads still waiting for review.

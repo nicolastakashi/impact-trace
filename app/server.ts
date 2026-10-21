@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { CONFIG, LIVE, open, PLACED, plain } from "../ingest/ingest";
 import { labelsOf, reviewThreads } from "../ingest/review";
 import { CATEGORIES } from "../ingest/feedback";
+import { correct } from "../ingest/mentions";
 import { direct, goalsOf, links, viaProject } from "../ingest/goals";
 
 let db = open();
@@ -268,9 +269,9 @@ function north() {
   if (!items.length) return null;
   // Every mention of you that Claude sorted, kept thread or not: a shoutout in #cheers is rarely in one.
   const sorted = (kind: string) => db.query(`SELECT e.id, e.week, e.author, e.title, e.occurred_at, e.payload, k.about, k.quote FROM mention_kinds k
-    JOIN events e ON e.id = k.event_id WHERE k.kind = ? AND e.week IN (${weeks.map(() => "?").join(",")}) ORDER BY e.occurred_at`).all(kind, ...weeks) as any[];
+    JOIN events e ON e.id = k.event_id WHERE COALESCE(k.human_kind, k.kind) = ? AND e.week IN (${weeks.map(() => "?").join(",")}) ORDER BY e.occurred_at`).all(kind, ...weeks) as any[];
   for (const m of sorted("praise")) { const p = JSON.parse(m.payload);
-    rec.push({ w: weeks.indexOf(m.week), who: m.author ?? "", where: m.title, t: plain(p.text ?? "").slice(0, 280), q: m.quote, about: m.about, url: p.permalink ?? null,
+    rec.push({ id: m.id, w: weeks.indexOf(m.week), who: m.author ?? "", where: m.title, t: plain(p.text ?? "").slice(0, 280), q: m.quote, about: m.about, url: p.permalink ?? null,
       when: (m.occurred_at ?? "").slice(0, 10), item: inItem.get(m.id) }); }
   rec.sort((a, b) => a.when.localeCompare(b.when));
   for (const [i, r] of rec.entries()) { const it = items.find((x) => x.id === r.item); if (it) it.rec ??= i; }
@@ -390,6 +391,8 @@ const server = Bun.serve({
     // A JSON content type forces a CORS preflight, so other sites cannot post here.
     const json = req.method === "POST" && req.headers.get("content-type") === "application/json";
     if (url.pathname === "/api/setup" && json) return saveSetup(await req.json().catch(() => null));
+    if (url.pathname === "/api/mention" && json) { const b = await req.json().catch(() => null);
+      return typeof b?.id === "string" && correct(db, b.id, b.kind ?? null) ? Response.json({ ok: true }) : new Response("Unknown mention or kind", { status: 400 }); }
     if (url.pathname === "/api/labels" && json) return decide(await req.json().catch(() => null));
     if (url.pathname === "/api/unassign" && json) return unassign(await req.json().catch(() => null));
     if (url.pathname === "/api/group" && json) return group(await req.json().catch(() => null));
