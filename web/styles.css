@@ -28,3 +28,4 @@
 @layer base {
   *, ::after, ::before, ::backdrop { border-color: var(--color-border); outline-color: color-mix(in srgb, var(--color-ring) 50%, transparent); }
 }
+@keyframes fade { from { opacity: 0; } }

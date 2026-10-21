@@ -269,3 +269,6 @@ function Draft({ d, i, keys, go, add, skip, use }: { d: D; i: number; keys: bool
         <span className="ml-auto hidden text-[12.5px] text-ink-3 sm:inline"><kbd>A</kbd> add · <kbd>S</kbd> skip · <kbd>←</kbd><kbd>→</kbd></span></footer>
     </Card></section>;
 }
+
+export const ready = true;
+export const View = ({ p }: { p: URLSearchParams }) => <Goals focus={p.get("id")} />;

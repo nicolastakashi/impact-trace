@@ -72,3 +72,6 @@ export function Setup() {
     </>}</ol>
   </section>;
 }
+
+export const ready = true;
+export const View = ({ p }: { p: URLSearchParams }) => <Setup />;
