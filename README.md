@@ -35,6 +35,7 @@ follow SBI (Situation, Behavior, Impact) and end with what to say next time.
 | Feedback on how you show up | [feedback](docs/feedback.md) |
 | The daily schedule, with no gaps | [schedule](docs/schedule.md) |
 | Ask questions about your data | [ask](docs/ask.md) |
+| Click-through tests on fictional data | [qa](docs/qa.md) |
 
 `data/` holds your work data and `config.json`. It is git-ignored and must never be pushed.
 
@@ -53,6 +54,7 @@ bun app/server.ts        # first run opens the setup page: tools, who you are, f
 ./run.sh 2026-10-12      # collect and ingest the week of that Monday (default: this week)
 ./draft-goals.sh         # Claude drafts objectives from your data; you use or dismiss them
 bun test                 # ingest self-check
+bun install && bun run qa  # click-through tests in your Chrome, fictional data
 ```
 
 Or run the app in a container. Collection stays on your machine, where your Claude Code
