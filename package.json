@@ -1,0 +1,11 @@
+{
+  "name": "impact-trace",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "qa": "bun qa/fixture.ts && playwright test -c qa"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}

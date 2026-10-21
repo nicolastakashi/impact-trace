@@ -5,7 +5,7 @@ import type { Database } from "bun:sqlite";
 import { createHash } from "crypto";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { isoWeek, open, ROOT } from "./ingest";
+import { CONFIG, isoWeek, open, ROOT } from "./ingest";
 import { current, known, METRICS, quarterAll } from "./metrics";
 
 export const quarterOf = (d: Date) => `${d.getUTCFullYear()}-Q${Math.floor(d.getUTCMonth() / 3) + 1}`;
@@ -15,7 +15,7 @@ const lastQuarter = (q: string) => { const [y, n] = q.split("-Q").map(Number); r
 // milestones, the goals you already have, and the facts North shows.
 export function draftInput(db: Database, facts: any, now = new Date()) {
   const week = isoWeek(now.toISOString()), q = quarterOf(now);
-  const cfg = (() => { try { return JSON.parse(readFileSync(join(ROOT, "data/config.json"), "utf8")); } catch { return {}; } })();
+  const cfg = (() => { try { return JSON.parse(readFileSync(CONFIG, "utf8")); } catch { return {}; } })();
   return {
     quarter: q, quarter_weeks_so_far: quarterAll(db, q, week).length, level: cfg.level ?? null,
     // A rate is per week, last 4 weeks. A total is this quarter so far; last_quarter is its whole total.
