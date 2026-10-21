@@ -37,6 +37,8 @@ What your work serves. You write each objective and its key results, or start fr
   over the quarter: a week with no praise is normal, not a miss.
 - **Committed or aspirational.** Committed must reach 1.0. Aspirational is on track at 0.7,
   the tick on each bar.
+- **One open at a time.** Each goal is one line: a bar per key result, the score (their
+  mean) and this week's confidence, "?" if you have not given it. Open one to change it.
 - **Confidence, weekly.** 1 to 10, only for this week: it records what you knew then.
 
 ## Why it works this way
