@@ -12,7 +12,10 @@ const norm = (t: string) => t.replace(/\s+/g, " ").trim().toLowerCase();
 
 export function mentions(db: Database, week: string) {
   const rows = db.query("SELECT id, author, title, payload FROM events WHERE kind = 'slack_mention' AND week = ? ORDER BY occurred_at").all(week) as any[];
-  return { week, mentions: rows.map((r) => ({ id: r.id, author: r.author ?? "", channel: r.title ?? "", text: plain(JSON.parse(r.payload).text ?? "") })) };
+  // Your last corrections, so Claude learns where you draw the line.
+  const corrections = (db.query(`SELECT e.payload, k.kind claude, k.human_kind you FROM mention_kinds k JOIN events e ON e.id = k.event_id
+    WHERE k.human_kind IS NOT NULL ORDER BY k.at DESC LIMIT 20`).all() as any[]).map((r) => ({ text: plain(JSON.parse(r.payload).text ?? "").slice(0, 300), claude: r.claude, you: r.you }));
+  return { week, corrections, mentions: rows.map((r) => ({ id: r.id, author: r.author ?? "", channel: r.title ?? "", text: plain(JSON.parse(r.payload).text ?? "") })) };
 }
 
 export function saveMentions(db: Database, week: string, run: any, promptVersion: string) {
@@ -35,6 +38,13 @@ export function saveMentions(db: Database, week: string, run: any, promptVersion
   })();
   return { mentions: text.size, saved, unknown, unquoted, missing: text.size - saved };
 }
+
+// You set the kind of one mention; null gives it back to Claude.
+export function correct(db: Database, id: string, kind: string | null) {
+  if (kind !== null && !KINDS.includes(kind)) return false;
+  return db.query("UPDATE mention_kinds SET human_kind = ? WHERE event_id = ?").run(kind, id).changes === 1;
+}
+const KINDS = ["praise", "ask", "info", "automated"];
 
 if (import.meta.main) {
   const [cmd, week, file] = process.argv.slice(2);
