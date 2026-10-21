@@ -29,6 +29,9 @@ export function facts(d: any, tz: string, week?: string) {
       without_me: tally(d.ITEMS.map((x: any) => x.wm)), goals: Object.fromEntries(d.GOALS.map((g: any) => [g.title, d.ITEMS.filter((x: any) => x.g.includes(g.id)).length])),
       no_goal: d.ITEMS.filter((x: any) => !x.g.length).length, project: tally(d.ITEMS.map((x: any) => d.PROJECTS[x.s]?.name ?? x.s)) },
     weeks,
+    // Praise Claude found and code checked (the quote is in the message), and who asks you for things.
+    recognition: d.REC.map((r: any) => ({ week: weeks[r.w]?.week, who: r.who, where: r.where, about: r.about ?? null, quote: r.q ?? r.t, url: r.url ?? null })),
+    who_comes_to_you: (d.ASKS ?? []).map((a: any) => ({ who: a.who, asks: a.n, per_week: a.per, about: a.about })),
     wouldnt_happen_without_you: d.ITEMS.filter((x: any) => x.wm === "wouldnt").map(item),
     // Feedback has its own 8 weeks (it ends with the last closed week): per_week follows `weeks`.
     feedback: fb ? { week: fb.week, weeks: fb.weeks, patterns: fb.patterns.map((p: any) => ({ name: p.name, per_week: p.trend, your_verdict: fb.verdicts?.[`pattern:${p.name}`]?.v ?? null,
