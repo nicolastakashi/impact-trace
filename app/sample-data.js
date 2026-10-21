@@ -18,12 +18,19 @@ const PROJECTS = {
   none:{name:"No project", url:null, lead:null, status:"—", goal:null, done:[1,1,0,1,2,0,1,1], open:12, ms:[], note:"Ideas, support, people work and open gaps."},
 };
 const REC = [
-  {w:2, who:"Morgan (manager)", role:"director", where:"#kudos", t:"Huge thanks for getting private runners to v0. A customer saw it the next day."},
-  {w:4, who:"Riley", role:"peer", where:"#kudos", t:"The release animation in the changelog is lovely."},
-  {w:5, who:"Casey", role:"own team", where:"PR review", t:"We started this months ago and never finished. Thank you!"},
-  {w:6, who:"Morgan (manager)", role:"director", where:"#project-exports", t:"With this design and the tickets, I think we can build it quickly."},
-  {w:6, who:"Taylor", role:"principal, other team", where:"PR review", t:"praise: Good call."},
-  {w:7, who:"Riley", role:"peer", where:"#kudos", t:"Worked through the whole offsite to unblock a key customer."},
+  {w:2, who:"Morgan (manager)", role:"director", where:"#kudos", about:"private runners v0", q:"Huge thanks for getting private runners to v0", t:"Huge thanks for getting private runners to v0. A customer saw it the next day."},
+  {w:4, who:"Riley", role:"peer", where:"#kudos", about:"changelog animation", q:"The release animation in the changelog is lovely.", t:"The release animation in the changelog is lovely."},
+  {w:5, who:"Casey", role:"own team", where:"PR review", about:"old cleanup finished", t:"We started this months ago and never finished. Thank you!"},
+  {w:6, who:"Morgan (manager)", role:"director", where:"#project-exports", about:"exports design", q:"this design made the plan obvious", t:"Thanks, this design made the plan obvious. We can build it quickly."},
+  {w:6, who:"Taylor", role:"principal, other team", where:"PR review", about:"review on the operator", t:"praise: Good call."},
+  {w:7, who:"Riley", role:"peer", where:"#kudos", about:"unblocking a key customer", q:"Worked through the whole offsite to unblock a key customer.", t:"Worked through the whole offsite to unblock a key customer."},
+];
+// Who comes to you: fictional.
+const ASKS = [
+  {who:"Jordan", n:9, per:[1,2,1,0,2,1,1,1], about:["exports API estimate", "review of the delete flow", "go-live date"]},
+  {who:"Casey", n:7, per:[0,1,2,1,1,0,1,1], about:["runner PR review", "token rotation design"]},
+  {who:"Sam", n:4, per:[0,0,1,0,1,1,0,1], about:["alert rule question", "dashboard migration"]},
+  {who:"Avery", n:3, per:[1,0,0,1,0,0,1,0], about:["SLO window choice"]},
 ];
 const ITEMS = [
   {id:"2026-W35-i01", w:0, s:"up", title:"Three upstream PRs in one week", mode:"external", pillar:"big", wm:"wouldnt", links:[], ev:[["pr_open", "2026-08-24T10:12:00", "otel-collector: add exemplar support to the spanmetrics connector", null], ["pr_open", "2026-08-25T15:40:00", "prometheus: fix staleness markers on remote write retry", null], ["review_comment", null, "Maintainer review on the spanmetrics PR", null], ["pr_merged", "2026-08-27T11:05:00", "otel-collector: add exemplar support to the spanmetrics connector", null], ["pr_merged", "2026-08-28T16:20:00", "prometheus: fix staleness markers on remote write retry", null]], p:{external:.9,build:.1}},

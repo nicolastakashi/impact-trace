@@ -12,8 +12,11 @@ One question per band, read top to bottom.
   adds up to its week. Before you write any goal, your top 3 projects stand in.
 - **How you delivered:** threads by mode, your "without you" answers as parts of one whole,
   and reviews given per week against your average.
-- **What people said:** one quote at a time, starting at the week's highlight (a thread you
-  said would not happen without you, with praise someone wrote).
+- **Recognition:** praise that names your work, one in focus, the rest one click away.
+  Claude sorts every Slack mention of you (praise, ask, information, bot); a bare "thanks"
+  is not praise. Code keeps praise only when its quote is in the message.
+- **Who comes to you:** the people who asked you for a review, a decision or an answer, and
+  about what. It shows where your opinion is sought.
 - **This week:** the current feedback experiment, and threads still waiting for review.
 
 ## Trace

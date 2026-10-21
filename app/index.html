@@ -105,6 +105,18 @@ button.tile:hover{border-color:var(--line-2)}
 .spk8 .avg{position:absolute;left:0;right:0;border-top:1.5px dashed var(--ink-2)}
 @media (max-width:620px){ .nums>div{border-left:0;padding:12px 0;border-top:1px solid var(--line)} .nums>div:first-child{border-top:0} }
 .said-f{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.said2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr));gap:12px}
+.rec-full{margin:0;font-size:13.5px;line-height:1.5;color:var(--ink-2)}
+.rec-more summary{cursor:pointer;font-size:13px;color:var(--ink-2)}
+.rec-more ul,.asks{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:2px}
+.rec-more button{all:unset;box-sizing:border-box;width:100%;display:flex;justify-content:space-between;gap:12px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:13.5px}
+.rec-more button:hover,.rec-more button:focus-visible{background:var(--s2)}
+.asks{gap:12px;margin:0}
+.asks li{display:grid;gap:5px}
+.ask-h{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+.ask-h .num{font:700 14px var(--f-num);font-variant-numeric:tabular-nums}
+.ask-bar{height:6px;border-radius:3px;background:var(--s2)}
+.ask-bar i{display:block;height:100%;border-radius:3px;background:var(--ink-2)}
 .said-f .chip{max-width:100%;text-align:left}
 .recap-btn{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line-2);background:var(--s2);color:var(--ink);border-radius:999px;padding:8px 16px 8px 8px;font:500 13px var(--f-body);cursor:pointer}
 .recap-btn:hover{border-color:var(--accent)}
@@ -161,8 +173,6 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .edge{stroke-dasharray:3 7;animation:flow 1.6s linear infinite}
 @keyframes flow{to{stroke-dashoffset:-20}}
 
-.rec-nav{display:flex;gap:6px;align-items:center}
-.rec-nav button{border:1px solid var(--line);background:var(--s2);border-radius:8px;width:28px;height:28px;cursor:pointer;color:var(--ink-2)}
 
 /* trace */
 .panel{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
@@ -826,7 +836,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
       <div class="th"><span class="lbl">Your weeks in numbers</span><span class="ref" id="nums-h"></span></div>
       <div class="nums" id="nums"></div>
     </div>
-    <div class="tile" id="t-rec"></div>
+    <div class="said2"><div class="tile" id="t-rec"></div><div class="tile" id="t-asks"></div></div>
     <div class="t-now">
       <button class="tile t-fb" id="t-fb" data-v="feedback" hidden></button>
       <button class="tile" id="t-wm" data-v="review"></button>
@@ -992,7 +1002,7 @@ function renderHome(){
   renderFbTile();
   const ups = ITEMS.filter(i=>i.wm==="wouldnt").length;
   $("#home-h").innerHTML = `${esc(WEEKS[0])}–${esc(WEEKS[LAST])} <em>·</em> ${WEEKS.length} weeks`;
-  $("#home-p").innerHTML = `<b>${ITEMS.length}</b> threads you kept, <b>${REC.length}</b> mentions and praise, <b>${ups}</b> that would not have happened without you.`;
+  $("#home-p").innerHTML = `<b>${ITEMS.length}</b> threads you kept, <b>${REC.length}</b> times people praised your work, <b>${ups}</b> that would not have happened without you.`;
 
   // Where the work goes: threads per week, stacked by goal. A thread that serves two goals
   // counts once, in the goal that is served most, so every bar adds up to its week.
@@ -1038,7 +1048,7 @@ function renderHome(){
     <ul class="pleg">${Object.keys(WMS).map(k => `<li><i class="sw" style="--c:${WC[k]}"></i><b>${wc[k]||0}</b><span>${WMS[k]} · ${wn ? Math.round((wc[k]||0)/wn*100) : 0}%</span></li>`).join("")}</ul>
     ${n - wn ? `<span class="by">${n - wn} not answered yet</span>` : ""}`;
 
-  renderRec();
+  renderRec(); renderAsks();
   renderNums();
 
   // Reviews given: columns on a zero baseline, the average as a dashed line, this week in ink.
@@ -1097,13 +1107,27 @@ $("#wg").addEventListener("mouseover", e => wgOn(e.target.closest("[data-s]")?.d
 $("#wg").addEventListener("mouseleave", () => wgOn(null));
 $("#wg").addEventListener("focusin", e => wgOn(e.target.closest("[data-s]")?.dataset.s));
 $("#wg").addEventListener("focusout", () => wgOn(null));
+/* RECOGNITION: praise that names your work, Claude's pick checked by code (the quote is in the message).
+   One in focus, the rest one click away. */
+let recOpen = false;
 function renderRec(){
-  const r = REC[recI];
-  if(!r){ $("#t-rec").innerHTML = `<div class="th"><span class="lbl">What people said</span></div><p style="margin:0;font-size:14px;color:var(--ink-2)">No mentions or praise yet in the threads you kept.</p>`; return; }
-  const it = ITEMS.find(i => i.id === r.item) ?? ITEMS.find(i => i.rec === recI);
-  $("#t-rec").innerHTML = `<div class="th"><span class="lbl">What people said</span><div class="rec-nav"><button data-rec="-1" aria-label="previous">‹</button><span class="by num">${recI+1} / ${REC.length}</span><button data-rec="1" aria-label="next">›</button></div></div>
-    <p class="big-q">${esc(r.t)}</p>
-    <div class="said-f"><span class="by">${esc(r.who)}${r.role?` · ${esc(r.role)}`:""} · ${esc(r.where ?? "")} · ${r.when ? esc(r.when) : WEEKS[r.w]}</span>${it ? `<button class="chip" data-item="${it.id}">${esc(it.title)} →</button>` : ""}</div>`;
+  const r = REC[recI], head = `<div class="th"><span class="lbl">Recognition</span><span class="by">${REC.length} in ${WEEKS.length} weeks</span></div>`;
+  if(!r){ $("#t-rec").innerHTML = `${head}<p class="rec-full">No praise yet. Shoutouts and thanks that name your work show up here.</p>`; return; }
+  const it = ITEMS.find(i => i.id === r.item), url = /^https:\/\//.test(r.url ?? "") ? r.url : null;
+  const rest = REC.map((x, i) => [x, i]).filter(([, i]) => i !== recI).reverse();
+  $("#t-rec").innerHTML = `${head}
+    <p class="big-q">${esc(r.q ?? r.t)}</p>
+    ${r.q && r.q.length < r.t.length * .7 ? `<p class="rec-full">${esc(r.t)}</p>` : ""}
+    <div class="said-f"><span class="by">${esc(r.who)}${r.role?` · ${esc(r.role)}`:""} · ${esc(r.where ?? "")} · ${r.when ? esc(r.when) : WEEKS[r.w]}</span>${url ? `<a class="chip" href="${esc(url)}" target="_blank" rel="noopener">Slack ↗</a>` : ""}${it ? `<button class="chip" data-item="${it.id}">${esc(it.title)} →</button>` : ""}</div>
+    ${rest.length ? `<details class="rec-more"${recOpen ? " open" : ""}><summary>${rest.length} more</summary><ul>${rest.map(([x, i]) => `<li><button data-reci="${i}"><span>${esc(x.who)}</span><span class="by">${esc(x.about ?? x.where ?? "")} · ${WEEKS[x.w]}</span></button></li>`).join("")}</ul></details>` : ""}`;
+}
+/* WHO COMES TO YOU: people who asked you for a review, a decision or an answer in Slack. */
+function renderAsks(){
+  const head = `<div class="th"><span class="lbl">Who comes to you</span><span class="by">asks in Slack, ${WEEKS.length} weeks</span></div>`;
+  if(typeof ASKS === "undefined" || !ASKS.length){ $("#t-asks").innerHTML = `${head}<p class="rec-full">No asks yet. Reviews, decisions and questions people bring you show up here.</p>`; return; }
+  const mx = Math.max(...ASKS.map(a => a.n));
+  $("#t-asks").innerHTML = `${head}<ol class="asks">${ASKS.map(a => `<li><div class="ask-h"><b>${esc(a.who)}</b><span class="num">${a.n}</span></div>
+    <div class="ask-bar" role="img" aria-label="${a.n} asks"><i style="width:${a.n/mx*100}%"></i></div><span class="rec-full">${a.about.map(esc).join(" · ")}</span></li>`).join("")}</ol>`;
 }
 
 /* TRACE: your weeks as traces. A week is a trace, a kept thread is a span, its PRs, issues and messages are span events. */
@@ -1547,7 +1571,7 @@ const ph = (a,b)=>ITEMS.filter(i=>i.w>=a&&i.w<=b);
 const PHASE_BG = ["linear-gradient(160deg,#2a1406,#ff7a45)","linear-gradient(160deg,#ff7a45,#c8326a)","linear-gradient(160deg,#2a2406,#c9a400 70%,#ffe37a)","linear-gradient(160deg,#0d1a2a,#5b47d6 60%,#b3a1ff)","linear-gradient(160deg,#5b47d6,#ff4d52)"];
 const SLIDES = [
   {bg:"linear-gradient(160deg,#16161d,#3a0d12 60%,#ff4d52)", html:()=>`<span class="k">${esc(PERIOD)}</span><span class="huge num">${WEEKS.length}</span><p class="h">weeks of work, with a trace</p>`},
-  {bg:"linear-gradient(160deg,#2a0b1a,#ff4f8f)", html:()=>`<span class="k">In total</span><span class="huge num">${ITEMS.length}</span><p class="h">threads with evidence. ${REC.length} mentions and praise.</p>`},
+  {bg:"linear-gradient(160deg,#2a0b1a,#ff4f8f)", html:()=>`<span class="k">In total</span><span class="huge num">${ITEMS.length}</span><p class="h">threads with evidence. ${REC.length} times people praised your work.</p>`},
   ...PHASES.map((p,n)=>({bg:PHASE_BG[n%PHASE_BG.length], html:()=>p.rec!=null
     ? `<span class="k">${esc(p.k)}</span><p class="q">“${esc(REC[p.rec].t)}”</p><span class="by">${esc(REC[p.rec].who)}${REC[p.rec].role?" · "+esc(REC[p.rec].role):""}</span>`
     : `<span class="k">${esc(p.k)}</span><p class="h">${esc(p.h)}</p><div class="rowx">${ph(p.from,p.to).map(i=>`<span class="pill">${esc(i.title)}</span>`).join("")}</div>`})),
@@ -1633,7 +1657,7 @@ document.addEventListener("click", e=>{
   if(d.goal){ location.hash = `#/trace?w=${[...new Set(ITEMS.filter(i=>d.goal==="none" ? !goalsOf(i).length : goalsOf(i).includes(d.goal)).map(i=>i.w))].sort((a,b)=>a-b).map(w=>WEEKS[w]).join(",")}`; return; }
   if(d.item){ openItem(d.item); return; }
   if(t.id==="x"){ $("#sheet").hidden = true; return; }
-  if(d.rec){ recI = (recI + +d.rec + REC.length) % REC.length; renderRec(); return; }
+  if(d.reci != null){ recI = +d.reci; recOpen = true; renderRec(); return; }
 });
 $("#sheet").addEventListener("click", e=>{ if(e.target.id==="sheet") $("#sheet").hidden = true; });
 $("#cmdk").addEventListener("click", e=>{ if(e.target.id==="cmdk") $("#cmdk").hidden = true; });
