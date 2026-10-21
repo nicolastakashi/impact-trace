@@ -36,6 +36,7 @@ follow SBI (Situation, Behavior, Impact) and end with what to say next time.
 | The daily schedule, with no gaps | [schedule](docs/schedule.md) |
 | Ask questions about your data | [ask](docs/ask.md) |
 | Click-through tests on fictional data | [qa](docs/qa.md) |
+| The move to React, view by view | [react](docs/react.md) |
 
 `data/` holds your work data and `config.json`. It is git-ignored and must never be pushed.
 
