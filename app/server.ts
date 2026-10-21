@@ -14,6 +14,8 @@ let db = open();
 const page = join(import.meta.dir, "index.html");
 // North and Trace read /data.js: built from your decisions, or the fictional sample before you have any.
 const sample = join(import.meta.dir, "sample-data.js");
+// The same sample as an object, for the React app's /api/north.
+const SAMPLE_DATA = new Function(`${readFileSync(sample, "utf8")}\nreturn {SAMPLE, WEEKS, REVIEWS, PERIOD, GOALS, PROJECTS, REC, ASKS, ITEMS, HIGHLIGHT, NUMS, PHASES, FEEDBACK};`)();
 
 function projects(weeks: string[]) {
   const ix = new Map(weeks.map((w, i) => [w, i]));
@@ -463,6 +465,8 @@ const server = Bun.serve({
     // Same data as North, as JSON, for ingest/facts.ts. No sample: facts are only ever yours.
     if (url.pathname === "/api/facts") { const d = north(); return d ? Response.json({ ...d, OBJECTIVES: goalList().goals }) : new Response("No kept threads yet", { status: 404 }); }
     if (url.pathname === "/data.js") { const n = north(), d = n ? Object.entries(n).map(([k, v]) => `const ${k} = ${JSON.stringify(v)};`).join("\n") : await Bun.file(sample).text(); return new Response(`const FB_CATS = ${JSON.stringify(CATEGORIES)};\n${d}`, { headers: { "content-type": "text/javascript", "cache-control": "no-cache" } }); }
+    // /data.js as JSON, for the React app: your kept threads, or the sample with SAMPLE: true.
+    if (url.pathname === "/api/north") return Response.json({ FB_CATS: CATEGORIES, ...(north() ?? SAMPLE_DATA) });
     if (url.pathname === "/api/goals") return Response.json(goalList());
     if (url.pathname === "/api/projects") {
       const weeks = (url.searchParams.get("weeks") ?? "").split(",").filter((w) => /^\d{4}-W\d{2}$/.test(w));
