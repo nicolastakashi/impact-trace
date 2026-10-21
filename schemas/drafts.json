@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "required": ["objectives"],
+  "properties": {
+    "objectives": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["title", "kind", "type", "why", "based_on", "key_results"],
+        "properties": {
+          "title": { "type": "string" },
+          "kind": { "enum": ["team", "personal"] },
+          "type": { "enum": ["committed", "aspirational"] },
+          "why": { "type": "string" },
+          "based_on": { "type": "array", "items": { "type": "string" } },
+          "key_results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["text", "metric", "start", "target"],
+              "properties": {
+                "text": { "type": "string" },
+                "metric": { "type": ["string", "null"] },
+                "start": { "type": ["number", "null"] },
+                "target": { "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

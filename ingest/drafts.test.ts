@@ -1,0 +1,41 @@
+import { Database } from "bun:sqlite";
+import { expect, test } from "bun:test";
+import { migrate } from "./ingest";
+import { saveDrafts } from "./drafts";
+
+const NOW = new Date("2026-10-21T12:00:00Z");
+const db = () => {
+  const d = new Database(":memory:", { strict: true }); migrate(d);
+  d.query("INSERT INTO runs VALUES ('r', '2026-W42', 'github', 0, 0, null, null, 'ok', 'x')").run();
+  for (const [w, n] of [["2026-W41", 6], ["2026-W42", 4]] as const) d.query(`INSERT INTO events (id, source, kind, week, occurred_at, title, url, author, project_id, milestone_id, payload, run_id)
+    VALUES (?, 'github', 'review_requests', ?, null, null, null, null, null, null, ?, 'r')`).run(`rr${w}`, w, JSON.stringify({ direct: n, team: 0 }));
+  return d;
+};
+const input = { facts: { threads: [{ title: "Review guide for the platform team" }] } };
+const obj = (o: any) => ({ title: "Teams review each other", kind: "team", type: "aspirational", why: "Most review requests name you.",
+  based_on: ["Review guide for the platform team"], key_results: [{ text: "Requests that name me drop to 2 a week", metric: "asked_direct", start: 99, target: 2 }], ...o });
+const run = (objectives: any[]) => ({ is_error: false, total_cost_usd: 0.1, structured_output: { objectives } });
+
+test("code sets a measured start, keeps a typed one, and drops what is not in your data", () => {
+  const d = db();
+  const r = saveDrafts(d, run([
+    obj({ key_results: [obj({}).key_results[0], { text: "Two runbooks by others", metric: null, start: 0, target: 2 }, { text: "Bad", metric: "nope", start: 0, target: 1 }] }),
+    obj({ title: "Invented", based_on: ["a thread that does not exist"] }),
+    obj({ title: "Made up", why: "You review 37 PRs a week." }),
+  ]), input, "v1", NOW);
+  expect(r.saved).toBe(1);
+  expect(r.dropped).toEqual(["Teams review each other / Bad: bad key result", "Invented: nothing it is based on is in your data", "Made up: numbers not in your data: 37"]);
+  const krs = JSON.parse((d.query("SELECT krs FROM goal_drafts").get() as any).krs);
+  // W41 and W42 are the closed weeks: (6 + 4) / 2, not Claude's 99.
+  expect(krs.map((k: any) => [k.metric, k.start, k.target])).toEqual([["asked_direct", 5, 2], [null, 0, 2]]);
+  expect((d.query("SELECT quarter FROM goal_drafts").get() as any).quarter).toBe("2026-Q4");
+});
+
+test("a new run replaces unused drafts, and a failed run keeps them", () => {
+  const d = db();
+  saveDrafts(d, run([obj({}), obj({ title: "Second" })]), input, "v1", NOW);
+  saveDrafts(d, run([obj({ title: "Only" })]), input, "v1", NOW);
+  expect(d.query("SELECT title FROM goal_drafts").all()).toEqual([{ title: "Only" }]);
+  expect(() => saveDrafts(d, { is_error: true, result: "boom" }, input, "v1", NOW)).toThrow("boom");
+  expect(d.query("SELECT count(*) n FROM goal_drafts").get()).toEqual({ n: 1 });
+});
