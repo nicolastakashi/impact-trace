@@ -4,7 +4,7 @@ import { facts } from "./facts";
 const D = {
   PERIOD: "2026-W41 – 2026-W42", WEEKS: ["W41", "W42"], REVIEWS: [4, 1],
   GOALS: [{ id: "g1", title: "Exports GA" }], PROJECTS: { none: { name: "No project" }, p1: { name: "Exports" } },
-  NUMS: { opened: [2, 0], merged: [2, 3], lead: [5, 7], slack: [2, 1], channels: [1, 1], meetings: [1, 2], reach: [3, 4],
+  NUMS: { opened: [2, 0], asked_direct: [3, null], asked_team: [5, null], merged: [2, 3], lead: [5, 7], slack: [2, 1], channels: [1, 1], meetings: [1, 2], reach: [3, 4],
     // Monday 10:00 and 21:00 Lisbon; Saturday noon.
     slackAt: [["2026-10-05T09:00:00Z", "2026-10-05T20:00:00Z"], ["2026-10-17T11:00:00Z"]] },
   ITEMS: [
@@ -20,6 +20,7 @@ test("facts count what North shows, in your time zone", () => {
   expect(f.weeks.map((w: any) => [w.week, w.give_vs_take, w.outside_hours_pct, w.praise])).toEqual([["2026-W41", 2, 50, 0], ["2026-W42", null, 100, 1]]);
   expect(f.wouldnt_happen_without_you.map((x: any) => [x.title, x.project, x.goals, x.events])).toEqual([["A", "Exports", ["Exports GA"], { pr_merged: 2, slack_mention: 1 }]]);
   expect(f.feedback.patterns[0].your_verdict).toBe("accept");
+  expect(f.weeks.map((w: any) => [w.review_requests_direct, w.review_requests_team])).toEqual([[3, 5], [null, null]]);
   expect(f.threads).toBeUndefined();
 });
 
