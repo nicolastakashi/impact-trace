@@ -1,9 +1,10 @@
 // Serve the app and its data. Usage: bun app/server.ts  →  http://localhost:4317
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { CONFIG, LIVE, open, PLACED } from "../ingest/ingest";
+import { CONFIG, LIVE, open, PLACED, plain } from "../ingest/ingest";
 import { labelsOf, reviewThreads } from "../ingest/review";
 import { CATEGORIES } from "../ingest/feedback";
+import { correct } from "../ingest/mentions";
 import { direct, goalsOf, links, viaProject } from "../ingest/goals";
 
 let db = open();
@@ -239,13 +240,10 @@ function project(id: string) {
 // North and Trace: the threads you kept in review, the last 8 weeks. Same shape as sample-data.js.
 const SRC: Record<string, string> = { github: "GitHub", linear: "Linear", slack: "Slack", calendar: "Calendar", drive: "Docs" };
 const COLORS = ["var(--g1)", "var(--g2)", "var(--g3)", "var(--g4)", "var(--g5)"];
-// Slack markup to what a person reads: <@U1|Ana> → @Ana, <url|label> → label, bare links dropped.
-const plain = (t: string) => t.replace(/<@[A-Z0-9]+\|([^>]+)>/g, "@$1").replace(/<@[A-Z0-9]+>/g, "@someone").replace(/<#[A-Z0-9]+\|([^>]*)>/g, "#$1")
-  .replace(/<(?:https?|mailto):[^|>]+\|([^>]+)>/g, "$1").replace(/<(?:https?|mailto):[^>]+>/g, "").replace(/\s+/g, " ").trim();
 function north() {
   const weeks = (db.query("SELECT DISTINCT week FROM labels ORDER BY 1 DESC LIMIT 8").all() as any[]).map((r) => r.week).reverse();
   const meta = db.query("SELECT author, occurred_at, payload FROM events WHERE id = ?");
-  const items: any[] = [], rec: any[] = [], L = goalLinks();
+  const items: any[] = [], rec: any[] = [], L = goalLinks(), inItem = new Map<string, string>();
   weeks.forEach((week, w) => {
     for (const t of reviewThreads(db, week)) {
       const l = labelsOf(db, t);
@@ -258,18 +256,29 @@ function north() {
         links: t.events.filter((e) => e.url).map((e) => [SRC[e.id.split(":")[0]] ?? "Other", e.title ?? e.kind, e.url]),
         // Span events for Trace: [kind, when or null, title, url]. Review comments and open issues have no time.
         ev: t.events.map((e) => [e.kind, (meta.get(e.id) as any)?.occurred_at || null, e.title ?? "", e.url ?? null]) };
-      // Praise others wrote: a Slack mention in a thread you kept, or a review comment marked praise.
+      // Praise in review: a comment marked praise. Slack praise comes from every mention, below.
       for (const e of t.events) {
-        const m = meta.get(e.id) as any, p = JSON.parse(m.payload), text = p.text ?? p.body ?? "";
-        const praise = e.kind === "slack_mention" || (e.kind === "review_comment" && /^praise\b/i.test(text.trim()));
-        if (!praise || !text.trim()) continue;
-        it.rec ??= rec.length;
-        rec.push({ w, who: m.author ?? "", where: e.kind === "slack_mention" ? e.title : "PR review", t: plain(text).slice(0, 280), when: (m.occurred_at ?? "").slice(0, 10), item: t.key });
+        inItem.set(e.id, t.key);
+        if (e.kind !== "review_comment") continue;
+        const m = meta.get(e.id) as any, text = JSON.parse(m.payload).body ?? "";
+        if (/^praise\b/i.test(text.trim())) rec.push({ w, who: m.author ?? "", where: "PR review", t: plain(text).slice(0, 280), when: (m.occurred_at ?? "").slice(0, 10), item: t.key });
       }
       items.push(it);
     }
   });
   if (!items.length) return null;
+  // Every mention of you that Claude sorted, kept thread or not: a shoutout in #cheers is rarely in one.
+  const sorted = (kind: string) => db.query(`SELECT e.id, e.week, e.author, e.title, e.occurred_at, e.payload, k.about, k.quote FROM mention_kinds k
+    JOIN events e ON e.id = k.event_id WHERE COALESCE(k.human_kind, k.kind) = ? AND e.week IN (${weeks.map(() => "?").join(",")}) ORDER BY e.occurred_at`).all(kind, ...weeks) as any[];
+  for (const m of sorted("praise")) { const p = JSON.parse(m.payload);
+    rec.push({ id: m.id, w: weeks.indexOf(m.week), who: m.author ?? "", where: m.title, t: plain(p.text ?? "").slice(0, 280), q: m.quote, about: m.about, url: p.permalink ?? null,
+      when: (m.occurred_at ?? "").slice(0, 10), item: inItem.get(m.id) }); }
+  rec.sort((a, b) => a.when.localeCompare(b.when));
+  for (const [i, r] of rec.entries()) { const it = items.find((x) => x.id === r.item); if (it) it.rec ??= i; }
+  // Who comes to you: people who asked you for something, most first.
+  const asks = new Map<string, any>();
+  for (const m of sorted("ask")) { const a = asks.get(m.author) ?? { who: m.author, n: 0, per: weeks.map(() => 0), about: [] };
+    a.n++; a.per[weeks.indexOf(m.week)]++; a.about.unshift(m.about); asks.set(m.author, a); }
   const all = projects(weeks).projects as any[];
   const count = (s: string) => items.filter((i) => i.s === s).length;
   const used = [...new Set(items.map((i) => i.s))].filter((s) => s !== "none");
@@ -305,7 +314,7 @@ function north() {
       meetings: per("meeting").map((m) => +m.reduce((a, x) => a + hours(x), 0).toFixed(1)), reach: ments.map((m) => new Set(m.map((x) => x.author_name)).size), merged: prs.map((m) => m.length), opened: weekly("prs_opened"),
       asked_direct: weekly("review_requests", "direct"), asked_team: weekly("review_requests", "team"),
       lead: prs.map((m) => median(m.filter((p) => p.opened).map((p) => (Date.parse(p.at) - Date.parse(p.opened)) / 36e5))) }),
-    js("PROJECTS", P), js("REC", rec), js("ITEMS", items), js("HIGHLIGHT", { item: big.id, when: big.rec != null ? rec[big.rec].when : "" }),
+    js("PROJECTS", P), js("REC", rec), js("ASKS", [...asks.values()].sort((a, b) => b.n - a.n).slice(0, 6).map((a) => ({ ...a, about: [...new Set(a.about)].slice(0, 3) }))), js("ITEMS", items), js("HIGHLIGHT", { item: big.id, when: big.rec != null ? rec[big.rec].when : "" }),
     // Feedback, newest week first: what the code verified, never the raw Claude output.
     js("FEEDBACK", (db.query("SELECT week, output FROM feedback ORDER BY week DESC").all() as any[]).map((r) => ({ ...JSON.parse(r.output),
       verdicts: Object.fromEntries((db.query("SELECT item, verdict, why FROM feedback_verdicts WHERE week = ?").all(r.week) as any[]).map((v) => [v.item, { v: v.verdict, why: v.why }])) }))),
@@ -382,6 +391,8 @@ const server = Bun.serve({
     // A JSON content type forces a CORS preflight, so other sites cannot post here.
     const json = req.method === "POST" && req.headers.get("content-type") === "application/json";
     if (url.pathname === "/api/setup" && json) return saveSetup(await req.json().catch(() => null));
+    if (url.pathname === "/api/mention" && json) { const b = await req.json().catch(() => null);
+      return typeof b?.id === "string" && correct(db, b.id, b.kind ?? null) ? Response.json({ ok: true }) : new Response("Unknown mention or kind", { status: 400 }); }
     if (url.pathname === "/api/labels" && json) return decide(await req.json().catch(() => null));
     if (url.pathname === "/api/unassign" && json) return unassign(await req.json().catch(() => null));
     if (url.pathname === "/api/group" && json) return group(await req.json().catch(() => null));

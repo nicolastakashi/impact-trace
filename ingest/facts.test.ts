@@ -21,6 +21,7 @@ test("facts count what North shows, in your time zone", () => {
   expect(f.wouldnt_happen_without_you.map((x: any) => [x.title, x.project, x.goals, x.events])).toEqual([["A", "Exports", ["Exports GA"], { pr_merged: 2, slack_mention: 1 }]]);
   expect(f.feedback.patterns[0].your_verdict).toBe("accept");
   expect(f.weeks.map((w: any) => [w.review_requests_direct, w.review_requests_team])).toEqual([[3, 5], [null, null]]);
+  expect(f.recognition).toEqual([{ week: "2026-W42", who: "Ana", where: "#eng", about: null, quote: "thanks", url: null }]);
   expect(f.threads).toBeUndefined();
 });
 

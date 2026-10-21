@@ -85,6 +85,13 @@ claude -p "/suggest-labels $week" --model sonnet --output-format json \
   --json-schema "$(cat schemas/labels.json)" < "$out/threads.json" > "$out/labels.run.json"
 bun ingest/review.ts save "$week" "$out/labels.run.json"
 
+# Praise, asks and bots among the mentions of you: North shows praise and who comes to you.
+echo "▶ mentions $week"
+bun ingest/mentions.ts emit "$week" > "$out/mentions.json"
+claude -p "/classify-mentions $week" --model sonnet --output-format json \
+  --json-schema "$(cat schemas/mentions.json)" < "$out/mentions.json" > "$out/mentions.run.json"
+bun ingest/mentions.ts save "$week" "$out/mentions.run.json"
+
 # Feedback on how you show up, from your own messages: Claude quotes, the code checks quotes and counts.
 # Once per week, after it ends: the weekday runs would pay for feedback on half a week.
 if [[ "$(date +%F)" > "$sunday" ]]; then

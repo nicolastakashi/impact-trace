@@ -14,7 +14,7 @@
   --ink:#121214; --ink-2:#4f4f55; --ink-3:#6b6b72; --rest:#89898e;
   /* Goals: cool hues no mode uses, so a color means one thing on every page. */
   --g1:#0a84c6; --g2:#0b8a7c; --g3:#2f5fe0; --g4:#4f86b8; --g5:#5d7088;
-  --accent:#d93a3f; --accent-ink:#ffffff;
+  --accent:#d93a3f; --accent-ink:#ffffff; --ok:#12854a;
   --m-clarify:#a68300; --m-prevent:#c8326a; --m-solve:#d0571f; --m-build:#12854a; --m-elevate:#5b47d6; --m-external:#5f6470;
   --glow:0 0 0 transparent; --shadow:0 1px 2px rgba(20,20,30,.06), 0 8px 24px -12px rgba(20,20,30,.18);
   --key-bg:#ffffff; --key-edge:#cfcfc8;
@@ -27,7 +27,7 @@
   --ground:#070709; --s1:#0f0f13; --s2:#15151b; --s3:#1d1d25; --line:#24242d; --line-2:#34343f;
   --ink:#f4f4f1; --ink-2:#b4b4b8; --ink-3:#8f8f97; --rest:#69696f;
   --g1:#4cc2ff; --g2:#2fd5c4; --g3:#4f86ff; --g4:#c2e2ff; --g5:#8ea4c2;
-  --accent:#ff4d52; --accent-ink:#0b0b0b;
+  --accent:#ff4d52; --accent-ink:#0b0b0b; --ok:#5fe39a;
   --m-clarify:#ffe37a; --m-prevent:#ff4f8f; --m-solve:#ff7a45; --m-build:#7dffa8; --m-elevate:#b3a1ff; --m-external:#9aa3b5;
   --glow:0 0 32px -6px color-mix(in srgb,var(--accent) 55%,transparent); --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 20px 40px -24px rgba(0,0,0,.8);
   --key-bg:#1b1b22; --key-edge:#0a0a0d;
@@ -37,7 +37,7 @@
   --ground:#070709; --s1:#0f0f13; --s2:#15151b; --s3:#1d1d25; --line:#24242d; --line-2:#34343f;
   --ink:#f4f4f1; --ink-2:#b4b4b8; --ink-3:#8f8f97; --rest:#69696f;
   --g1:#4cc2ff; --g2:#2fd5c4; --g3:#4f86ff; --g4:#c2e2ff; --g5:#8ea4c2;
-  --accent:#ff4d52; --accent-ink:#0b0b0b;
+  --accent:#ff4d52; --accent-ink:#0b0b0b; --ok:#5fe39a;
   --m-clarify:#ffe37a; --m-prevent:#ff4f8f; --m-solve:#ff7a45; --m-build:#7dffa8; --m-elevate:#b3a1ff; --m-external:#9aa3b5;
   --glow:0 0 32px -6px color-mix(in srgb,var(--accent) 55%,transparent); --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 20px 40px -24px rgba(0,0,0,.8);
   --key-bg:#1b1b22; --key-edge:#0a0a0d;
@@ -105,6 +105,33 @@ button.tile:hover{border-color:var(--line-2)}
 .spk8 .avg{position:absolute;left:0;right:0;border-top:1.5px dashed var(--ink-2)}
 @media (max-width:620px){ .nums>div{border-left:0;padding:12px 0;border-top:1px solid var(--line)} .nums>div:first-child{border-top:0} }
 .said-f{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.said2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr));gap:12px}
+.rec-full{margin:0;font-size:13.5px;line-height:1.5;color:var(--ink-2)}
+.big-q.long{font-size:clamp(17px,1.6vw,20px)}
+.rec-who{display:flex;align-items:center;gap:10px;min-width:0}
+.rec-who b{font-size:14px}
+.av{--c:var(--rest);flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 22%,var(--s2));color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--c);font:700 11px var(--f-num);letter-spacing:.04em}
+.av.p{--c:var(--p)}
+.rec-act{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ghost{all:unset;cursor:pointer;margin-left:auto;font-size:12.5px;color:var(--ink-3);padding:4px 2px;border-radius:6px}
+.ghost:hover{color:var(--ink)}
+.ghost:focus-visible,.rs-d button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.rec-strip{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;margin-top:auto;padding-top:12px;border-top:1px solid var(--line)}
+.rs-d{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;align-items:flex-end;min-height:14px}
+.rs-d button{--c:var(--rest);width:12px;height:12px;padding:0;border:0;border-radius:50%;background:var(--c);cursor:pointer;transition:transform .15s}
+.rs-d button:hover{transform:scale(1.25)}
+.rs-d button.on{transform:scale(1.3);box-shadow:0 0 0 2px var(--s1),0 0 0 4px var(--ink)}
+.rec-strip span{display:block;margin-top:6px;text-align:center;font:500 10.5px var(--f-mono);color:var(--ink-3)}
+.asks{list-style:none;margin:0;padding:0;display:grid}
+.asks li{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.asks li:first-child{border-top:0;padding-top:0}
+.ask-m{display:grid;gap:2px;min-width:0}
+.ask-m b{font-size:14px}
+.ask-t{font-size:12.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ask-spk{display:flex;gap:2px;align-items:flex-end;height:22px}
+.ask-spk i{width:5px;min-height:2px;border-radius:1px;background:color-mix(in srgb,var(--p) 45%,transparent)}
+.ask-spk i.now{background:var(--p)}
+.asks .num{font:700 20px/1 var(--f-num);font-variant-numeric:tabular-nums;min-width:2ch;text-align:right}
 .said-f .chip{max-width:100%;text-align:left}
 .recap-btn{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line-2);background:var(--s2);color:var(--ink);border-radius:999px;padding:8px 16px 8px 8px;font:500 13px var(--f-body);cursor:pointer}
 .recap-btn:hover{border-color:var(--accent)}
@@ -161,8 +188,6 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .edge{stroke-dasharray:3 7;animation:flow 1.6s linear infinite}
 @keyframes flow{to{stroke-dashoffset:-20}}
 
-.rec-nav{display:flex;gap:6px;align-items:center}
-.rec-nav button{border:1px solid var(--line);background:var(--s2);border-radius:8px;width:28px;height:28px;cursor:pointer;color:var(--ink-2)}
 
 /* trace */
 .panel{background:var(--s1);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
@@ -372,7 +397,14 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .fb-try.rej .fb-do,.fb-try.rej .fb-chart{opacity:.45}
 .t-fb{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 24px;align-items:center;text-align:left;cursor:pointer;min-height:0}
 .t-now .do{margin:0;font:600 17px/1.35 var(--f-body);color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.t-fb .spk{height:34px}
+.t-fb .spk{height:34px;display:flex;gap:3px;align-items:flex-end}
+.t-fb .spk i{background:var(--rest);border-radius:2px 2px 0 0}
+.t-fb .spk i:last-child{background:var(--ink)}
+.do-full{margin:0;font:600 16px/1.45 var(--f-body);color:var(--ink);text-wrap:pretty}
+.fb-n{display:grid;gap:4px;justify-items:end;align-self:start}
+.fb-n .num{font:800 40px/.9 var(--f-num)}
+.fb-n.good .num{color:var(--ok)} .fb-n.bad .num{color:var(--accent)}
+.fb-n.good .spk i:last-child{background:var(--ok)} .fb-n.bad .spk i:last-child{background:var(--accent)}
 .t-fb .spk i{width:8px;height:calc(var(--h) * 30px + 2px)}
 @media (max-width:860px){ .fb-try{grid-template-columns:minmax(0,1fr)} }
 @media (prefers-reduced-motion:reduce){ .rw-was mark{background-size:100% 45%} }
@@ -401,6 +433,11 @@ a.chip:hover,button.chip:hover{border-color:var(--accent)}
 .prog i{flex:1;height:4px;border-radius:2px;background:var(--s3)}
 .prog i.d{background:var(--accent)}
 .prog i.c{background:var(--ink-2)}
+.prog i.p{background:var(--accent)}
+#t-wm:not(.wait) .prog i.c{background:color-mix(in srgb,var(--ok) 70%,transparent)}
+.okc{color:var(--ok)}
+#t-wm{text-align:left;cursor:pointer}
+#t-wm .wm-n{font:800 28px/1 var(--f-num);color:var(--accent);margin-right:4px}
 .sec{display:grid;gap:10px}
 .keys{display:flex;flex-wrap:wrap;gap:10px 18px;font-size:12px;color:var(--ink-3);align-items:center}
 .keys span{display:inline-flex;gap:4px;align-items:center}
@@ -826,7 +863,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
       <div class="th"><span class="lbl">Your weeks in numbers</span><span class="ref" id="nums-h"></span></div>
       <div class="nums" id="nums"></div>
     </div>
-    <div class="tile" id="t-rec"></div>
+    <div class="said2"><div class="tile" id="t-rec"></div><div class="tile" id="t-asks"></div></div>
     <div class="t-now">
       <button class="tile t-fb" id="t-fb" data-v="feedback" hidden></button>
       <button class="tile" id="t-wm" data-v="review"></button>
@@ -992,7 +1029,7 @@ function renderHome(){
   renderFbTile();
   const ups = ITEMS.filter(i=>i.wm==="wouldnt").length;
   $("#home-h").innerHTML = `${esc(WEEKS[0])}–${esc(WEEKS[LAST])} <em>·</em> ${WEEKS.length} weeks`;
-  $("#home-p").innerHTML = `<b>${ITEMS.length}</b> threads you kept, <b>${REC.length}</b> mentions and praise, <b>${ups}</b> that would not have happened without you.`;
+  $("#home-p").innerHTML = `<b>${ITEMS.length}</b> threads you kept, <b>${REC.length}</b> times people praised your work, <b>${ups}</b> that would not have happened without you.`;
 
   // Where the work goes: threads per week, stacked by goal. A thread that serves two goals
   // counts once, in the goal that is served most, so every bar adds up to its week.
@@ -1038,7 +1075,7 @@ function renderHome(){
     <ul class="pleg">${Object.keys(WMS).map(k => `<li><i class="sw" style="--c:${WC[k]}"></i><b>${wc[k]||0}</b><span>${WMS[k]} · ${wn ? Math.round((wc[k]||0)/wn*100) : 0}%</span></li>`).join("")}</ul>
     ${n - wn ? `<span class="by">${n - wn} not answered yet</span>` : ""}`;
 
-  renderRec();
+  renderRec(); renderAsks();
   renderNums();
 
   // Reviews given: columns on a zero baseline, the average as a dashed line, this week in ink.
@@ -1097,13 +1134,47 @@ $("#wg").addEventListener("mouseover", e => wgOn(e.target.closest("[data-s]")?.d
 $("#wg").addEventListener("mouseleave", () => wgOn(null));
 $("#wg").addEventListener("focusin", e => wgOn(e.target.closest("[data-s]")?.dataset.s));
 $("#wg").addEventListener("focusout", () => wgOn(null));
+/* RECOGNITION: praise that names your work, Claude's pick checked by code (the quote is in the message).
+   One in focus, the rest one click away. */
+let recOpen = false, recUndo = null;
+// You correct Claude: the mention becomes information, and Claude sees it as an example next time.
+async function setMention(id, kind){
+  const r = await fetch("/api/mention", {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({id, kind})});
+  return r.ok;
+}
 function renderRec(){
-  const r = REC[recI];
-  if(!r){ $("#t-rec").innerHTML = `<div class="th"><span class="lbl">What people said</span></div><p style="margin:0;font-size:14px;color:var(--ink-2)">No mentions or praise yet in the threads you kept.</p>`; return; }
-  const it = ITEMS.find(i => i.id === r.item) ?? ITEMS.find(i => i.rec === recI);
-  $("#t-rec").innerHTML = `<div class="th"><span class="lbl">What people said</span><div class="rec-nav"><button data-rec="-1" aria-label="previous">‹</button><span class="by num">${recI+1} / ${REC.length}</span><button data-rec="1" aria-label="next">›</button></div></div>
-    <p class="big-q">${esc(r.t)}</p>
-    <div class="said-f"><span class="by">${esc(r.who)}${r.role?` · ${esc(r.role)}`:""} · ${esc(r.where ?? "")} · ${r.when ? esc(r.when) : WEEKS[r.w]}</span>${it ? `<button class="chip" data-item="${it.id}">${esc(it.title)} →</button>` : ""}</div>`;
+  const r = REC[recI], head = `<div class="th"><span class="lbl">Recognition</span><span class="by">${REC.length} in ${WEEKS.length} weeks</span></div>`;
+  if(!r){ $("#t-rec").innerHTML = `${head}<p class="rec-full">No praise yet. Shoutouts and thanks that name your work show up here.</p>
+    ${recUndo ? `<p class="rec-full">Removed: ${esc(recUndo.who)}. <button class="chip" data-recundo>Undo</button></p>` : ""}`; return; }
+  const it = ITEMS.find(i => i.id === r.item), url = /^https:\/\//.test(r.url ?? "") ? r.url : null, q = r.q ?? r.t;
+  const ini = s => s.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+  // A praise takes the color of the goal its work serves, so recognition reads against your goals.
+  const gc = x => { const i = ITEMS.find(i => i.id === x.item); return (i && GOALS.find(g => goalsOf(i).includes(g.id))?.color) || "var(--rest)"; };
+  const goal = it && GOALS.find(g => goalsOf(it).includes(g.id));
+  // One dot per praise, in its week: the rhythm at a glance, and the way to pick one.
+  const strip = WEEKS.map((w, k) => `<div><div class="rs-d">${REC.map((x, i) => [x, i]).filter(([x]) => x.w === k)
+    .map(([x, i]) => `<button data-reci="${i}" class="${i === recI ? "on" : ""}" style="--c:${gc(x)}" aria-label="${esc(x.who)}, ${w}${i === recI ? ", shown" : ""}" title="${esc(x.who)} · ${esc(x.about ?? x.where ?? "")}"></button>`).join("")}</div><span>${w}</span></div>`).join("");
+  $("#t-rec").innerHTML = `${head}
+    <p class="big-q${q.length > 110 ? " long" : ""}">${esc(q)}</p>
+    ${r.q && r.q.length < r.t.length * .7 ? `<p class="rec-full">${esc(r.t)}</p>` : ""}
+    <div class="rec-who"><span class="av" aria-hidden="true" style="--c:${gc(r)}">${esc(ini(r.who))}</span><div style="display:grid;min-width:0"><b>${esc(r.who)}</b><span class="by">${esc(r.where ?? "")} · ${r.when ? esc(r.when) : WEEKS[r.w]}</span></div></div>
+    <div class="rec-act">${url ? `<a class="chip" href="${esc(url)}" target="_blank" rel="noopener">Slack ↗</a>` : ""}${goal ? `<span class="chip" style="cursor:default"><i class="dot" style="background:${goal.color}"></i>${esc(goal.short)}</span>` : ""}${it ? `<button class="chip" data-item="${it.id}">${esc(it.title)} →</button>` : ""}${r.id ? `<button class="ghost" data-notrec="${esc(r.id)}">Not recognition</button>` : ""}</div>
+    ${recUndo ? `<p class="rec-full">Removed: ${esc(recUndo.who)}, "${esc((recUndo.q ?? recUndo.t).slice(0, 60))}". <button class="chip" data-recundo>Undo</button></p>` : ""}
+    <div class="rec-strip" role="group" aria-label="Praise per week">${strip}</div>`;
+}
+/* WHO COMES TO YOU: people who asked you for a review, a decision or an answer in Slack. */
+function renderAsks(){
+  const head = n => `<div class="th"><span class="lbl">Who comes to you</span><span class="by">${n}</span></div>`;
+  if(typeof ASKS === "undefined" || !ASKS.length){ $("#t-asks").innerHTML = `${head("Slack")}<p class="rec-full">No asks yet. Reviews, decisions and questions people bring you show up here.</p>`; return; }
+  const ini = s => s.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?", mx = Math.max(1, ...ASKS.flatMap(a => a.per));
+  // One stable color per person, from the name: the same person keeps it on every load.
+  // Hues 40–310 only: red is for what needs you, never for a person.
+  const hue = s => 40 + [...s].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 271, 7);
+  $("#t-asks").innerHTML = `${head(`asks in Slack · ${WEEKS[0]}–${WEEKS.at(-1)}`)}<ol class="asks">${ASKS.map(a => `<li style="--p:oklch(0.72 0.13 ${hue(a.who)})">
+    <span class="av p" aria-hidden="true">${esc(ini(a.who))}</span>
+    <div class="ask-m"><b>${esc(a.who)}</b><span class="ask-t" title="${esc(a.about.join(" · "))}">${esc(a.about.join(" · "))}</span></div>
+    <span class="ask-spk" role="img" aria-label="per week: ${a.per.join(", ")}">${a.per.map((n, k) => `<i class="${k === LAST ? "now" : ""}" style="height:${n ? n/mx*100 : 0}%" title="${WEEKS[k]}: ${n}"></i>`).join("")}</span>
+    <span class="num">${a.n}</span></li>`).join("")}</ol>`;
 }
 
 /* TRACE: your weeks as traces. A week is a trace, a kept thread is a span, its PRs, issues and messages are span events. */
@@ -1457,8 +1528,8 @@ function renderFbTile(){
   const f = FB[0], e = vdOf(f, "experiment") === "reject" ? null : f?.experiment, el = $("#t-fb");
   el.hidden = !e;
   if(!e) return;
-  el.innerHTML = `<div style="display:grid;gap:8px;min-width:0"><span class="lbl">Try this week · feedback</span><p class="do">${esc(e.do)}</p></div>
-    <div style="display:grid;gap:6px;justify-items:end">${e.trend ? spark(e.trend) : ""}<span class="ref">${e.trend ? `${e.trend.at(-1)} in ${wk(f.week)} · ` : ""}open →</span></div>`;
+  el.innerHTML = `<div style="display:grid;gap:8px;min-width:0"><span class="lbl">Try this week</span><p class="do-full">${esc(e.do)}</p><span class="by">from the pattern “${esc(e.pattern ?? "")}” · open feedback →</span></div>
+    ${e.trend ? `<div class="fb-n ${e.trend.at(-1) < e.trend.reduce((a, b) => a + b, 0) / e.trend.length ? "good" : "bad"}"><span class="num">${e.trend.at(-1)}</span><span class="by">times in ${wk(f.week)}</span>${spark(e.trend)}</div>` : ""}`;
 }
 $("#v-feedback").addEventListener("click", e => {
   const b = e.target.closest("button"); if(!b || b.closest(".vd-why")) return;
@@ -1547,7 +1618,7 @@ const ph = (a,b)=>ITEMS.filter(i=>i.w>=a&&i.w<=b);
 const PHASE_BG = ["linear-gradient(160deg,#2a1406,#ff7a45)","linear-gradient(160deg,#ff7a45,#c8326a)","linear-gradient(160deg,#2a2406,#c9a400 70%,#ffe37a)","linear-gradient(160deg,#0d1a2a,#5b47d6 60%,#b3a1ff)","linear-gradient(160deg,#5b47d6,#ff4d52)"];
 const SLIDES = [
   {bg:"linear-gradient(160deg,#16161d,#3a0d12 60%,#ff4d52)", html:()=>`<span class="k">${esc(PERIOD)}</span><span class="huge num">${WEEKS.length}</span><p class="h">weeks of work, with a trace</p>`},
-  {bg:"linear-gradient(160deg,#2a0b1a,#ff4f8f)", html:()=>`<span class="k">In total</span><span class="huge num">${ITEMS.length}</span><p class="h">threads with evidence. ${REC.length} mentions and praise.</p>`},
+  {bg:"linear-gradient(160deg,#2a0b1a,#ff4f8f)", html:()=>`<span class="k">In total</span><span class="huge num">${ITEMS.length}</span><p class="h">threads with evidence. ${REC.length} times people praised your work.</p>`},
   ...PHASES.map((p,n)=>({bg:PHASE_BG[n%PHASE_BG.length], html:()=>p.rec!=null
     ? `<span class="k">${esc(p.k)}</span><p class="q">“${esc(REC[p.rec].t)}”</p><span class="by">${esc(REC[p.rec].who)}${REC[p.rec].role?" · "+esc(REC[p.rec].role):""}</span>`
     : `<span class="k">${esc(p.k)}</span><p class="h">${esc(p.h)}</p><div class="rowx">${ph(p.from,p.to).map(i=>`<span class="pill">${esc(i.title)}</span>`).join("")}</div>`})),
@@ -1633,7 +1704,11 @@ document.addEventListener("click", e=>{
   if(d.goal){ location.hash = `#/trace?w=${[...new Set(ITEMS.filter(i=>d.goal==="none" ? !goalsOf(i).length : goalsOf(i).includes(d.goal)).map(i=>i.w))].sort((a,b)=>a-b).map(w=>WEEKS[w]).join(",")}`; return; }
   if(d.item){ openItem(d.item); return; }
   if(t.id==="x"){ $("#sheet").hidden = true; return; }
-  if(d.rec){ recI = (recI + +d.rec + REC.length) % REC.length; renderRec(); return; }
+  if(d.reci != null){ recI = +d.reci; recOpen = true; renderRec(); return; }
+  if(d.notrec){ const i = REC.findIndex(r => r.id === d.notrec);
+    setMention(d.notrec, "info").then(ok => { if(!ok || i < 0) return; recUndo = {...REC[i], at:i}; REC.splice(i, 1); recI = Math.min(recI, REC.length-1); renderRec(); }); return; }
+  if(d.recundo != null && recUndo){ const u = recUndo;
+    setMention(u.id, null).then(ok => { if(!ok) return; REC.splice(u.at, 0, u); recI = u.at; recUndo = null; renderRec(); }); return; }
 });
 $("#sheet").addEventListener("click", e=>{ if(e.target.id==="sheet") $("#sheet").hidden = true; });
 $("#cmdk").addEventListener("click", e=>{ if(e.target.id==="cmdk") $("#cmdk").hidden = true; });
@@ -1658,10 +1733,12 @@ let PENDING = {};
 function renderWm(){
   const ws = Object.keys(PENDING).sort(), left = ws.reduce((a,w)=>a+PENDING[w],0);
   $("#badge").textContent = left; $("#badge").hidden = !left;
+  // Red only where something waits for you; done weeks stay quiet.
+  $("#t-wm").classList.toggle("wait", !!left);
   $("#t-wm").innerHTML = `<span class="lbl">To review</span>
-    <p class="do">${left ? `${left} threads wait for your answer` : ws.length ? `All ${ws.length} weeks reviewed` : "No weeks collected yet"}</p>
-    <div class="prog">${ws.map(w=>`<i class="${PENDING[w]?"":"d"}" title="${w}: ${PENDING[w] ? PENDING[w]+" left" : "done"}"></i>`).join("")}</div>
-    <span class="ref">${left || !ws.length ? "open review →" : "review again →"}</span>`;
+    ${left ? `<p class="do"><span class="wm-n">${left}</span> thread${left > 1 ? "s" : ""} wait for your answer</p>` : `<p class="do">${ws.length ? `<span class="okc">✓</span> All caught up` : "No weeks collected yet"}</p>`}
+    <div class="prog">${ws.map(w=>`<i class="${PENDING[w]?"p":"c"}" title="${w}: ${PENDING[w] ? PENDING[w]+" left" : "done"}"></i>`).join("")}</div>
+    <span class="ref">${left ? "open review →" : ws.length ? `${ws.length} weeks reviewed · review again →` : "open review →"}</span>`;
 }
 const loadPending = () => fetch("/api/pending").then(r => r.ok ? r.json() : {}).then(p => { PENDING = p; renderWm(); }).catch(() => {});
 
