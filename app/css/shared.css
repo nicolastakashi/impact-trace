@@ -13,9 +13,6 @@
 .why p{margin:0;font-size:14.5px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .wm{display:flex;flex-wrap:wrap;gap:6px}
-.opt{display:inline-flex;align-items:center;gap:8px;padding:8px 12px 8px 8px;border-radius:10px;border:1px solid var(--line);background:var(--s2);cursor:pointer;font-size:13px}
-.opt:hover{border-color:var(--line-2)}
-.opt[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--s2))}
 
 /* shared bits */
 .prog{display:flex;gap:3px}

@@ -9,8 +9,6 @@
   .facts a{text-decoration:none}
   .facts a:hover{color:var(--accent)}
   .ms{display:grid;gap:6px}
-  .mrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
-  .mrow select{font:500 12px var(--f-mono);padding:4px 6px}
   .mchip{display:inline-flex;align-items:center;gap:6px;font:500 11.5px var(--f-mono);color:var(--ink-2);background:var(--s2);border:1px solid var(--line);border-radius:8px;padding:2px 4px 2px 8px}
   .mchip button{all:unset;cursor:pointer;color:var(--ink-3);padding:0 4px;border-radius:4px}
   .mchip button:hover,.mchip button:focus-visible{color:var(--accent)}

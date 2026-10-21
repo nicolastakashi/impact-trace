@@ -46,7 +46,6 @@ button{font:inherit;color:inherit}
 .wrap{max-width:1240px;margin:0 auto}
 .lbl{font:600 12px/1 var(--f-num);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
 .num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
 .ref{font:500 11px/1.4 var(--f-mono);color:var(--ink-3);text-decoration:none}
 .ref:hover{color:var(--accent)}
