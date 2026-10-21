@@ -27,6 +27,8 @@ database to work around it.
   everything collected (Slack, GitHub, calendar).
 - `labels_by: claude` means the user never confirmed that label. Say so when the answer
   depends on it.
+- Objectives: an aspirational key result at 0.7 is on track; a committed one needs 1.0.
+  `confidence` is the user's own weekly guess, 1 to 10: never infer it from progress.
 - Point to the thread links so the user can check.
 - A pattern is not a cause. Two numbers moving together are a question for the user, not a
   finding: ask what happened that week.
