@@ -630,6 +630,28 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .go-k{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);border:1px solid var(--line-2);border-radius:999px;padding:2px 8px}
   .go-k.personal{border-style:dashed}
   .krs{margin:0;white-space:pre-line;font-size:14px;line-height:1.55;color:var(--ink-2);max-width:65ch}
+  .hint{font-size:12.5px;color:var(--ink-3);font-weight:400}
+  .krs-f{border:0;margin:0;padding:0;display:grid;gap:8px}
+  .krs-f legend{font-size:13px;color:var(--ink-2);padding:0;margin-bottom:6px;display:grid;gap:2px}
+  .kr-row{display:grid;grid-template-columns:minmax(180px,2fr) minmax(150px,1.3fr) repeat(3,minmax(64px,.5fr)) auto;gap:8px;align-items:end}
+  .kr-row input,.kr-row select{width:100%;min-width:0}
+  .kr-n{font-size:11.5px !important}
+  .kr-row input:disabled{opacity:.55}
+  @media (max-width:860px){ .kr-row{grid-template-columns:1fr 1fr 1fr;padding:10px;border:1px solid var(--line);border-radius:12px} .kr-text,.kr-m{grid-column:1 / -1} .kr-row .del{grid-column:3;justify-self:end} }
+  .kr-list{list-style:none;margin:0;padding:0;display:grid;gap:12px;max-width:760px}
+  .kr{display:grid;gap:5px}
+  .kr-h{display:flex;justify-content:space-between;gap:12px;font-size:14.5px}
+  .kr-h .num{font:700 16px var(--f-num);font-variant-numeric:tabular-nums}
+  .kr-bar{position:relative;height:8px;border-radius:4px;background:var(--s3)}
+  .kr-bar i{position:absolute;inset:0 auto 0 0;border-radius:4px;background:var(--ink-2)}
+  .kr-bar s{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--ink)}
+  .kr.hit .kr-bar i,.kr.hit .num{background:var(--ok)} .kr.hit .num{background:none;color:var(--ok)}
+  .conf{display:grid;gap:6px}
+  .conf-b{display:flex;flex-wrap:wrap;gap:4px}
+  .conf-b button{width:32px;height:32px;font:600 13px var(--f-num);color:var(--ink-2);background:var(--s2);border:1px solid var(--line-2);border-radius:8px;cursor:pointer}
+  .conf-b button:hover{color:var(--ink);border-color:var(--ink-2)}
+  .conf-b button[aria-pressed="true"]{color:var(--accent-ink);background:var(--ink);border-color:var(--ink)}
+  .conf-b button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .go-p{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--ink-3)}
   .go-p select{font:500 11.5px var(--f-mono);color:var(--ink-2);background:none;border:1px dashed var(--line-2);border-radius:6px;padding:2px 6px;cursor:pointer}
   .grp.personal{border-style:dashed}
@@ -2160,23 +2182,67 @@ async function open(focus){
   if(!r.ok){ $("#go").innerHTML = `<div class="empty">Goals need the app server. Start it with bun app/server.ts.</div>`; return; }
   d = await r.json(); if(focus) openG.add(+focus); render();
 }
+// A key result names a metric the app measures, a milestone, or nothing: then you type "now".
+function measures(sel){
+  const o = (v, t) => `<option value="${esc(v)}" ${v === (sel ?? "") ? "selected" : ""}>${esc(t)}</option>`;
+  return o("", "I update it") + `<optgroup label="The app measures">${d.metrics.map(m => o(m.key, m.label)).join("")}</optgroup>`
+    + (d.milestones.length ? `<optgroup label="Linear milestone, % done">${d.milestones.map(m => o(`milestone:${m.id}`, `${m.project} · ${m.name}`)).join("")}</optgroup>` : "");
+}
+const nv = v => v == null ? "" : String(v);
+function krRow(k, i){
+  return `<div class="kr-row" data-i="${i}">
+    <input class="kr-text" aria-label="Key result ${i+1}" maxlength="200" placeholder="${i ? "Another number that proves it" : "3 teams use exports in production"}" value="${esc(k.text ?? "")}">
+    <select class="kr-m" aria-label="How it is measured">${measures(k.metric)}</select>
+    <label class="kr-n">from<input class="kr-start" inputmode="decimal" value="${esc(nv(k.start))}"></label>
+    <label class="kr-n">target<input class="kr-target" inputmode="decimal" value="${esc(nv(k.target))}"></label>
+    <label class="kr-n">now<input class="kr-cur" inputmode="decimal" value="${esc(nv(k.metric ? k.value : k.current))}" ${k.metric ? "disabled" : ""}></label>
+    <button type="button" class="undo del" data-krdel="${i}" aria-label="Remove key result ${i+1}">✕</button></div>`;
+}
+// What you typed, so adding or removing a row never loses it.
+function readForm(f){
+  return {id: f.dataset.id ? +f.dataset.id : null, title: $("#go-title").value, kind: f.dataset.kind, type: f.dataset.type, quarter: $("#go-q").value || null,
+    krs: [...f.querySelectorAll(".kr-row")].map(r => ({text: r.querySelector(".kr-text").value, metric: r.querySelector(".kr-m").value || null,
+      start: r.querySelector(".kr-start").value, target: r.querySelector(".kr-target").value, current: r.querySelector(".kr-cur").value}))};
+}
 function form(g){
-  const kind = g.kind ?? "team", qs = quarters(); if(g.quarter && !qs.includes(g.quarter)) qs.unshift(g.quarter);
-  return `<form class="go-form" id="go-form" data-id="${g.id ?? ""}" data-kind="${kind}">
-    <label>Goal<input id="go-title" name="title" maxlength="120" required value="${esc(g.title ?? "")}" placeholder="Exports API GA" autocomplete="off"></label>
-    <div class="row"><div class="fld"><span id="go-kind-l">Kind</span><div class="seg" role="group" aria-labelledby="go-kind-l"><button type="button" data-kind="team" aria-pressed="${kind === "team"}">Team or company</button><button type="button" data-kind="personal" aria-pressed="${kind === "personal"}">Personal</button></div></div>
+  const kind = g.kind ?? "team", type = g.type ?? "aspirational", qs = quarters(), krs = g.krs?.length ? g.krs : [{}];
+  if(g.quarter && !qs.includes(g.quarter)) qs.unshift(g.quarter);
+  const seg = (name, v, opts) => `<div class="seg" role="group" aria-labelledby="go-${name}-l">${opts.map(([k, t]) => `<button type="button" data-${name}="${k}" aria-pressed="${v === k}">${t}</button>`).join("")}</div>`;
+  return `<form class="go-form" id="go-form" data-id="${g.id ?? ""}" data-kind="${kind}" data-type="${type}">
+    <label>Objective<input id="go-title" name="title" maxlength="120" required value="${esc(g.title ?? "")}" placeholder="Customers manage datasets as code" autocomplete="off">
+      <span class="hint">An outcome, not a task: what is true when you are done?</span></label>
+    <div class="row"><div class="fld"><span id="go-kind-l">For</span>${seg("kind", kind, [["team", "Team or company"], ["personal", "Personal"]])}</div>
+      <div class="fld"><span id="go-type-l">Type</span>${seg("type", type, [["committed", "Committed · must reach 1.0"], ["aspirational", "Aspirational · 0.7 is on track"]])}</div>
       <label>Quarter<select id="go-q" name="quarter"><option value="">No end</option>${qs.map(q => `<option ${q === g.quarter ? "selected" : ""}>${q}</option>`).join("")}</select></label></div>
-    <label>Key results, one per line (optional)<textarea id="go-krs" name="krs" rows="3" maxlength="2000">${esc(g.krs ?? "")}</textarea></label>
-    <div class="row"><button class="go-btn main" type="submit">${g.id ? "Save goal" : "Create goal"}</button><button class="go-btn" type="button" id="go-cancel">Cancel</button></div></form>`;
+    <fieldset class="krs-f"><legend>Key results <span class="hint">2 to 4. Each is a number with a start and a target, so you can tell when it is done.</span></legend>
+      ${krs.map(krRow).join("")}
+      ${krs.length < 5 ? `<button type="button" class="go-btn" id="kr-add">＋ key result</button>` : `<span class="hint">Five is the most. More is a task list.</span>`}</fieldset>
+    <div class="row"><button class="go-btn main" type="submit">${g.id ? "Save objective" : "Create objective"}</button><button class="go-btn" type="button" id="go-cancel">Cancel</button></div></form>`;
+}
+// One bar per key result: 0 at the start, 1 at the target. The tick is where this type is on track.
+function krView(k, type){
+  const p = k.progress, line = type === "committed" ? 1 : .7, m = k.metric && (d.metrics.find(x => x.key === k.metric)?.label ?? d.milestones.find(x => `milestone:${x.id}` === k.metric)?.name);
+  const unit = d.metrics.find(x => x.key === k.metric)?.unit ?? (k.metric?.startsWith("milestone:") ? "%" : "");
+  return `<li class="kr${p != null && p >= line ? " hit" : ""}"><div class="kr-h"><span>${esc(k.text)}</span><b class="num">${p == null ? "–" : p.toFixed(2)}</b></div>
+    <div class="kr-bar" role="img" aria-label="${p == null ? "no numbers yet" : `${Math.round(p*100)}% of the way`}"><i style="width:${(p ?? 0)*100}%"></i><s style="left:${line*100}%"></s></div>
+    <span class="by">${k.start != null && k.target != null ? `${nv(k.start)} → ${nv(k.target)} ${esc(unit)} · now ${k.value == null ? "–" : nv(k.value)}` : "add a start and a target"} · ${m ? `measured: ${esc(m)}${k.metric.startsWith("milestone:") ? "" : ", last 4 weeks"}` : "you update it"}</span></li>`;
+}
+// Confidence this week, 1 to 10, with the weeks before it.
+function confView(g){
+  const now = g.checkins.find(c => c.week === d.week)?.confidence, past = g.checkins.filter(c => c.week !== d.week).slice(-7);
+  return `<div class="conf"><span class="lbl">${now ? `Confidence ${d.week.slice(5)}` : `How sure are you, ${d.week.slice(5)}?`}</span>
+    <div class="conf-b" role="group" aria-label="Confidence this week, 1 to 10">${Array.from({length: 10}, (_, i) => `<button data-conf="${i+1}" data-g="${g.id}" aria-pressed="${now === i+1}">${i+1}</button>`).join("")}</div>
+    ${past.length ? `<span class="by">before: ${past.map(c => `${c.week.slice(5)} ${c.confidence}`).join(" · ")}</span>` : ""}</div>`;
 }
 function card(g, max){
   if(edit === g.id) return form(g);
   const ts = Object.values(g.weeks).flat(), o = openG.has(g.id), linked = new Set(g.projects.map(p => p.id));
   return `<article class="grp ${g.kind}" id="goal-${g.id}">
-    <div class="go-h"><h2>${esc(g.title)}</h2><span class="go-k ${g.kind}">${g.kind === "personal" ? "personal" : "team"}</span>${g.quarter ? `<span class="facts">${g.quarter}</span>` : ""}
+    <div class="go-h"><h2>${esc(g.title)}</h2><span class="go-k ${g.kind}">${g.kind === "personal" ? "personal" : "team"}</span><span class="go-k">${g.type}</span>${g.quarter ? `<span class="facts">${g.quarter}</span>` : ""}
       <span class="end"><button class="undo" data-edit="${g.id}">edit</button><button class="undo del" data-del="${g.id}">delete</button></span></div>
     ${del === g.id ? `<div class="banner">Delete this goal? Its links go; projects and threads stay. <span><button class="undo del" data-del-yes="${g.id}">delete</button><button class="undo" data-del-no="1">cancel</button></span></div>` : ""}
-    ${g.krs ? `<p class="krs">${esc(g.krs)}</p>` : ""}
+    ${g.krs.length ? `<ol class="kr-list">${g.krs.map(k => krView(k, g.type)).join("")}</ol>` : `<p class="krs">No key results yet. <button class="undo" data-edit="${g.id}">add them</button></p>`}
+    ${confView(g)}
     <div class="go-p">${g.projects.map(p => `<span class="mchip">${esc(p.name)}<button data-unlink="${esc(p.id)}" data-g="${g.id}" aria-label="Unlink ${esc(p.name)}">✕</button></span>`).join("") || "<span>No project linked.</span>"}
       <select data-link="${g.id}" aria-label="Link a project to ${esc(g.title)}"><option value="">＋ link a project…</option>${d.projects.filter(p => !linked.has(p.id)).map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("")}</select></div>
     ${d.weeks.length ? strip(d.weeks.slice(-8), w => (g.weeks[w] ?? []).length, max) : ""}
@@ -2228,7 +2294,12 @@ $("#v-goals").addEventListener("click", e => {
   else if(b.dataset.new){ edit = b.dataset.new; render(); }
   else if(b.dataset.seed){ const p = d.projects.find(x => x.id === b.dataset.seed); seed(p); }
   else if(b.id === "go-cancel"){ edit = null; render(); }
-  else if(b.dataset.kind){ const f = b.closest("form"); f.dataset.kind = b.dataset.kind; f.querySelectorAll("[data-kind]").forEach(x => x.tagName === "BUTTON" && x.setAttribute("aria-pressed", x === b)); }
+  else if(b.dataset.kind || b.dataset.type){ const f = b.closest("form"), k = b.dataset.kind ? "kind" : "type"; f.dataset[k] = b.dataset[k];
+    f.querySelectorAll(`button[data-${k}]`).forEach(x => x.setAttribute("aria-pressed", x === b)); }
+  else if(b.id === "kr-add" || b.dataset.krdel != null){ const f = b.closest("form"), g = readForm(f);
+    if(b.id === "kr-add") g.krs.push({}); else g.krs.splice(+b.dataset.krdel, 1);
+    f.outerHTML = form(g); $(b.id === "kr-add" ? "#go-form .kr-row:last-of-type .kr-text" : "#kr-add, #go-title")?.focus(); }
+  else if(b.dataset.conf){ post("/api/checkin", {goal_id: +b.dataset.g, confidence: +b.dataset.conf}).then(async r => { if(!r.ok) return toast(await r.text()); toast(`Confidence ${b.dataset.conf} saved`); await open(); }); }
   else if(b.dataset.edit){ edit = +b.dataset.edit; render(); }
   else if(b.dataset.del){ del = +b.dataset.del; render(); }
   else if(b.dataset.delNo){ del = null; render(); }
@@ -2237,13 +2308,16 @@ $("#v-goals").addEventListener("click", e => {
   else if(b.dataset.open){ const id = +b.dataset.open; openG.has(id) ? openG.delete(id) : openG.add(id); render(); }
 });
 $("#v-goals").addEventListener("change", e => {
+  // An auto measure fills "now" for you; switching to manual leaves it for you to type.
+  const m = e.target.closest(".kr-m"); if(m){ const c = m.closest(".kr-row").querySelector(".kr-cur"); c.disabled = !!m.value; if(m.value) c.value = ""; return; }
   const s = e.target.closest("[data-link]");
   if(s?.value) act("/api/goal-link", {goal_id: +s.dataset.link, project_id: s.value, on: true}, `Linked ${s.selectedOptions[0].textContent}`);
 });
 $("#v-goals").addEventListener("submit", async e => {
   e.preventDefault(); const f = e.target, id = f.dataset.id ? +f.dataset.id : null;
   // f.title is the form's own title attribute, so read the fields by id.
-  const r = await post("/api/goal", {id, title: $("#go-title").value, kind: f.dataset.kind, quarter: $("#go-q").value || null, krs: $("#go-krs").value});
+  const g = readForm(f); g.krs = g.krs.filter(k => k.text.trim() || k.start || k.target);
+  const r = await post("/api/goal", g);
   if(!r.ok){ // Say what is wrong without clearing what you typed.
     let p = f.querySelector(".err"); if(!p){ p = document.createElement("p"); p.className = "err"; p.setAttribute("role", "alert"); f.lastElementChild.before(p); }
     p.textContent = await r.text(); return; }
