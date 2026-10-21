@@ -667,6 +667,7 @@ nav .ex{font-size:8.5px;padding:2px 4px}
   .dr-add:hover{filter:brightness(1.08)} .dr-add:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   .dr-keys{margin-left:auto} .dr-keys kbd{font:500 11px var(--f-mono);border:1px solid var(--line-2);border-radius:4px;padding:0 4px;margin:0 1px}
   @media (max-width:640px){ .dr-kr{grid-template-columns:auto 1fr} .dr-nums{grid-column:2} .dr-keys{display:none} }
+  .go-desc{margin:0;max-width:65ch;font-size:14.5px;line-height:1.55;color:var(--ink-2)}
   .krs-f{border:0;margin:0;padding:0;display:grid;gap:8px}
   .krs-f legend{font-size:13px;color:var(--ink-2);padding:0;margin-bottom:6px;display:grid;gap:2px}
   .kr-row{display:grid;grid-template-columns:minmax(180px,2fr) minmax(150px,1.3fr) repeat(3,minmax(64px,.5fr)) auto;gap:8px;align-items:end}
@@ -2236,7 +2237,7 @@ function krRow(k, i){
 }
 // What you typed, so adding or removing a row never loses it.
 function readForm(f){
-  return {id: f.dataset.id ? +f.dataset.id : null, draft_id: f.dataset.draft ? +f.dataset.draft : null, title: $("#go-title").value, kind: f.dataset.kind, type: f.dataset.type, quarter: $("#go-q").value || null,
+  return {id: f.dataset.id ? +f.dataset.id : null, draft_id: f.dataset.draft ? +f.dataset.draft : null, title: $("#go-title").value, description: $("#go-desc").value, kind: f.dataset.kind, type: f.dataset.type, quarter: $("#go-q").value || null,
     krs: [...f.querySelectorAll(".kr-row")].map(r => ({text: r.querySelector(".kr-text").value, metric: r.querySelector(".kr-m").value || null,
       start: r.querySelector(".kr-start").value, target: r.querySelector(".kr-target").value, current: r.querySelector(".kr-cur").value}))};
 }
@@ -2247,6 +2248,7 @@ function form(g){
   return `<form class="go-form" id="go-form" data-id="${g.id ?? ""}" data-draft="${g.draft_id ?? ""}" data-kind="${kind}" data-type="${type}">
     <label>Objective<input id="go-title" name="title" maxlength="120" required value="${esc(g.title ?? "")}" placeholder="Customers manage datasets as code" autocomplete="off">
       <span class="hint">An outcome, not a task: what is true when you are done?</span></label>
+    <label>Description<textarea id="go-desc" maxlength="600" rows="3" placeholder="Why this matters now, and what done looks like">${esc(g.description ?? g.why ?? "")}</textarea></label>
     <div class="row"><div class="fld"><span id="go-kind-l">For</span>${seg("kind", kind, [["team", "Team or company"], ["personal", "Personal"]])}</div>
       <div class="fld"><span id="go-type-l">Type</span>${seg("type", type, [["committed", "Committed · must reach 1.0"], ["aspirational", "Aspirational · 0.7 is on track"]])}</div>
       <label>Quarter<select id="go-q" name="quarter"><option value="">No end</option>${qs.map(q => `<option ${q === g.quarter ? "selected" : ""}>${q}</option>`).join("")}</select></label></div>
@@ -2277,6 +2279,7 @@ function card(g, max){
     <div class="go-h"><h2>${esc(g.title)}</h2><span class="go-k ${g.kind}">${g.kind === "personal" ? "personal" : "team"}</span><span class="go-k">${g.type}</span>${g.quarter ? `<span class="facts">${g.quarter}</span>` : ""}
       <span class="end"><button class="undo" data-edit="${g.id}">edit</button><button class="undo del" data-del="${g.id}">delete</button></span></div>
     ${del === g.id ? `<div class="banner">Delete this goal? Its links go; projects and threads stay. <span><button class="undo del" data-del-yes="${g.id}">delete</button><button class="undo" data-del-no="1">cancel</button></span></div>` : ""}
+    ${g.description ? `<p class="go-desc">${esc(g.description)}</p>` : ""}
     ${g.krs.length ? `<ol class="kr-list">${g.krs.map(k => krView(k, g.type)).join("")}</ol>` : `<p class="krs">No key results yet. <button class="undo" data-edit="${g.id}">add them</button></p>`}
     ${confView(g)}
     <div class="go-p">${g.projects.map(p => `<span class="mchip">${esc(p.name)}<button data-unlink="${esc(p.id)}" data-g="${g.id}" aria-label="Unlink ${esc(p.name)}">✕</button></span>`).join("") || "<span>No project linked.</span>"}
@@ -2342,7 +2345,7 @@ function draftGoal(card){
     const k = g.krs[+li.dataset.i];
     return [{text: k.text, metric: k.metric, start: k.metric ? k.start : li.querySelector(".dr-start").value, target: li.querySelector(".dr-target").value}];
   });
-  return {title: g.title, kind: g.kind, type: g.type, quarter: g.quarter, draft_id: g.id, krs};
+  return {title: g.title, description: g.why, kind: g.kind, type: g.type, quarter: g.quarter, draft_id: g.id, krs};
 }
 async function addDraft(card){
   const g = draftGoal(card);
