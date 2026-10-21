@@ -10,6 +10,8 @@ const D = {
   ITEMS: [
     { id: "a", w: 0, s: "p1", title: "A", mode: "build", pillar: "exec", wm: "wouldnt", g: ["g1"], by: { mode: "you" }, links: [["GitHub", "PR", "https://x/1"]], ev: [["pr_merged"], ["pr_merged"], ["slack_mention"]] },
     { id: "b", w: 1, s: "none", title: "B", mode: "elevate", pillar: "level", wm: "slower", g: [], by: { mode: "claude" }, links: [], ev: [] }],
+  OBJECTIVES: [{ title: "Exports GA", kind: "team", type: "committed", quarter: "2026-Q4", checkins: [{ week: "2026-W42", confidence: 6 }],
+    krs: [{ text: "Lead time under a day", metric: "lead_time_h", start: 30, target: 20, value: 25, progress: 0.5 }, { text: "Two customers", metric: null, start: 0, target: 2, value: 1, progress: 0.5 }] }],
   REC: [{ w: 1, who: "Ana", where: "#eng", when: "2026-10-14", t: "thanks" }],
   FEEDBACK: [{ week: "2026-W42", weeks: ["2026-W35"], patterns: [{ name: "Leaving a decision open", trend: [1], evidence: [] }], verdicts: { "pattern:Leaving a decision open": { v: "accept" } } }],
 };
@@ -22,6 +24,8 @@ test("facts count what North shows, in your time zone", () => {
   expect(f.feedback.patterns[0].your_verdict).toBe("accept");
   expect(f.weeks.map((w: any) => [w.review_requests_direct, w.review_requests_team])).toEqual([[3, 5], [null, null]]);
   expect(f.recognition).toEqual([{ week: "2026-W42", who: "Ana", where: "#eng", about: null, quote: "thanks", url: null }]);
+  expect(f.objectives[0].key_results.map((k: any) => [k.measured_by, k.now, k.progress])).toEqual([["lead_time_h", 25, 0.5], ["you", 1, 0.5]]);
+  expect(f.objectives[0].confidence).toEqual([{ week: "2026-W42", value: 6 }]);
   expect(f.threads).toBeUndefined();
 });
 

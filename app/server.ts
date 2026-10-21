@@ -1,7 +1,8 @@
 // Serve the app and its data. Usage: bun app/server.ts  →  http://localhost:4317
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { CONFIG, LIVE, open, PLACED, plain } from "../ingest/ingest";
+import { CONFIG, isoWeek, LIVE, open, PLACED, plain } from "../ingest/ingest";
+import { known, measure, METRICS, progress, quarterWeeks } from "../ingest/metrics";
 import { labelsOf, reviewThreads } from "../ingest/review";
 import { CATEGORIES } from "../ingest/feedback";
 import { correct } from "../ingest/mentions";
@@ -153,8 +154,13 @@ function goalList() {
   const weeks = (db.query("SELECT DISTINCT week FROM labels ORDER BY 1").all() as any[]).map((r) => r.week), L = goalLinks();
   const busy = new Map<string, number>(); // threads per project, so you can start a goal from your busiest work
   const projects = db.query("SELECT p.id, p.name FROM goal_projects gp JOIN projects p ON p.id = gp.project_id WHERE gp.goal_id = ? ORDER BY p.name");
-  const gs = new Map((db.query("SELECT id, title, kind, quarter, krs FROM goals ORDER BY kind = 'personal', id").all() as any[])
-    .map((g) => [g.id, { ...g, projects: projects.all(g.id), weeks: {} as Record<string, any[]> }]));
+  const krs = db.query("SELECT id, text, metric, start, target, current FROM key_results WHERE goal_id = ? ORDER BY pos");
+  const checkins = db.query("SELECT week, confidence FROM goal_checkins WHERE goal_id = ? ORDER BY week");
+  const gs = new Map((db.query("SELECT id, title, kind, type, quarter FROM goals ORDER BY kind = 'personal', id").all() as any[])
+    .map((g) => { const qw = quarterWeeks(db, g.quarter, isoWeek(new Date().toISOString()));
+      // An auto key result reads its metric over the quarter's weeks; a manual one is what you typed.
+      const k = (krs.all(g.id) as any[]).map((r) => { const value = r.metric ? measure(db, r.metric, qw) : r.current; return { ...r, value, progress: progress(r.start, r.target, value) }; });
+      return [g.id, { ...g, krs: k, checkins: checkins.all(g.id), projects: projects.all(g.id), weeks: {} as Record<string, any[]> }]; }));
   for (const week of weeks) for (const t of reviewThreads(db, week)) {
     const l = labelsOf(db, t), d = l.find((r) => r.field === "discard" && r.source === "human")?.value;
     if (d === "yes") continue;
@@ -163,23 +169,52 @@ function goalList() {
     if (t.projects[0]) busy.set(t.projects[0].id, (busy.get(t.projects[0].id) ?? 0) + 1);
     for (const id of goalsOf(L, t)) (gs.get(id)!.weeks[week] ??= []).push({ key: t.key, title: v("title"), decided: !!d, direct: mine.includes(id) });
   }
-  return { weeks, goals: [...gs.values()], projects: (db.query(`SELECT id, name, kind FROM projects WHERE ${LIVE} ORDER BY name`).all() as any[]).map((p) => ({ ...p, threads: busy.get(p.id) ?? 0 })) };
+  // What a key result can measure: the app's metrics, and milestones of the projects a goal serves.
+  const milestones = db.query(`SELECT m.id, m.name, m.progress, p.name project FROM milestones m JOIN projects p ON p.id = m.project_id WHERE p.id IN (SELECT id FROM projects WHERE ${LIVE}) ORDER BY p.name, m.name`).all();
+  return { week: isoWeek(new Date().toISOString()), metrics: Object.entries(METRICS).map(([key, m]) => ({ key, label: m.label, unit: m.unit, better: m.better })), milestones,
+    weeks, goals: [...gs.values()], projects: (db.query(`SELECT id, name, kind FROM projects WHERE ${LIVE} ORDER BY name`).all() as any[]).map((p) => ({ ...p, threads: busy.get(p.id) ?? 0 })) };
 }
 // Create, edit or delete one goal. Deleting it removes its links, never a project or a thread.
 function saveGoal(b: any) {
   const id = b?.id == null ? null : Number(b.id);
   if (id != null && !db.query("SELECT 1 FROM goals WHERE id = ?").get(id)) return new Response("Unknown goal", { status: 400 });
   if (b?.delete) { db.query("DELETE FROM goals WHERE id = ?").run(id); return Response.json({ ok: true }); }
-  const title = typeof b?.title === "string" ? b.title.trim() : "", krs = typeof b?.krs === "string" ? b.krs.trim() : "";
+  const title = typeof b?.title === "string" ? b.title.trim() : "";
   const quarter = b?.quarter ? String(b.quarter) : null;
   if (!title || title.length > 120) return new Response("A goal needs a title, up to 120 characters", { status: 400 });
   if (!["team", "personal"].includes(b?.kind)) return new Response("Pick team or personal", { status: 400 });
   if (quarter && !QUARTER.test(quarter)) return new Response("Quarter looks like 2026-Q4", { status: 400 });
-  if (krs.length > 2000) return new Response("Key results are too long", { status: 400 });
+  const type = b?.type ?? "aspirational";
+  if (!["committed", "aspirational"].includes(type)) return new Response("Pick committed or aspirational", { status: 400 });
+  // Key results arrive whole: the list you see replaces the stored one.
+  const list = Array.isArray(b?.krs) ? b.krs : [];
+  if (list.length > 5) return new Response("Five key results at most: more than that is a task list", { status: 400 });
+  const num = (v: any) => v === null || v === undefined || v === "" ? null : Number.isFinite(Number(v)) ? Number(v) : NaN;
+  const rows = list.map((k: any) => ({ text: typeof k?.text === "string" ? k.text.trim() : "", metric: k?.metric || null, start: num(k?.start), target: num(k?.target), current: k?.metric ? null : num(k?.current) }));
+  for (const k of rows) {
+    if (!k.text || k.text.length > 200) return new Response("Each key result needs a text, up to 200 characters", { status: 400 });
+    if ([k.start, k.target, k.current].some(Number.isNaN)) return new Response(`"${k.text}": start, target and now must be numbers`, { status: 400 });
+    if (k.metric && !known(db, k.metric)) return new Response(`"${k.text}": unknown measure`, { status: 400 });
+  }
   const at = new Date().toISOString();
-  if (id == null) return Response.json({ ok: true, id: Number(db.query("INSERT INTO goals (title, kind, quarter, krs, at) VALUES (?, ?, ?, ?, ?)").run(title, b.kind, quarter, krs || null, at).lastInsertRowid) });
-  db.query("UPDATE goals SET title = ?, kind = ?, quarter = ?, krs = ?, at = ? WHERE id = ?").run(title, b.kind, quarter, krs || null, at, id);
-  return Response.json({ ok: true, id });
+  const put = db.query("INSERT INTO key_results (goal_id, pos, text, metric, start, target, current, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+  let gid = id;
+  db.transaction(() => {
+    if (gid == null) gid = Number(db.query("INSERT INTO goals (title, kind, type, quarter, at) VALUES (?, ?, ?, ?, ?)").run(title, b.kind, type, quarter, at).lastInsertRowid);
+    else db.query("UPDATE goals SET title = ?, kind = ?, type = ?, quarter = ?, krs = NULL, at = ? WHERE id = ?").run(title, b.kind, type, quarter, at, gid);
+    db.query("DELETE FROM key_results WHERE goal_id = ?").run(gid);
+    rows.forEach((k: any, i: number) => put.run(gid, i, k.text, k.metric, k.start, k.target, k.current, at));
+  })();
+  return Response.json({ ok: true, id: gid });
+}
+// How sure you are this week, 1 to 10. Only this week: a check-in is what you knew then.
+function checkin(b: any) {
+  const c = Number(b?.confidence), week = isoWeek(new Date().toISOString());
+  if (!db.query("SELECT 1 FROM goals WHERE id = ?").get(Number(b?.goal_id))) return new Response("Unknown goal", { status: 400 });
+  if (!Number.isInteger(c) || c < 1 || c > 10) return new Response("Confidence is 1 to 10", { status: 400 });
+  db.query(`INSERT INTO goal_checkins (goal_id, week, confidence, at) VALUES (?, ?, ?, ?)
+    ON CONFLICT DO UPDATE SET confidence = excluded.confidence, at = excluded.at`).run(Number(b.goal_id), week, c, new Date().toISOString());
+  return Response.json({ ok: true, week });
 }
 // Link or unlink a project, or one thread, to a goal.
 function linkGoal(b: any) {
@@ -401,11 +436,12 @@ const server = Bun.serve({
     if (url.pathname === "/api/restore" && json) return restore(await req.json().catch(() => null));
     if (url.pathname === "/api/feedback" && json) return verdict(await req.json().catch(() => null));
     if (url.pathname === "/api/goal" && json) return saveGoal(await req.json().catch(() => null));
+    if (url.pathname === "/api/checkin" && json) return checkin(await req.json().catch(() => null));
     if (url.pathname === "/api/goal-link" && json) return linkGoal(await req.json().catch(() => null));
     if (url.pathname === "/api/unmerge" && json) return unmerge(await req.json().catch(() => null));
     // The feedback categories and their sources come with the data, the example too.
     // Same data as North, as JSON, for ingest/facts.ts. No sample: facts are only ever yours.
-    if (url.pathname === "/api/facts") { const d = north(); return d ? Response.json(d) : new Response("No kept threads yet", { status: 404 }); }
+    if (url.pathname === "/api/facts") { const d = north(); return d ? Response.json({ ...d, OBJECTIVES: goalList().goals }) : new Response("No kept threads yet", { status: 404 }); }
     if (url.pathname === "/data.js") { const n = north(), d = n ? Object.entries(n).map(([k, v]) => `const ${k} = ${JSON.stringify(v)};`).join("\n") : await Bun.file(sample).text(); return new Response(`const FB_CATS = ${JSON.stringify(CATEGORIES)};\n${d}`, { headers: { "content-type": "text/javascript", "cache-control": "no-cache" } }); }
     if (url.pathname === "/api/goals") return Response.json(goalList());
     if (url.pathname === "/api/projects") {
