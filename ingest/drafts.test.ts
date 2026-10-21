@@ -11,7 +11,7 @@ const db = () => {
     VALUES (?, 'github', 'review_requests', ?, null, null, null, null, null, null, ?, 'r')`).run(`rr${w}`, w, JSON.stringify({ direct: n, team: 0 }));
   return d;
 };
-const input = { facts: { threads: [{ title: "Review guide for the platform team" }] } };
+const input = { facts: { threads: [{ title: "Review guide for the platform team", runbooks: 0 }] } };
 const obj = (o: any) => ({ title: "Teams review each other", kind: "team", type: "aspirational", why: "Most review requests name you.",
   based_on: ["Review guide for the platform team"], key_results: [{ text: "Requests that name me drop to 2 a week", metric: "asked_direct", start: 99, target: 2 }], ...o });
 const run = (objectives: any[]) => ({ is_error: false, total_cost_usd: 0.1, structured_output: { objectives } });
@@ -19,7 +19,7 @@ const run = (objectives: any[]) => ({ is_error: false, total_cost_usd: 0.1, stru
 test("code sets a measured start, keeps a typed one, and drops what is not in your data", () => {
   const d = db();
   const r = saveDrafts(d, run([
-    obj({ key_results: [obj({}).key_results[0], { text: "Two runbooks by others", metric: null, start: 0, target: 2 }, { text: "Bad", metric: "nope", start: 0, target: 1 }] }),
+    obj({ key_results: [obj({}).key_results[0], { text: "Two runbooks by others", metric: null, start: 0, target: 2 }, { text: "Averaged by Claude", metric: null, start: 2.75, target: 1 }, { text: "Bad", metric: "nope", start: 0, target: 1 }] }),
     obj({ title: "Invented", based_on: ["a thread that does not exist"] }),
     obj({ title: "Made up", why: "You review 37 PRs a week." }),
   ]), input, "v1", NOW);
@@ -27,7 +27,7 @@ test("code sets a measured start, keeps a typed one, and drops what is not in yo
   expect(r.dropped).toEqual(["Teams review each other / Bad: bad key result", "Invented: nothing it is based on is in your data", "Made up: numbers not in your data: 37"]);
   const krs = JSON.parse((d.query("SELECT krs FROM goal_drafts").get() as any).krs);
   // W41 and W42 are the closed weeks: (6 + 4) / 2, not Claude's 99.
-  expect(krs.map((k: any) => [k.metric, k.start, k.target])).toEqual([["asked_direct", 5, 2], [null, 0, 2]]);
+  expect(krs.map((k: any) => [k.metric, k.start, k.target])).toEqual([["asked_direct", 5, 2], [null, 0, 2], [null, null, 1]]);
   expect((d.query("SELECT quarter FROM goal_drafts").get() as any).quarter).toBe("2026-Q4");
 });
 

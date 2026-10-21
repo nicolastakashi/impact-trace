@@ -30,6 +30,7 @@ const str = (v: any, max: number) => typeof v === "string" && v.trim() && v.trim
 // Replaces the drafts you have not used. Returns what was saved and why anything was dropped.
 export function saveDrafts(db: Database, run: any, input: any, version: string, now = new Date()) {
   const out = run.structured_output, text = JSON.stringify(input), dropped: string[] = [];
+  const inData = (n: string) => new RegExp(`(?<![\\d.])${n.replace(".", "\\.")}(?![\\d])`).test(text);
   if (run.is_error || !Array.isArray(out?.objectives)) throw new Error(`Claude failed: ${run.result ?? "no objectives"}`);
   const w = quarterWeeks(db, null, isoWeek(now.toISOString()));
   const drafts = out.objectives.slice(0, 5).flatMap((o: any) => {
@@ -40,13 +41,14 @@ export function saveDrafts(db: Database, run: any, input: any, version: string, 
     if (!based_on.length) { dropped.push(`${title}: nothing it is based on is in your data`); return []; }
     // A number in "why" is copied from your data, or the draft goes. ponytail: matches digits
     // anywhere in the input, so a wrong number that exists elsewhere slips through.
-    const made = (why.match(/\d+(?:\.\d+)?/g) ?? []).filter((n) => !new RegExp(`(?<![\\d.])${n.replace(".", "\\.")}(?![\\d])`).test(text));
+    const made = (why.match(/\d+(?:\.\d+)?/g) ?? []).filter((n) => !inData(n));
     if (made.length) { dropped.push(`${title}: numbers not in your data: ${made.join(", ")}`); return []; }
     const krs = (o.key_results ?? []).slice(0, 5).flatMap((k: any) => {
       const t = str(k.text, 200), metric = k.metric || null;
       if (!t || !Number.isFinite(k.target) || (metric && !known(db, metric))) { dropped.push(`${title} / ${k.text}: bad key result`); return []; }
-      // A start the app can measure is code's, never Claude's.
-      const start = metric ? measure(db, metric, w) : Number.isFinite(k.start) ? k.start : null;
+      // A start the app can measure is code's. Any other start must be copied from your data:
+      // Claude averaged weeks itself once (2.75), so a number it worked out stays empty for you.
+      const start = metric ? measure(db, metric, w) : Number.isFinite(k.start) && inData(String(k.start)) ? k.start : null;
       return [{ text: t, metric, start, target: k.target }];
     });
     if (!krs.length) { dropped.push(`${title}: no key result left`); return []; }

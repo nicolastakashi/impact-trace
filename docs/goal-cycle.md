@@ -19,6 +19,7 @@ draft before you see it:
 - **Based on** strings must be copied from your data, or the draft goes.
 - **Numbers in "why"** must be in your data, or the draft goes.
 - **Starts are code's.** For a measured key result, code sets the start to where you are now.
+  Any other start must be in your data, or it stays empty for you to fill.
 - **Measures must exist.** A key result with an unknown metric is dropped.
 
 ## 2. Decide
