@@ -94,7 +94,7 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
 
   // slack_own and slack_mention are the old one-call-per-week files; older weeks still have them.
   const days = [1, 2, 3, 4, 5, 6, 7].flatMap((d) => [`slack_own_${d}`, `slack_mention_${d}`]);
-  for (const source of ["linear", "github", "reviews", "slack_own", "slack_mention", ...days, "calendar", "drive"]) {
+  for (const source of ["linear", "github", "reviews", "requests", "slack_own", "slack_mention", ...days, "calendar", "drive"]) {
     const file = join(dir, `${source}.run.json`);
     if (!existsSync(file)) continue;
     const run = JSON.parse(readFileSync(file, "utf8"));
@@ -108,7 +108,7 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
     if (!run.is_error && out) {
       // Trust boundary: the shape was enforced by --json-schema, so check only what it cannot.
       // Reviews come from PRs updated since `from`, with every date, so one run covers each week after it.
-      if (source === "reviews") check(out.from <= new Date(dayOf(week, 0)).toISOString().slice(0, 10), `reviews: collected from ${out.from}, after ${week} starts`);
+      if (source === "reviews" || source === "requests") check(out.from <= new Date(dayOf(week, 0)).toISOString().slice(0, 10), `${source}: collected from ${out.from}, after ${week} starts`);
       else check(out.week === week, `${source}: collected ${out.week}, expected ${week}`);
       if (source === "linear") {
         // Claude copies every row; the window filter is ours. Its own picks are the check.
@@ -125,6 +125,7 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
       }
       // Every PR from the search has one of your reviews: PRs missing from the rows were not read.
       else if (source === "reviews") got = new Set(out.reviews.filter((r: any) => r.author !== me.github).map((r: any) => `${r.repo}#${r.number}`)).size;
+      else if (source === "requests") got = new Set(out.prs.filter((p: any) => p.author !== me.github).map((p: any) => `${p.repo}#${p.number}`)).size;
       else if (source === "calendar") got = out.events.length;
       else if (source === "drive") got = out.files.length;
       else {
@@ -153,6 +154,7 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
       if (source === "linear") ingestLinear(db, out, week, runId, now, event, link);
       else if (source === "github") ingestGithub(db, out, week, runId, event, link, me);
       else if (source === "reviews") ingestReviews(out, week, runId, event, me);
+      else if (source === "requests") ingestRequests(out, dir, week, runId, event, me);
       else if (source === "calendar") ingestCalendar(out, week, runId, event, link);
       else if (source === "drive") ingestDrive(out, week, runId, event, link);
       else ingestSlack(db, out, week, runId, event, link, me);
@@ -251,6 +253,17 @@ function ingestReviews(out: any, week: string, runId: string, event: any, me: Co
   const mine = out.reviews.filter((r: any) => r.author !== me.github && !r.author.endsWith("[bot]") && r.submitted_at && isoWeek(r.submitted_at) === week);
   event.run(`github:reviews_given:${week}`, "github", "reviews_given", week, null, null, null, me.github, null, null,
     JSON.stringify({ count: new Set(mine.map((r: any) => `${r.repo}#${r.number}`)).size, submissions: mine.length }), runId);
+}
+
+// Asked for a review in the week: PRs that named you, and PRs that named one of your teams.
+// Bot PRs are left out, as in reviews given. ponytail: a request removed before the run
+// (someone else reviewed for the team, the author took you off) is missed when the PR left both searches.
+function ingestRequests(out: any, dir: string, week: string, runId: string, event: any, me: Config) {
+  const f = join(dir, "teams.txt"), teams = existsSync(f) ? new Set(readFileSync(f, "utf8").split("\n").filter(Boolean)) : null;
+  const prs = out.prs.filter((p: any) => p.author !== me.github && !p.author.endsWith("[bot]"));
+  const asked = (hit: (r: string) => boolean) => prs.filter((p: any) => p.requests.some((r: any) => hit(r.reviewer) && isoWeek(r.at) === week)).length;
+  event.run(`github:review_requests:${week}`, "github", "review_requests", week, null, null, null, me.github, null, null,
+    JSON.stringify({ direct: asked((r) => r === me.github), team: teams ? asked((r) => teams.has(r)) : null }), runId);
 }
 
 function ingestGithub(db: Database, out: any, week: string, runId: string, event: any, link: any, me: Config) {

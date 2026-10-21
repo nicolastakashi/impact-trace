@@ -14,6 +14,7 @@ export function facts(d: any, tz: string, week?: string) {
     const kept = d.ITEMS.filter((it: any) => it.w === i);
     return { week: `${year}-${w}`, kept: kept.length, mode: tally(kept.map((x: any) => x.mode)), pillar: tally(kept.map((x: any) => x.pillar)),
       without_me: tally(kept.map((x: any) => x.wm)), prs_reviewed: d.REVIEWS[i], prs_opened: N.opened[i], prs_merged: N.merged[i],
+      review_requests_direct: N.asked_direct?.[i] ?? null, review_requests_team: N.asked_team?.[i] ?? null,
       give_vs_take: N.opened[i] ? +(d.REVIEWS[i] / N.opened[i]).toFixed(2) : null, lead_time_h: N.lead[i], slack_messages: N.slack[i],
       slack_channels: N.channels[i], outside_hours_pct: N.slackAt[i].length ? Math.round(N.slackAt[i].filter(late).length / N.slackAt[i].length * 100) : null,
       meeting_h: N.meetings[i], people_mentioning: N.reach[i], praise: d.REC.filter((r: any) => r.w === i).length };
@@ -23,7 +24,7 @@ export function facts(d: any, tz: string, week?: string) {
   const fb = d.FEEDBACK[0];
   const out: any = {
     period: d.PERIOD, time_zone: tz,
-    rules: "Counts are code's. Kept threads are the ones you kept in review; labels_by says if you set a label or it is still Claude's. Slack, GitHub and calendar numbers count everything collected, kept or not.",
+    rules: "Counts are code's. Kept threads are the ones you kept in review; labels_by says if you set a label or it is still Claude's. Slack, GitHub and calendar numbers count everything collected, kept or not. review_requests_* are PRs that named you (direct) or one of your teams (team) that week; null means not collected.",
     totals: { kept: d.ITEMS.length, mode: tally(d.ITEMS.map((x: any) => x.mode)), pillar: tally(d.ITEMS.map((x: any) => x.pillar)),
       without_me: tally(d.ITEMS.map((x: any) => x.wm)), goals: Object.fromEntries(d.GOALS.map((g: any) => [g.title, d.ITEMS.filter((x: any) => x.g.includes(g.id)).length])),
       no_goal: d.ITEMS.filter((x: any) => !x.g.length).length, project: tally(d.ITEMS.map((x: any) => d.PROJECTS[x.s]?.name ?? x.s)) },

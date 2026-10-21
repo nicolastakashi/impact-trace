@@ -40,6 +40,8 @@ collect linear "$linear_tools"
 collect github "$github_tools" "$login ${orgs:--}"
 # Reviews by when you submitted them: search can only filter PRs by their last update.
 collect reviews "$github_tools" "$login"
+# Who asked you: GitHub keeps a request on the PR timeline, searches only show pending ones.
+collect requests "$github_tools" "$login"
 # One call per pass and per day: a single call skipped the mention pass, and a week in one
 # call came back as its first page only (11 pages read, 20 rows returned).
 for i in 0 1 2 3 4 5 6; do
@@ -61,6 +63,11 @@ gh search prs --author "$login" --created "$monday..$sunday" --limit 200 \
   > "$out/github_opened.expected"
 gh search prs --reviewed-by "$login" --updated ">=$monday" --limit 1000 \
   --json author --jq "[.[]|select(.author.login!=\"$login\")]|length" > "$out/reviews.expected"
+# PRs that asked you or your teams, or that you reviewed; and your teams, for the ingest filter.
+{ gh search prs --review-requested "$login" --updated ">=$monday" --limit 1000 --json url,author
+  gh search prs --reviewed-by "$login" --updated ">=$monday" --limit 1000 --json url,author; } |
+  jq -s "[add[]|select(.author.login!=\"$login\")|.url]|unique|length" > "$out/requests.expected"
+gh api --paginate user/teams --jq '.[]|"team:\(.organization.login)/\(.slug)"' > "$out/teams.txt"
 
 bun ingest/ingest.ts "$week"
 
