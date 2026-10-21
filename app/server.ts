@@ -419,6 +419,11 @@ const server = Bun.serve({
     const url = new URL(req.url);
     // No cache: after an update or a new review, the next load shows it.
     if (url.pathname === "/") return new Response(Bun.file(page), { headers: { "cache-control": "no-cache" } });
+    // The page's styles and scripts, one file per view. The pattern allows no other path.
+    if (/^\/(css\/[a-z]+\.css|js\/[a-z]+\.js)$/.test(url.pathname)) {
+      const f = Bun.file(join(import.meta.dir, url.pathname));
+      return (await f.exists()) ? new Response(f, { headers: { "cache-control": "no-cache" } }) : new Response("Not found", { status: 404 });
+    }
     // Old addresses: review and groups now live inside the one page.
     if (url.pathname === "/review" || url.pathname === "/groups") return new Response(null, { status: 302, headers: { location: `/#${url.pathname === "/groups" ? "/projects" : url.pathname}${url.search}` } });
     if (url.pathname === "/api/setup" && req.method === "GET") return setup(url.searchParams.has("guess"));
