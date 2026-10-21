@@ -1,5 +1,3 @@
-const WM = [["wouldnt","wouldn't happen"],["slower","slower"],["same","same"]];
-
 /* FEEDBACK: how you show up, from your own messages. The experiment first, then each pattern with your words and a stronger version. */
 const FB = typeof FEEDBACK === "undefined" ? [] : FEEDBACK, CATS = typeof FB_CATS === "undefined" ? [] : FB_CATS;
 if(CATS.length) REFS.feedback = {title:"Feedback categories", d:"What Claude may flag in your Slack messages, and who says it matters. Anything outside this list is dropped by the code.",
@@ -44,12 +42,12 @@ async function setVerdict(key, v, why){
   renderFeedback(false);
   // The example has no server behind it: the verdict lives on this page only.
   if(typeof SAMPLE !== "undefined") return fbToast(v ? (v === "accept" ? "Accepted (example only)" : "Rejected (example only)") : "Taken back");
-  const r = await fetch("/api/feedback", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({week: f.week, item: key, verdict: v, why})}).catch(() => null);
+  const r = await post("/api/feedback", {week: f.week, item: key, verdict: v, why}).catch(() => null);
   if(!r?.ok){ if(old) f.verdicts[key] = old; else delete f.verdicts[key]; renderFeedback(false); return fbToast(`Not saved: ${r ? await r.text() : "server not reachable"}`); }
   fbToast(why != null ? "Reason saved. Claude reads it next week." : !v ? "Taken back" : v === "accept" ? "Accepted" : "Rejected. Say why, and Claude learns from it.");
   if(v === "reject" && why == null) $("#fb-why")?.focus();
 }
-function fbToast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(fbToast.t); fbToast.t = setTimeout(() => el.hidden = true, 2200); }
+const fbToast = msg => toast(msg, 2200);
 
 function renderFeedback(anim = true){
   const f = FB[fbW];
@@ -154,5 +152,3 @@ document.addEventListener("keydown", e => {
   const v = k === "a" ? "accept" : "reject"; setVerdict(it.key, vdOf(f, it.key) === v ? null : v);
 });
 const fbUrl = () => history.replaceState(null, "", `#/feedback?w=${FB[fbW] ? wk(FB[fbW].week) : ""}&p=${fbP}`);
-
-/* SETUP: tools, who you are, first week. The form starts filled from gh and git. */

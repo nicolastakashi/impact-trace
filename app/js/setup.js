@@ -1,3 +1,4 @@
+/* SETUP: tools, who you are, first week. The form starts filled from gh and git. */
 const SU = (() => {
 const LEVELS = ["Software Engineer","Senior Engineer","Staff Engineer","Senior Staff Engineer","Principal Engineer","Distinguished Engineer"];
 let s = null, err = "";
@@ -37,12 +38,10 @@ function render(){
 $("#v-setup").addEventListener("submit", async e => {
   e.preventDefault(); const f = new FormData(e.target);
   const body = {name: f.get("name"), github: f.get("github"), level: f.get("level"), orgs: [...new Set([...f.getAll("org"), ...String(f.get("more")).split(",").map(x => x.trim()).filter(Boolean)])]};
-  const r = await fetch("/api/setup", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
+  const r = await post("/api/setup", body);
   err = r.ok ? "" : await r.text();
-  if(r.ok){ s.config = body; const t = $("#toast"); t.textContent = "Saved"; t.hidden = false; setTimeout(() => t.hidden = true, 1800); }
+  if(r.ok){ s.config = body; toast("Saved"); }
   render();
 });
 return {open};
 })();
-
-/* REFS */

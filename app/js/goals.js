@@ -1,7 +1,6 @@
+/* GOALS: what your work serves. You write them; projects and single threads link to them. */
 const GO = (() => {
 const esc = escP;
-const post = (url, body) => fetch(url, {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
-function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
 let d = null, edit = null, del = null, openG = new Set(), focusG = null;
 // Last quarter, this one and the next three.
 function quarters(){ const n = new Date(), q = n.getFullYear() * 4 + Math.floor(n.getMonth() / 3);

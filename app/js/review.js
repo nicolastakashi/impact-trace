@@ -1,10 +1,8 @@
+/* REVIEW: real threads from SQLite. Your decisions are the gold set. */
 const RV = (() => {
+const WM = [["wouldnt","wouldn't happen"],["slower","slower"],["same","same"]];
 const MODE_KEYS = ["a","s","d","f","g","h"], PILLAR_KEYS = ["z","x","c"];
-const KIND = {pr_merged:"PR merged", pr_open:"PR open", issue_completed:"issue done", issue_open:"issue open",
-  review_comment:"review received", reviews_given:"reviews given", slack_message:"Slack", slack_mention:"mention",
-  meeting:"meeting", doc_created:"doc created", doc_edited:"doc edited"};
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const post = (url, body) => fetch(url, {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
+const esc = escP;
 let data = null, cur = 0, draft = {}, from = null, all = false, keys = false;
 
 async function load(week){
@@ -99,7 +97,6 @@ function set(field, v){ pick(data.threads[cur])[field] = v; render(); }
 function go(i){ cur = Math.min(Math.max(i,0), data.threads.length-1); all = false; render(); }
 // J/K step over threads the filter hides.
 function step(dir){ for(let i = cur + dir; i >= 0 && i < data.threads.length; i += dir) if(shown(i)) return go(i); }
-function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
 // When a week has nothing left, open the next week that does.
 async function nextWeek(){
   const w = data.weeks.find(w => w !== data.week && data.pending[w] > 0);
@@ -227,5 +224,3 @@ document.addEventListener("keydown", e => {
 // Threads change when projects merge, so the next visit loads them again.
 return {open, reset: () => { data = null; }};
 })();
-
-/* PROJECTS: every project across weeks. A thread opens in review, with a way back here. */

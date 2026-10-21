@@ -1,3 +1,4 @@
+/* HOME */
 function renderHome(){
   renderFbTile();
   const ups = ITEMS.filter(i=>i.wm==="wouldnt").length;
@@ -112,7 +113,7 @@ $("#wg").addEventListener("focusout", () => wgOn(null));
 let recOpen = false, recUndo = null;
 // You correct Claude: the mention becomes information, and Claude sees it as an example next time.
 async function setMention(id, kind){
-  const r = await fetch("/api/mention", {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({id, kind})});
+  const r = await post("/api/mention", {id, kind});
   return r.ok;
 }
 function renderRec(){
@@ -150,4 +151,16 @@ function renderAsks(){
     <span class="num">${a.n}</span></li>`).join("")}</ol>`;
 }
 
-/* TRACE: your weeks as traces. A week is a trace, a kept thread is a span, its PRs, issues and messages are span events. */
+/* PENDING: your undecided threads per week, for the nav badge and the home tile. */
+let PENDING = {};
+function renderWm(){
+  const ws = Object.keys(PENDING).sort(), left = ws.reduce((a,w)=>a+PENDING[w],0);
+  $("#badge").textContent = left; $("#badge").hidden = !left;
+  // Red only where something waits for you; done weeks stay quiet.
+  $("#t-wm").classList.toggle("wait", !!left);
+  $("#t-wm").innerHTML = `<span class="lbl">To review</span>
+    ${left ? `<p class="do"><span class="wm-n">${left}</span> thread${left > 1 ? "s" : ""} wait for your answer</p>` : `<p class="do">${ws.length ? `<span class="okc">✓</span> All caught up` : "No weeks collected yet"}</p>`}
+    <div class="prog">${ws.map(w=>`<i class="${PENDING[w]?"p":"c"}" title="${w}: ${PENDING[w] ? PENDING[w]+" left" : "done"}"></i>`).join("")}</div>
+    <span class="ref">${left ? "open review →" : ws.length ? `${ws.length} weeks reviewed · review again →` : "open review →"}</span>`;
+}
+const loadPending = () => fetch("/api/pending").then(r => r.ok ? r.json() : {}).then(p => { PENDING = p; renderWm(); }).catch(() => {});

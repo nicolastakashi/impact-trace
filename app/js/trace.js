@@ -1,3 +1,4 @@
+/* TRACE: your weeks as traces. A week is a trace, a kept thread is a span, its PRs, issues and messages are span events. */
 const DAY = 864e5, DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const EVK = {pr_merged:"PR merged", pr_open:"PR opened", issue_completed:"issue done", issue_open:"issue open", review_comment:"review received",
   reviews_given:"reviews given", slack_message:"Slack", slack_mention:"mention", meeting:"meeting", doc_created:"doc created", doc_edited:"doc edited"};

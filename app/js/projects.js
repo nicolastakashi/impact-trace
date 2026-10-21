@@ -1,5 +1,6 @@
+/* PROJECTS: every project across weeks. A thread opens in review, with a way back here. */
 const GV = (() => {
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc = escP;
 let data = null, linear = new Map(), filter = "all", ask = null;
 async function open(){
   // Always fresh: decisions made in review change the counts here.
@@ -33,11 +34,10 @@ function actions(g, gs){
     <button class="undo del end" data-del="${esc(g.id)}">delete</button>`;
 }
 async function go(url, body){
-  const r = await fetch(url, {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
+  const r = await post(url, body);
   if(!r.ok){ toast(await r.text()); return; }
   RV.reset(); toast(url === "/api/merge" ? "Merged" : "Deleted"); await open();
 }
-function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
 $("#v-projects").addEventListener("change", e => {
   const s = e.target.closest("[data-into]"); if(!s || !s.value) return;
   ask = {id: s.dataset.into, into: s.value}; render(); });
@@ -50,33 +50,16 @@ $("#v-projects").addEventListener("click", async e => {
     else render();
     return; }
   const rs = e.target.closest("[data-restore]");
-  if(rs){ const r = await fetch("/api/restore", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({id: rs.dataset.restore})});
+  if(rs){ const r = await post("/api/restore", {id: rs.dataset.restore});
     if(r.ok){ RV.reset(); await open(); } return; }
   const b = e.target.closest("[data-f]"); if(!b) return;
   filter = b.dataset.f; document.querySelectorAll("#v-projects [data-f]").forEach(x => x.setAttribute("aria-pressed", x === b)); render(); });
 return {open};
 })();
 
-// Shared by the list and the project page.
-const escP = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-function strip(weeks, count, max){
-  return `<div class="strip" style="--n:${weeks.length}">${weeks.map(w => { const c = count(w);
-    return `<i class="${c ? "on" : ""}" style="--v:${c / max}" title="${w}: ${c}">${c || ""}</i>`; }).join("")}${weeks.map(w => `<span>${w.slice(5)}</span>`).join("")}</div>`;
-}
-function sourceLine(g, L){
-  const merged = g.merged?.length ? ` · includes ${g.merged.map(m => escP(m.name)).join(", ")}` : "";
-  if(g.kind === "topic" || !L) return `<span class="facts"><i class="src topic"></i>topic${merged}</span>`;
-  return `<span class="facts"><i class="src linear"></i>Linear${L.status ? ` · ${escP(L.status)}` : ""}${L.open ? ` · ${L.open} open` : ""}${merged}</span>`;
-}
-
 /* PROJECT: one project, all of it. Sources on top; every thread opens to its events. */
 const PV = (() => {
 const esc = escP;
-const KIND = {pr_merged:"PR merged", pr_open:"PR open", issue_completed:"issue done", issue_open:"issue open",
-  review_comment:"review received", reviews_given:"reviews given", slack_message:"Slack", slack_mention:"mention",
-  meeting:"meeting", doc_created:"doc created", doc_edited:"doc edited"};
-const post = (url, body) => fetch(url, {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
-function toast(msg){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800); }
 let d = null, id = null, all = [], openT = new Set(), showGone = false, merging = false, deleting = false;
 
 async function open(pid){
@@ -169,5 +152,3 @@ $("#v-project").addEventListener("change", e => {
 });
 return {open};
 })();
-
-/* GOALS: what your work serves. You write them; projects and single threads link to them. */

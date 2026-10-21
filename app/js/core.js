@@ -70,4 +70,21 @@ function countUp(root){
   });
 }
 
-/* HOME */
+// Shared by the views: escaping that prints nothing for null, week strips, project sources.
+const escP = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function strip(weeks, count, max){
+  return `<div class="strip" style="--n:${weeks.length}">${weeks.map(w => { const c = count(w);
+    return `<i class="${c ? "on" : ""}" style="--v:${c / max}" title="${w}: ${c}">${c || ""}</i>`; }).join("")}${weeks.map(w => `<span>${w.slice(5)}</span>`).join("")}</div>`;
+}
+function sourceLine(g, L){
+  const merged = g.merged?.length ? ` · includes ${g.merged.map(m => escP(m.name)).join(", ")}` : "";
+  if(g.kind === "topic" || !L) return `<span class="facts"><i class="src topic"></i>topic${merged}</span>`;
+  return `<span class="facts"><i class="src linear"></i>Linear${L.status ? ` · ${escP(L.status)}` : ""}${L.open ? ` · ${L.open} open` : ""}${merged}</span>`;
+}
+// One JSON POST: the server takes a write only with this exact content-type.
+const post = (url, body) => fetch(url, {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
+function toast(msg, ms = 1800){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, ms); }
+// Event kinds as people say them, in review and on a project page.
+const KIND = {pr_merged:"PR merged", pr_open:"PR open", issue_completed:"issue done", issue_open:"issue open",
+  review_comment:"review received", reviews_given:"reviews given", slack_message:"Slack", slack_mention:"mention",
+  meeting:"meeting", doc_created:"doc created", doc_edited:"doc edited"};

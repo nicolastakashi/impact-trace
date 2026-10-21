@@ -1,3 +1,4 @@
+/* REFS */
 function renderRefs(k){
   if(!REFS[k]) k = "clarify";
   const tab = ([id, r]) => `<button data-refk="${id}" aria-pressed="${id === k}" style="--c:${MODES[id] ? mc(id) : "var(--ink-2)"}">${MODES[id] ? `<i class="dot" style="background:${mc(id)}"></i>` : ""}${esc(MODES[id] ? MODES[id][0].toUpperCase() + MODES[id].slice(1) : r.title)}<span class="n">${r.items.length}</span></button>`;
@@ -127,19 +128,3 @@ document.addEventListener("keydown", e=>{
   if(e.key==="Escape" && $("#sheet").hidden && spanSel && !$("#v-trace").hidden){ pickSpan(spanSel); return; }
   if(e.key==="Escape"){ $("#sheet").hidden = true; return; }
 });
-
-/* PENDING: your undecided threads per week, for the nav badge and the home tile. */
-let PENDING = {};
-function renderWm(){
-  const ws = Object.keys(PENDING).sort(), left = ws.reduce((a,w)=>a+PENDING[w],0);
-  $("#badge").textContent = left; $("#badge").hidden = !left;
-  // Red only where something waits for you; done weeks stay quiet.
-  $("#t-wm").classList.toggle("wait", !!left);
-  $("#t-wm").innerHTML = `<span class="lbl">To review</span>
-    ${left ? `<p class="do"><span class="wm-n">${left}</span> thread${left > 1 ? "s" : ""} wait for your answer</p>` : `<p class="do">${ws.length ? `<span class="okc">✓</span> All caught up` : "No weeks collected yet"}</p>`}
-    <div class="prog">${ws.map(w=>`<i class="${PENDING[w]?"p":"c"}" title="${w}: ${PENDING[w] ? PENDING[w]+" left" : "done"}"></i>`).join("")}</div>
-    <span class="ref">${left ? "open review →" : ws.length ? `${ws.length} weeks reviewed · review again →` : "open review →"}</span>`;
-}
-const loadPending = () => fetch("/api/pending").then(r => r.ok ? r.json() : {}).then(p => { PENDING = p; renderWm(); }).catch(() => {});
-
-/* REVIEW: real threads from SQLite. Your decisions are the gold set. */
