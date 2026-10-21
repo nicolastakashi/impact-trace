@@ -38,6 +38,10 @@ export function migrate(db: Database) {
   );
 }
 
+// Slack markup to what a person reads: <@U1|Ana> → @Ana, <url|label> → label, bare links dropped.
+export const plain = (t: string) => t.replace(/<@[A-Z0-9]+\|([^>]+)>/g, "@$1").replace(/<@[A-Z0-9]+>/g, "@someone").replace(/<#[A-Z0-9]+\|([^>]*)>/g, "#$1")
+  .replace(/<(?:https?|mailto):[^|>]+\|([^>]+)>/g, "$1").replace(/<(?:https?|mailto):[^>]+>/g, "").replace(/\s+/g, " ").trim();
+
 // Midnight UTC of a day in an ISO week: 0 is Monday.
 export function dayOf(week: string, i: number) {
   const [y, w] = week.split("-W").map(Number), jan4 = Date.UTC(y, 0, 4);
