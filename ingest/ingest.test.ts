@@ -186,3 +186,22 @@ test("reviews given count people's PRs you reviewed in the week, not PRs updated
   // A run from after the week started cannot cover it.
   expect(() => ingestWeek(db, dir, "2026-W40", ME)).toThrow("after 2026-W40 starts");
 });
+
+test("PRs opened are counted per week and checked against the search", () => {
+  const dir = mkdtempSync(join(tmpdir(), "po-"));
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  const pr = (number: number) => ({ repo: "acme/api", number, url: `https://github.com/acme/api/pull/${number}` });
+  const write = (opened: any[], expected: number) => {
+    writeFileSync(join(dir, "github.run.json"), JSON.stringify({ session_id: "s", structured_output: { week: "2026-W42", prs_merged: [], prs_open: [],
+      prs_opened: opened, review_comments_received: [] } }));
+    writeFileSync(join(dir, "github.expected"), "0\n");
+    writeFileSync(join(dir, "github_opened.expected"), `${expected}\n`);
+  };
+  write([pr(1), pr(2), pr(2)], 2);
+  expect(ingestWeek(db, dir, "2026-W42", ME)).toEqual({ github: "ok" });
+  expect(JSON.parse((db.query("SELECT payload FROM events WHERE kind = 'prs_opened'").get() as any).payload)).toEqual({ count: 2 });
+  // Claude dropped a PR the search found: flagged.
+  write([pr(1)], 2);
+  expect(ingestWeek(db, dir, "2026-W42", ME)).toEqual({ github: "count_mismatch" });
+});

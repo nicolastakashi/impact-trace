@@ -56,6 +56,9 @@ collect drive "$drive_tools"
 gh search prs --author "$login" --merged --merged-at "$monday..$sunday" --limit 200 \
   --json repository --jq "[.[]|select(.repository.nameWithOwner|startswith(\"$login/\")|not)]|length" \
   > "$out/github.expected"
+gh search prs --author "$login" --created "$monday..$sunday" --limit 200 \
+  --json repository --jq "[.[]|select(.repository.nameWithOwner|startswith(\"$login/\")|not)]|length" \
+  > "$out/github_opened.expected"
 gh search prs --reviewed-by "$login" --updated ">=$monday" --limit 1000 \
   --json author --jq "[.[]|select(.author.login!=\"$login\")]|length" > "$out/reviews.expected"
 

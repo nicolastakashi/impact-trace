@@ -31,6 +31,13 @@ gh search prs --author LOGIN --created FROM..TO --state open --limit 200 \
   --json number,title,repository,url,createdAt,body
 ```
 
+Opened in the window, in any state (`prs_opened`: only `repo`, `number`, `url`):
+
+```
+gh search prs --author LOGIN --created FROM..TO --limit 200 \
+  --json number,repository,url
+```
+
 Drop every PR whose repository starts with `LOGIN/`. Those are side projects.
 Keep upstream repositories (open source projects outside `ORGS`).
 
