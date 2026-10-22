@@ -68,10 +68,10 @@ export function saveAssignments(db: Database, week: string, run: any, promptVers
 }
 
 if (import.meta.main) {
-  const [cmd, week, file] = process.argv.slice(2);
+  const [command, week, file] = process.argv.slice(2);
   const db = open();
-  if (cmd === "emit") console.log(JSON.stringify(unplaced(db, week)));
-  else if (cmd === "save") {
+  if (command === "emit") console.log(JSON.stringify(unplaced(db, week)));
+  else if (command === "save") {
     const version = promptVersion("assign-projects");
     console.log(saveAssignments(db, week, readJson(file), version));
   } else throw new Error("usage: bun jobs/assign.ts emit|save <week> [file]");

@@ -10,8 +10,8 @@ const recap = async (page: any) => {
   await page.keyboard.press("Enter");
 };
 // Only the recap's text: the view behind it may say the same words.
-const see = (page: any, t: string | RegExp, exact?: boolean) =>
-  page.getByText(t, { exact }).filter({ visible: true });
+const see = (page: any, text: string | RegExp, exact?: boolean) =>
+  page.getByText(text, { exact }).filter({ visible: true });
 
 test("the recap starts with the period and steps with keys and taps", async ({ page, view }) => {
   await view("setup");
@@ -43,7 +43,7 @@ test("the recap starts with the period and steps with keys and taps", async ({ p
 test("the last slides: modes, then the open question", async ({ page, view }) => {
   await view("setup");
   await recap(page);
-  for (let i = 0; i < 8; i++) await page.keyboard.press("ArrowRight");
+  for (let slide = 0; slide < 8; slide++) await page.keyboard.press("ArrowRight");
   await expect(see(page, "How you delivered")).toBeVisible();
   await expect(see(page, "elevate", true)).toBeVisible();
   await page.keyboard.press("ArrowRight");

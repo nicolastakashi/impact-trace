@@ -10,11 +10,13 @@ test("a draft becomes a goal with one click", async ({ page, view, request }) =>
   ).toBeVisible();
   await page.getByRole("button", { name: "Add as goal" }).click();
   await expect(toast(page)).toHaveText("Added: Exports reach general availability");
-  const g = (await goals(request)).goals[0];
-  expect(g.title).toBe("Exports reach general availability");
-  expect(g.description).toBe("Batch exports is open and most of your work sits in Exports API.");
+  const goal = (await goals(request)).goals[0];
+  expect(goal.title).toBe("Exports reach general availability");
+  expect(goal.description).toBe("Batch exports is open and most of your work sits in Exports API.");
   // Starts are code's: the milestone is at 60.
-  expect(g.krs.map((k: any) => [k.text, k.start, k.target])).toEqual([
+  expect(
+    goal.krs.map((keyResult: any) => [keyResult.text, keyResult.start, keyResult.target]),
+  ).toEqual([
     ["Batch exports milestone done", 60, 100],
     ["PRs you review each week", 3, 5],
   ]);
@@ -26,9 +28,9 @@ test("drop a key result and change a target before adding", async ({ page, view,
   await page.getByRole("textbox", { name: "Target" }).first().fill("90");
   await page.getByRole("button", { name: "Add as goal" }).click();
   await expect(toast(page)).toContainText("Added");
-  expect((await goals(request)).goals[0].krs.map((k: any) => [k.text, k.target])).toEqual([
-    ["Batch exports milestone done", 90],
-  ]);
+  expect(
+    (await goals(request)).goals[0].krs.map((keyResult: any) => [keyResult.text, keyResult.target]),
+  ).toEqual([["Batch exports milestone done", 90]]);
 });
 
 test("skip deletes a draft; arrows move between drafts", async ({ page, view, request }) => {
@@ -38,7 +40,7 @@ test("skip deletes a draft; arrows move between drafts", async ({ page, view, re
   await expect(page.getByRole("heading", { name: "Alerts reach the right team" })).toBeVisible();
   await page.getByRole("button", { name: "skip" }).click();
   await expect(toast(page)).toContainText("Skipped");
-  expect((await goals(request)).drafts.map((d: any) => d.title)).toEqual([
+  expect((await goals(request)).drafts.map((draft: any) => draft.title)).toEqual([
     "Exports reach general availability",
   ]);
 });
@@ -55,8 +57,8 @@ test("write a goal by hand, with a measured key result", async ({ page, view, re
   await page.getByLabel("target").fill("6");
   await page.getByRole("button", { name: "Create objective" }).click();
   await expect(toast(page)).toHaveText("Goal created");
-  const g = (await goals(request)).goals[0];
-  expect([g.title, g.description, g.krs[0].metric, g.krs[0].target]).toEqual([
+  const goal = (await goals(request)).goals[0];
+  expect([goal.title, goal.description, goal.krs[0].metric, goal.krs[0].target]).toEqual([
     "Reviews flow both ways",
     "Others review as much as I do.",
     "reviews_given",
@@ -76,10 +78,10 @@ test("a wrong number is explained, and nothing is lost", async ({ page, view }) 
 });
 
 test("one goal open at a time; confidence; edit; delete", async ({ page, view, request }) => {
-  for (const t of ["First goal", "Second goal"])
+  for (const title of ["First goal", "Second goal"])
     await request.post("/api/goal", {
       data: {
-        title: t,
+        title,
         kind: "team",
         krs: [{ text: "A number", start: 0, target: 2, current: 1 }],
       },
@@ -101,8 +103,11 @@ test("one goal open at a time; confidence; edit; delete", async ({ page, view, r
   await page.getByRole("button", { name: "delete", exact: true }).click();
   await page.getByRole("button", { name: "delete", exact: true }).last().click();
   await expect(toast(page)).toHaveText("Goal deleted");
-  const d = await goals(request);
-  expect(d.goals.map((g: any) => [g.title, g.checkins.map((c: any) => c.confidence)])).toEqual([
-    ["First goal", []],
-  ]);
+  const saved = await goals(request);
+  expect(
+    saved.goals.map((goal: any) => [
+      goal.title,
+      goal.checkins.map((checkIn: any) => checkIn.confidence),
+    ]),
+  ).toEqual([["First goal", []]]);
 });

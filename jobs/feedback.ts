@@ -19,9 +19,9 @@ export const CATEGORIES: {
   refs: any[];
 }[] = JSON.parse(readFileSync(join(import.meta.dir, "feedback-categories.json"), "utf8"));
 const category = (id: string, kind: string) =>
-  CATEGORIES.find((c) => c.id === id && c.kind === kind);
+  CATEGORIES.find((entry) => entry.id === id && entry.kind === kind);
 
-type Msg = { week: string; at: string; channel: string; text: string; url: string | null };
+type Message = { week: string; at: string; channel: string; text: string; url: string | null };
 
 // The feedback window: the last 8 weeks with any events, up to this one, oldest first.
 function windowWeeks(db: Database, week: string) {
@@ -31,7 +31,7 @@ function windowWeeks(db: Database, week: string) {
   return rows.map((row) => row.week).reverse() as string[];
 }
 
-function messages(db: Database, weeks: string[]): Msg[] {
+function messagesIn(db: Database, weeks: string[]): Message[] {
   return db
     .query(
       `SELECT week, occurred_at at, title channel, url, json_extract(payload, '$.text') text FROM events
@@ -45,18 +45,22 @@ const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&
 
 // A marker matches as a whole phrase: "wdyt" in a message, not inside another word.
 function matcher(markers: string[]) {
-  const phrases = markers.map((m) => `(?<![\\w])${escapeRegExp(m.toLowerCase())}(?![\\w])`);
+  const phrases = markers.map(
+    (marker) => `(?<![\\w])${escapeRegExp(marker.toLowerCase())}(?![\\w])`,
+  );
   const pattern = new RegExp(phrases.join("|"));
-  return (message: Msg) => pattern.test((message.text ?? "").toLowerCase());
+  return (message: Message) => pattern.test((message.text ?? "").toLowerCase());
 }
 
-function trend(msgs: Msg[], weeks: string[], markers: string[]) {
+function trend(messages: Message[], weeks: string[], markers: string[]) {
   const matches = matcher(markers);
-  return weeks.map((week) => msgs.filter((m) => m.week === week && matches(m)).length);
+  return weeks.map(
+    (week) => messages.filter((message) => message.week === week && matches(message)).length,
+  );
 }
 
 // Last week's experiment, measured: how often its markers showed up then and now.
-function previous(db: Database, week: string, weeks: string[], msgs: Msg[]) {
+function previous(db: Database, week: string, weeks: string[], messages: Message[]) {
   const row = db
     .query("SELECT week, output FROM feedback WHERE week < ? ORDER BY week DESC LIMIT 1")
     .get(week) as any;
@@ -67,7 +71,7 @@ function previous(db: Database, week: string, weeks: string[], msgs: Msg[]) {
   // You passed on that experiment: there is nothing to measure.
   if (verdict?.verdict === "reject") return null;
   const experiment = JSON.parse(row.output).experiment;
-  const counts = experiment?.markers?.length ? trend(msgs, weeks, experiment.markers) : null;
+  const counts = experiment?.markers?.length ? trend(messages, weeks, experiment.markers) : null;
   return {
     week: row.week,
     pattern: experiment?.pattern,
@@ -91,7 +95,7 @@ export function isoWeek(date: Date) {
   return `${year}-W${String(week).padStart(2, "0")}`;
 }
 
-const pad2 = (n: number) => String(n).padStart(2, "0");
+const pad2 = (number: number) => String(number).padStart(2, "0");
 
 // Mondays of the ended weeks that still have no feedback, oldest first. A week gets feedback only
 // after it ends, so a Monday the Mac slept through, or a run that failed, shows up here the next day,
@@ -101,10 +105,10 @@ export function pendingMondays(today: Date, have: string[]) {
   const first = [...have].sort()[0];
   const pending: string[] = [];
   const thisMonday = today.getDate() - ((today.getDay() + 6) % 7);
-  for (let k = 1; k <= 8; k++) {
-    const monday = new Date(today.getFullYear(), today.getMonth(), thisMonday - 7 * k);
+  for (let weeksBack = 1; weeksBack <= 8; weeksBack++) {
+    const monday = new Date(today.getFullYear(), today.getMonth(), thisMonday - 7 * weeksBack);
     const week = isoWeek(monday);
-    if (first ? week < first : k > 1) break;
+    if (first ? week < first : weeksBack > 1) break;
     if (!have.includes(week))
       pending.unshift(
         `${monday.getFullYear()}-${pad2(monday.getMonth() + 1)}-${pad2(monday.getDate())}`,
@@ -131,7 +135,7 @@ function projectsWorkedOn(db: Database, weeks: string[]) {
 
 export function emit(db: Database, week: string) {
   const weeks = windowWeeks(db, week);
-  const msgs = messages(db, weeks);
+  const messages = messagesIn(db, weeks);
   const me = config();
   const led = db.query("SELECT name FROM projects WHERE lead = ?").all(me.name) as any[];
   return {
@@ -147,8 +151,13 @@ export function emit(db: Database, week: string) {
       look_for,
       not,
     })),
-    messages: msgs.map((m) => ({ week: m.week, at: m.at, channel: m.channel, text: m.text })),
-    previous: previous(db, week, weeks, msgs),
+    messages: messages.map((message) => ({
+      week: message.week,
+      at: message.at,
+      channel: message.channel,
+      text: message.text,
+    })),
+    previous: previous(db, week, weeks, messages),
     verdicts: db
       .query(
         "SELECT week, item, verdict, why FROM feedback_verdicts WHERE week < ? ORDER BY week DESC LIMIT 40",
@@ -160,7 +169,9 @@ export function emit(db: Database, week: string) {
 // A snippet around the first marker, so long messages still show why they counted.
 function snippet(text: string, markers: string[]) {
   const lower = text.toLowerCase();
-  const positions = markers.map((marker) => lower.indexOf(marker)).filter((n) => n >= 0);
+  const positions = markers
+    .map((marker) => lower.indexOf(marker))
+    .filter((position) => position >= 0);
   const first = Math.min(...positions);
   const start = Math.max(0, first - 110);
   const end = Math.min(text.length, first + 170);
@@ -168,59 +179,74 @@ function snippet(text: string, markers: string[]) {
 }
 
 // Every counted message you do not see as a quote, so the count and the page always agree.
-function others(msgs: Msg[], pattern: any) {
+function others(messages: Message[], pattern: any) {
   const matches = matcher(pattern.markers);
-  const quoted = (m: Msg) =>
-    pattern.evidence.some((e: any) => squashSpaces(m.text ?? "").includes(e.quote));
-  return msgs
-    .filter((m) => matches(m) && !quoted(m))
-    .map((m) => ({
-      week: m.week,
-      at: m.at,
-      channel: m.channel,
-      url: m.url,
-      text: snippet(squashSpaces(m.text ?? ""), pattern.markers),
+  const quoted = (message: Message) =>
+    pattern.evidence.some((evidence: any) =>
+      squashSpaces(message.text ?? "").includes(evidence.quote),
+    );
+  return messages
+    .filter((message) => matches(message) && !quoted(message))
+    .map((message) => ({
+      week: message.week,
+      at: message.at,
+      channel: message.channel,
+      url: message.url,
+      text: snippet(squashSpaces(message.text ?? ""), pattern.markers),
     }));
 }
 
 const quoteCount = (patterns: any[]) =>
-  patterns.reduce((n: number, pattern: any) => n + pattern.evidence.length, 0);
+  patterns.reduce((total: number, pattern: any) => total + pattern.evidence.length, 0);
 
 export function verify(db: Database, week: string, out: any) {
   const weeks = windowWeeks(db, week);
-  const msgs = messages(db, weeks);
+  const messages = messagesIn(db, weeks);
   const findQuote = (quote: string) => {
     const text = squashSpaces(quote);
     if (text.length < 8) return undefined;
-    return msgs.find((m) => squashSpaces(m.text ?? "").includes(text));
+    return messages.find((message) => squashSpaces(message.text ?? "").includes(text));
   };
   // A quote is kept with the message it came from, or dropped.
   const cite = (evidence: any) => {
-    const m = findQuote(evidence.quote);
-    if (!m) return m;
+    const message = findQuote(evidence.quote);
+    if (!message) return message;
     const quote = squashSpaces(evidence.quote);
-    return { ...evidence, quote, week: m.week, at: m.at, channel: m.channel, url: m.url };
+    return {
+      ...evidence,
+      quote,
+      week: message.week,
+      at: message.at,
+      channel: message.channel,
+      url: message.url,
+    };
   };
   // The name comes from the category, so a verdict on it means the same thing every week.
   const patterns = (out.patterns ?? [])
-    .filter((p: any) => category(p.category, "pattern"))
-    .map((p: any) => ({
-      ...p,
-      name: category(p.category, "pattern")!.name,
-      markers: p.markers.map((marker: string) => marker.toLowerCase()),
-      evidence: p.evidence.map(cite).filter(Boolean),
+    .filter((pattern: any) => category(pattern.category, "pattern"))
+    .map((pattern: any) => ({
+      ...pattern,
+      name: category(pattern.category, "pattern")!.name,
+      markers: pattern.markers.map((marker: string) => marker.toLowerCase()),
+      evidence: pattern.evidence.map(cite).filter(Boolean),
     }))
-    .filter((p: any) => p.evidence.length >= 2)
-    .map((p: any) => ({ ...p, trend: trend(msgs, weeks, p.markers), matches: others(msgs, p) }));
+    .filter((pattern: any) => pattern.evidence.length >= 2)
+    .map((pattern: any) => ({
+      ...pattern,
+      trend: trend(messages, weeks, pattern.markers),
+      matches: others(messages, pattern),
+    }));
   const strengthCategory = category(out.strength?.category, "strength");
   const strengthEvidence = strengthCategory
     ? (out.strength.evidence ?? []).map(cite).filter(Boolean)
     : [];
-  const target = patterns.find((p: any) => p.category === out.experiment?.pattern);
+  const target = patterns.find((pattern: any) => pattern.category === out.experiment?.pattern);
   return {
     week,
     weeks,
-    messages: weeks.map((w) => msgs.filter((m) => m.week === w).length),
+    messages: weeks.map(
+      (windowWeek) => messages.filter((message) => message.week === windowWeek).length,
+    ),
     patterns,
     strength: strengthEvidence.length
       ? { ...out.strength, name: strengthCategory!.name, evidence: strengthEvidence }
@@ -229,7 +255,7 @@ export function verify(db: Database, week: string, out: any) {
       ? { ...out.experiment, pattern: target.name, markers: target.markers, trend: target.trend }
       : null,
     last_experiment: out.last_experiment ?? null,
-    previous: previous(db, week, weeks, msgs),
+    previous: previous(db, week, weeks, messages),
     dropped: quoteCount(out.patterns ?? []) - quoteCount(patterns),
   };
 }
@@ -269,14 +295,14 @@ function saveFeedback(db: Database, week: string, run: any) {
 }
 
 if (import.meta.main) {
-  const [cmd, week, file] = process.argv.slice(2);
+  const [command, week, file] = process.argv.slice(2);
   const db = open();
-  if (cmd === "emit") console.log(JSON.stringify(emit(db, week)));
-  else if (cmd === "pending") {
+  if (command === "emit") console.log(JSON.stringify(emit(db, week)));
+  else if (command === "pending") {
     const have = (db.query("SELECT week FROM feedback").all() as any[]).map((row) => row.week);
     console.log(pendingMondays(new Date(), have).join("\n"));
-  } else if (cmd === "count") console.log(countMessages(db, week));
-  else if (cmd === "empty") console.log(saveEmpty(db, week));
-  else if (cmd === "save") console.log(saveFeedback(db, week, readJson(file)));
+  } else if (command === "count") console.log(countMessages(db, week));
+  else if (command === "empty") console.log(saveEmpty(db, week));
+  else if (command === "save") console.log(saveFeedback(db, week, readJson(file)));
   else throw new Error("usage: bun jobs/feedback.ts emit|save|count|empty <week> [file] | pending");
 }

@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { dayOf, isoWeek, migrate } from "../core/db";
-import { ingestWeek, refOf, refsIn } from "./ingest";
+import { ingestWeek, referenceOf, referencesIn } from "./ingest";
 import { threads } from "../core/threads";
 
 const ME = { name: "Riley Chen", github: "rchen", orgs: ["acme"], level: "Senior Engineer" };
@@ -17,17 +17,17 @@ test("isoWeek handles year edges", () => {
 });
 
 test("ingest resolves links, is idempotent and flags dropped rows", () => {
-  const dir = mkdtempSync(join(tmpdir(), "it-"));
-  const wrap = (o: object) =>
+  const directory = mkdtempSync(join(tmpdir(), "it-"));
+  const wrap = (output: object) =>
     JSON.stringify({
       is_error: false,
       session_id: "s1",
       total_cost_usd: 0.01,
       num_turns: 3,
-      structured_output: o,
+      structured_output: output,
     });
   writeFileSync(
-    join(dir, "linear.run.json"),
+    join(directory, "linear.run.json"),
     wrap({
       week: "2026-W42",
       pages_read: 1,
@@ -74,7 +74,7 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
     }),
   );
   writeFileSync(
-    join(dir, "github.run.json"),
+    join(directory, "github.run.json"),
     wrap({
       week: "2026-W42",
       reviews_given: 10,
@@ -92,9 +92,9 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
       ],
     }),
   );
-  writeFileSync(join(dir, "github.expected"), "2\n");
+  writeFileSync(join(directory, "github.expected"), "2\n");
   // Reviews by when you submitted them: two on one PR count once, other weeks and your own PRs do not count.
-  const rv = (number: number, submitted_at: string | null, author = "blair") => ({
+  const review = (number: number, submitted_at: string | null, author = "blair") => ({
     repo: "acme/api",
     number,
     author,
@@ -102,24 +102,24 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
     submitted_at,
   });
   writeFileSync(
-    join(dir, "reviews.run.json"),
+    join(directory, "reviews.run.json"),
     wrap({
       from: "2026-10-05",
       prs_read: 4,
       reviews: [
-        rv(7, "2026-10-13T09:00:00Z"),
-        rv(7, "2026-10-14T09:00:00Z"),
-        rv(8, "2026-10-16T09:00:00Z"),
-        rv(9, "2026-10-08T09:00:00Z"),
-        rv(10, null),
-        rv(11, "2026-10-13T09:00:00Z", "rchen"),
+        review(7, "2026-10-13T09:00:00Z"),
+        review(7, "2026-10-14T09:00:00Z"),
+        review(8, "2026-10-16T09:00:00Z"),
+        review(9, "2026-10-08T09:00:00Z"),
+        review(10, null),
+        review(11, "2026-10-13T09:00:00Z", "rchen"),
       ],
     }),
   );
-  writeFileSync(join(dir, "reviews.expected"), "4\n");
+  writeFileSync(join(directory, "reviews.expected"), "4\n");
   // A Wednesday call that returned a Monday row: dropped, and the run is flagged.
   writeFileSync(
-    join(dir, "slack_own_5.run.json"),
+    join(directory, "slack_own_5.run.json"),
     wrap({
       week: "2026-W42",
       self_user_id: "U1",
@@ -141,12 +141,12 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   );
   // Six pages read but one page of rows: Claude dropped the rest.
   writeFileSync(
-    join(dir, "slack_own_4.run.json"),
+    join(directory, "slack_own_4.run.json"),
     wrap({ week: "2026-W42", self_user_id: "U1", pages_read: 6, exhausted: true, messages: [] }),
   );
   // The old one-call-per-week file: no day, so only the week filter applies.
   writeFileSync(
-    join(dir, "slack_own.run.json"),
+    join(directory, "slack_own.run.json"),
     wrap({
       week: "2026-W42",
       self_user_id: "U1",
@@ -207,7 +207,7 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
     }),
   );
 
-  const ev = (id: string, o: object) => ({
+  const calendarEvent = (id: string, overrides: object) => ({
     id,
     summary: id,
     start: "2026-10-13T10:00:00+02:00",
@@ -220,24 +220,24 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
     recurring: false,
     html_link: "https://c/" + id,
     urls: [],
-    ...o,
+    ...overrides,
   });
   writeFileSync(
-    join(dir, "calendar.run.json"),
+    join(directory, "calendar.run.json"),
     wrap({
       week: "2026-W42",
       pages_read: 1,
       exhausted: true,
       events: [
-        ev("sync", {
+        calendarEvent("sync", {
           urls: [
             "https://docs.google.com/document/d/D1/edit",
             "https://linear.app/acme/team/X/all",
           ],
         }),
-        ev("declined", { my_response: "declined" }),
-        ev("focus", { event_type: "FOCUS_TIME", attendees: [] }),
-        ev("solo", { attendees: ["me@x"] }),
+        calendarEvent("declined", { my_response: "declined" }),
+        calendarEvent("focus", { event_type: "FOCUS_TIME", attendees: [] }),
+        calendarEvent("solo", { attendees: ["me@x"] }),
       ],
     }),
   );
@@ -251,7 +251,7 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
     url: `https://docs.google.com/${mime}/d/${id}/edit`,
   });
   writeFileSync(
-    join(dir, "drive.run.json"),
+    join(directory, "drive.run.json"),
     wrap({
       week: "2026-W42",
       pages_read: 1,
@@ -267,8 +267,8 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   const db = new Database(":memory:", { strict: true });
   db.exec("PRAGMA foreign_keys = ON");
   migrate(db);
-  const first = ingestWeek(db, dir, "2026-W42", ME);
-  ingestWeek(db, dir, "2026-W42", ME);
+  const first = ingestWeek(db, directory, "2026-W42", ME);
+  ingestWeek(db, directory, "2026-W42", ME);
 
   // ACME-40 is in the window but Claude did not pick it: flagged, and still ingested from the raw rows.
   // The reviews source wins over the old count in the github file (10).
@@ -331,7 +331,8 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   ]);
   expect(
     threads(db, ["2026-W42"])
-      .find((t) => t.includes("calendar:sync"))
+      .find((thread) => thread.includes("calendar:sync"))
+
       ?.sort(),
   ).toEqual(["calendar:sync", "drive:D1:2026-W42"]);
   expect(
@@ -349,10 +350,10 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
 test("threads merge by main project, and a bridge between projects does not merge them", () => {
   const db = new Database(":memory:", { strict: true });
   migrate(db);
-  const ev = db.query(
+  const insertEvent = db.query(
     "INSERT INTO events (id, source, kind, week, project_id, payload, run_id) VALUES (?, 'x', 'k', '2026-W42', ?, '{}', 'r')",
   );
-  for (const [id, p] of [
+  for (const [id, projectId] of [
     ["linear:A-1", "P1"],
     ["linear:A-2", "P1"],
     ["linear:B-1", "P2"],
@@ -360,15 +361,15 @@ test("threads merge by main project, and a bridge between projects does not merg
     ["github:x/y#1", null],
     ["github:x/y#2", null],
   ])
-    ev.run(id, p);
+    insertEvent.run(id, projectId);
   const link = db.query("INSERT INTO links VALUES (?, ?, 'mentions')");
   link.run("github:x/y#1", "linear:A-1");
   link.run("github:x/y#1", "linear:A-2");
   // PR 2 cites one issue of each project: a bridge.
   link.run("github:x/y#2", "linear:A-2");
   link.run("github:x/y#2", "linear:B-1");
-  const t = threads(db, ["2026-W42"]).map((g) => g.sort());
-  expect(t).toEqual([
+  const weekThreads = threads(db, ["2026-W42"]).map((thread) => thread.sort());
+  expect(weekThreads).toEqual([
     ["github:x/y#1", "github:x/y#2", "linear:A-1", "linear:A-2", "linear:B-1"],
     ["linear:B-2"],
   ]);
@@ -377,17 +378,17 @@ test("threads merge by main project, and a bridge between projects does not merg
 test("a PR keeps its project when the issue it cites moved to a later week", () => {
   const db = new Database(":memory:", { strict: true });
   migrate(db);
-  const ev = db.query(
+  const insertEvent = db.query(
     "INSERT INTO events (id, source, kind, week, project_id, payload, run_id) VALUES (?, 'x', 'k', ?, ?, '{}', 'r')",
   );
-  ev.run("linear:A-1", "2026-W42", "P1");
-  ev.run("linear:A-9", "2026-W43", "P1"); // still open, so next week's run moved it
-  ev.run("github:x/y#1", "2026-W42", null);
-  ev.run("github:x/y#2", "2026-W42", null);
+  insertEvent.run("linear:A-1", "2026-W42", "P1");
+  insertEvent.run("linear:A-9", "2026-W43", "P1"); // still open, so next week's run moved it
+  insertEvent.run("github:x/y#1", "2026-W42", null);
+  insertEvent.run("github:x/y#2", "2026-W42", null);
   const link = db.query("INSERT INTO links VALUES (?, ?, 'mentions')");
   link.run("github:x/y#1", "linear:A-1");
   link.run("github:x/y#2", "linear:A-9");
-  expect(threads(db, ["2026-W42"]).map((g) => g.sort())).toEqual([
+  expect(threads(db, ["2026-W42"]).map((thread) => thread.sort())).toEqual([
     ["github:x/y#1", "github:x/y#2", "linear:A-1"],
   ]);
 });
@@ -395,31 +396,31 @@ test("a PR keeps its project when the issue it cites moved to a later week", () 
 test("a Slack message citing two unrelated PRs attaches to one and joins neither", () => {
   const db = new Database(":memory:", { strict: true });
   migrate(db);
-  const ev = db.query(
+  const insertEvent = db.query(
     "INSERT INTO events (id, source, kind, week, payload, run_id) VALUES (?, ?, 'k', '2026-W42', '{}', 'r')",
   );
-  for (const [id, src] of [
+  for (const [id, source] of [
     ["github:x/a#1", "github"],
     ["github:x/a#2", "github"],
     ["github:x/b#9", "github"],
     ["slack:C/1", "slack"],
   ])
-    ev.run(id, src);
+    insertEvent.run(id, source);
   const link = db.query("INSERT INTO links VALUES (?, ?, 'mentions')");
   link.run("github:x/a#2", "github:x/a#1");
   link.run("slack:C/1", "github:x/a#1");
   link.run("slack:C/1", "github:x/b#9");
-  const t = threads(db, ["2026-W42"]).map((g) => g.sort());
+  const weekThreads = threads(db, ["2026-W42"]).map((thread) => thread.sort());
   // The message goes with the bigger thread it cites; b#9 stays alone.
-  expect(t).toEqual([["github:x/a#1", "github:x/a#2", "slack:C/1"], ["github:x/b#9"]]);
+  expect(weekThreads).toEqual([["github:x/a#1", "github:x/a#2", "slack:C/1"], ["github:x/b#9"]]);
 });
 
 test("references normalize across sources", () => {
-  expect(refOf("https://github.com/acme/api/pull/101/files")).toBe("github:acme/api#101");
-  expect(refOf("https://linear.app/acme/issue/ACME-41/some-title")).toBe("linear:ACME-41");
-  expect(refOf("https://docs.google.com/document/d/abc_D-1/edit")).toBe("gdoc:abc_D-1");
+  expect(referenceOf("https://github.com/acme/api/pull/101/files")).toBe("github:acme/api#101");
+  expect(referenceOf("https://linear.app/acme/issue/ACME-41/some-title")).toBe("linear:ACME-41");
+  expect(referenceOf("https://docs.google.com/document/d/abc_D-1/edit")).toBe("gdoc:abc_D-1");
   expect(
-    refsIn(
+    referencesIn(
       "PTAL <https://github.com/acme/api/pull/7|#7> fixes ACME-3, not UTF-8",
       new Set(["ACME"]),
     ).sort(),
@@ -433,10 +434,10 @@ test("dayOf: Monday of an ISO week, at midnight UTC", () => {
 });
 
 test("reviews given count people's PRs you reviewed in the week, not PRs updated in it", () => {
-  const dir = mkdtempSync(join(tmpdir(), "rv-"));
+  const directory = mkdtempSync(join(tmpdir(), "rv-"));
   const db = new Database(":memory:", { strict: true });
   migrate(db);
-  const rv = (number: number, submitted_at: string, author = "blair") => ({
+  const review = (number: number, submitted_at: string, author = "blair") => ({
     repo: "acme/api",
     number,
     author,
@@ -444,36 +445,36 @@ test("reviews given count people's PRs you reviewed in the week, not PRs updated
     submitted_at,
   });
   writeFileSync(
-    join(dir, "reviews.run.json"),
+    join(directory, "reviews.run.json"),
     JSON.stringify({
       session_id: "s",
       structured_output: {
         from: "2026-10-05",
         prs_read: 3,
         reviews: [
-          rv(7, "2026-10-13T09:00:00Z"),
-          rv(7, "2026-10-14T09:00:00Z"),
-          rv(8, "2026-10-16T09:00:00Z"),
-          rv(9, "2026-10-08T09:00:00Z"),
-          rv(10, "2026-10-15T09:00:00Z", "renovate[bot]"),
+          review(7, "2026-10-13T09:00:00Z"),
+          review(7, "2026-10-14T09:00:00Z"),
+          review(8, "2026-10-16T09:00:00Z"),
+          review(9, "2026-10-08T09:00:00Z"),
+          review(10, "2026-10-15T09:00:00Z", "renovate[bot]"),
         ],
       },
     }),
   );
-  writeFileSync(join(dir, "reviews.expected"), "5\n");
+  writeFileSync(join(directory, "reviews.expected"), "5\n");
   // One PR from the search is missing from the rows: flagged.
-  expect(ingestWeek(db, dir, "2026-W42", ME)).toEqual({ reviews: "count_mismatch" });
+  expect(ingestWeek(db, directory, "2026-W42", ME)).toEqual({ reviews: "count_mismatch" });
   expect(
     JSON.parse(
       (db.query("SELECT payload FROM events WHERE kind = 'reviews_given'").get() as any).payload,
     ),
   ).toEqual({ count: 2, submissions: 3 });
   // A run from after the week started cannot cover it.
-  expect(() => ingestWeek(db, dir, "2026-W40", ME)).toThrow("after 2026-W40 starts");
+  expect(() => ingestWeek(db, directory, "2026-W40", ME)).toThrow("after 2026-W40 starts");
 });
 
 test("PRs opened are counted per week and checked against the search", () => {
-  const dir = mkdtempSync(join(tmpdir(), "po-"));
+  const directory = mkdtempSync(join(tmpdir(), "po-"));
   const db = new Database(":memory:", { strict: true });
   migrate(db);
   const pr = (number: number) => ({
@@ -483,7 +484,7 @@ test("PRs opened are counted per week and checked against the search", () => {
   });
   const write = (opened: any[], expected: number) => {
     writeFileSync(
-      join(dir, "github.run.json"),
+      join(directory, "github.run.json"),
       JSON.stringify({
         session_id: "s",
         structured_output: {
@@ -495,11 +496,11 @@ test("PRs opened are counted per week and checked against the search", () => {
         },
       }),
     );
-    writeFileSync(join(dir, "github.expected"), "0\n");
-    writeFileSync(join(dir, "github_opened.expected"), `${expected}\n`);
+    writeFileSync(join(directory, "github.expected"), "0\n");
+    writeFileSync(join(directory, "github_opened.expected"), `${expected}\n`);
   };
   write([pr(1), pr(2), pr(2)], 2);
-  expect(ingestWeek(db, dir, "2026-W42", ME)).toEqual({ github: "ok" });
+  expect(ingestWeek(db, directory, "2026-W42", ME)).toEqual({ github: "ok" });
   expect(
     JSON.parse(
       (db.query("SELECT payload FROM events WHERE kind = 'prs_opened'").get() as any).payload,
@@ -507,16 +508,16 @@ test("PRs opened are counted per week and checked against the search", () => {
   ).toEqual({ count: 2 });
   // Claude dropped a PR the search found: flagged.
   write([pr(1)], 2);
-  expect(ingestWeek(db, dir, "2026-W42", ME)).toEqual({ github: "count_mismatch" });
+  expect(ingestWeek(db, directory, "2026-W42", ME)).toEqual({ github: "count_mismatch" });
 });
 
 test("review requests count PRs that asked you, and PRs that asked your teams, apart", () => {
-  const dir = mkdtempSync(join(tmpdir(), "rq-"));
+  const directory = mkdtempSync(join(tmpdir(), "rq-"));
   const db = new Database(":memory:", { strict: true });
   migrate(db);
-  const rq = (at: string, reviewer: string) => ({ at, reviewer, requester: "blair" });
+  const request = (at: string, reviewer: string) => ({ at, reviewer, requester: "blair" });
   writeFileSync(
-    join(dir, "requests.run.json"),
+    join(directory, "requests.run.json"),
     JSON.stringify({
       session_id: "s",
       structured_output: {
@@ -526,37 +527,40 @@ test("review requests count PRs that asked you, and PRs that asked your teams, a
             repo: "acme/api",
             number: 1,
             author: "blair",
-            requests: [rq("2026-10-13T09:00:00Z", "rchen"), rq("2026-10-14T09:00:00Z", "rchen")],
+            requests: [
+              request("2026-10-13T09:00:00Z", "rchen"),
+              request("2026-10-14T09:00:00Z", "rchen"),
+            ],
           },
           {
             repo: "acme/api",
             number: 2,
             author: "blair",
             requests: [
-              rq("2026-10-13T09:00:00Z", "team:acme/iac"),
-              rq("2026-10-13T09:00:00Z", "team:acme/other"),
+              request("2026-10-13T09:00:00Z", "team:acme/iac"),
+              request("2026-10-13T09:00:00Z", "team:acme/other"),
             ],
           },
           {
             repo: "acme/api",
             number: 3,
             author: "blair",
-            requests: [rq("2026-10-06T09:00:00Z", "rchen")],
+            requests: [request("2026-10-06T09:00:00Z", "rchen")],
           },
           {
             repo: "acme/api",
             number: 4,
             author: "renovate[bot]",
-            requests: [rq("2026-10-13T09:00:00Z", "team:acme/iac")],
+            requests: [request("2026-10-13T09:00:00Z", "team:acme/iac")],
           },
           { repo: "acme/api", number: 5, author: "blair", requests: [] },
         ],
       },
     }),
   );
-  writeFileSync(join(dir, "requests.expected"), "5\n");
-  writeFileSync(join(dir, "teams.txt"), "team:acme/iac\n");
-  expect(ingestWeek(db, dir, "2026-W42", ME)).toEqual({ requests: "ok" });
+  writeFileSync(join(directory, "requests.expected"), "5\n");
+  writeFileSync(join(directory, "teams.txt"), "team:acme/iac\n");
+  expect(ingestWeek(db, directory, "2026-W42", ME)).toEqual({ requests: "ok" });
   // #1 twice in the week counts once; #3 is W41; #2 only through your team; the bot PR is out.
   expect(
     JSON.parse(
