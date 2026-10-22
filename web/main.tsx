@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { go, loadNorth, loadPending, openSearch, sum, Toast, useEvent } from "./lib";
-import { ItemSheet } from "./sheet";
+import { ThreadSheet } from "./sheet";
 import * as goals from "./goals";
 import * as setup from "./setup";
 import * as home from "./north";
@@ -80,9 +80,9 @@ function useIsSample() {
 
 function useSearchShortcut() {
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
         openSearch();
       }
     };
@@ -184,7 +184,7 @@ function App() {
         <Header current={route.view} />
         <Current key={route.view} p={route.params} />
       </div>
-      <ItemSheet />
+      <ThreadSheet />
       <story.View p={route.params} />
       <search.View p={route.params} />
       <Toast />

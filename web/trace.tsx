@@ -29,7 +29,7 @@ import { cn } from "./ui/cn";
 // A kept thread with its timing (see spans()). An event is [kind, time, label, url].
 type Thread = any;
 type SpanEvent = any;
-type Filter = { mode: string | null; crit: boolean };
+type Filter = { mode: string | null; critical: boolean };
 
 const DAY = 864e5;
 const EVENT_KIND: Record<string, string> = {
@@ -52,36 +52,36 @@ const BUCKETS: [string, number][] = [
   ["< 1 d", 0.25],
   ["instant", 0],
 ];
-const mondayOf = (north: North, w: number) => {
-  const year = yearOf(north, w);
+const mondayOf = (north: North, week: number) => {
+  const year = yearOf(north, week);
   const jan4 = new Date(year, 0, 4);
-  const week = +north.WEEKS[w]!.slice(1);
-  return new Date(year, 0, 4 - ((jan4.getDay() + 6) % 7) + (week - 1) * 7).getTime();
+  const weekNumber = +north.WEEKS[week]!.slice(1);
+  return new Date(year, 0, 4 - ((jan4.getDay() + 6) % 7) + (weekNumber - 1) * 7).getTime();
 };
-const fmtDay = (t: number) =>
-  new Date(t).toLocaleDateString("en", { month: "short", day: "numeric" });
-function fmtDuration(thread: Thread) {
-  const h = thread.hrs;
-  if (h == null) return "no time";
-  if (h < 1 / 60) return "instant";
-  if (h < 1) return `${Math.round(h * 60)}m`;
-  if (h < 24) return `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m`;
-  return `${Math.floor(h / 24)}d ${Math.round(h % 24)}h`;
+const formatDay = (time: number) =>
+  new Date(time).toLocaleDateString("en", { month: "short", day: "numeric" });
+function formatDuration(thread: Thread) {
+  const hours = thread.hours;
+  if (hours == null) return "no time";
+  if (hours < 1 / 60) return "instant";
+  if (hours < 1) return `${Math.round(hours * 60)}m`;
+  if (hours < 24) return `${Math.floor(hours)}h ${Math.round((hours % 1) * 60)}m`;
+  return `${Math.floor(hours / 24)}d ${Math.round(hours % 24)}h`;
 }
-const shareOf = <T,>(xs: T[], test: (x: T) => boolean) =>
-  xs.length ? xs.filter(test).length / xs.length : 0;
-const sorted = (weeks: Set<number>) => [...weeks].sort((a, b) => a - b);
+const shareOf = <T,>(values: T[], test: (value: T) => boolean) =>
+  values.length ? values.filter(test).length / values.length : 0;
+const sorted = (weeks: Set<number>) => [...weeks].sort((first, second) => first - second);
 // Modes that occur, most first.
 const modesByCount = (byMode: Record<string, number>) =>
   Object.keys(MODES)
-    .filter((m) => byMode[m])
-    .sort((a, b) => byMode[b]! - byMode[a]!);
-// Where a time falls in week w, as a percent from Monday 00:00.
-const positionIn = (north: North, w: number) => {
-  const monday = mondayOf(north, w);
-  return (t: number) => Math.min(100, Math.max(0, ((t - monday) / (7 * DAY)) * 100));
+    .filter((mode) => byMode[mode])
+    .sort((first, second) => byMode[second]! - byMode[first]!);
+// Where a time falls in a week, as a percent from Monday 00:00.
+const positionIn = (north: North, week: number) => {
+  const monday = mondayOf(north, week);
+  return (time: number) => Math.min(100, Math.max(0, ((time - monday) / (7 * DAY)) * 100));
 };
-const timedEvents = (thread: Thread) => thread.ev.filter((e: SpanEvent) => e[1]);
+const timedEvents = (thread: Thread) => thread.ev.filter((event: SpanEvent) => event[1]);
 const isCritical = (thread: Thread) => thread.wm === "wouldnt";
 const swatch = "inline-block h-1.5 w-3.5 flex-none rounded-[2px] bg-(--c)";
 const rule = "border-b border-[color-mix(in_srgb,var(--line)_55%,transparent)]";
@@ -89,21 +89,23 @@ const colorVar = (color: string) => ({ "--c": color }) as React.CSSProperties;
 
 // Each thread's start, end and duration, from its timed events.
 function spans(north: North) {
-  return north.ITEMS.map((item: Thread) => {
-    const ev = item.ev ?? [];
-    const times = ev.filter((e: SpanEvent) => e[1]).map((e: SpanEvent) => Date.parse(e[1]));
-    const t0 = times.length ? Math.min(...times) : null;
-    const t1 = times.length ? Math.max(...times) : null;
-    const hrs = t0 == null ? null : (t1! - t0) / 36e5;
-    const dayIndex = t0 == null ? 0 : Math.floor((t0 - mondayOf(north, item.w)) / DAY);
+  return north.ITEMS.map((thread: Thread) => {
+    const events = thread.ev ?? [];
+    const times = events
+      .filter((event: SpanEvent) => event[1])
+      .map((event: SpanEvent) => Date.parse(event[1]));
+    const start = times.length ? Math.min(...times) : null;
+    const end = times.length ? Math.max(...times) : null;
+    const hours = start == null ? null : (end! - start) / 36e5;
+    const dayIndex = start == null ? 0 : Math.floor((start - mondayOf(north, thread.w)) / DAY);
     return {
-      ...item,
-      ev,
-      t0,
-      t1,
-      hrs,
+      ...thread,
+      ev: events,
+      start,
+      end,
+      hours,
       day: Math.min(6, Math.max(0, dayIndex)),
-      b: hrs == null ? 3 : BUCKETS.findIndex(([, lo]) => hrs >= lo),
+      bucket: hours == null ? 3 : BUCKETS.findIndex(([, lowerBound]) => hours >= lowerBound),
     };
   });
 }
@@ -112,30 +114,30 @@ function spans(north: North) {
 const weeksLabel = (north: North, weeks: number[]) =>
   weeks.length > 1 && weeks.at(-1)! - weeks[0]! === weeks.length - 1
     ? `${north.WEEKS[weeks[0]!]}–${north.WEEKS[weeks.at(-1)!]}`
-    : weeks.map((w) => north.WEEKS[w]).join(", ");
+    : weeks.map((week) => north.WEEKS[week]).join(", ");
 
 // The animations share one gsap context, reverted when Trace goes.
 function useTraceMotion(
   root: React.RefObject<HTMLElement | null>,
   side: React.RefObject<HTMLDivElement | null>,
   {
-    sel,
-    playN,
+    selection,
+    plays,
     span,
     filter,
-  }: { sel: Set<number> | null; playN: number; span: unknown; filter: Filter },
+  }: { selection: Set<number> | null; plays: number; span: unknown; filter: Filter },
 ) {
-  const ctx = useRef<gsap.Context>(undefined);
+  const context = useRef<gsap.Context>(undefined);
   const timeline = useRef<gsap.core.Timeline>(undefined);
   const shown = useRef(false);
-  useEffect(() => () => ctx.current?.revert(), []);
+  useEffect(() => () => context.current?.revert(), []);
   const animate = (run: () => void) => {
     if (reduced() || !root.current) return;
-    (ctx.current ??= gsap.context(() => {}, root.current)).add(run);
+    (context.current ??= gsap.context(() => {}, root.current)).add(run);
   };
   // Time sweeps left to right: each heatmap column lands a beat after the one before. Once.
   useLayoutEffect(() => {
-    if (!sel || shown.current) return;
+    if (!selection || shown.current) return;
     shown.current = true;
     animate(() =>
       gsap.from("[data-n]", {
@@ -143,20 +145,20 @@ function useTraceMotion(
         scale: 0.3,
         duration: 0.5,
         ease: "expo.out",
-        stagger: (_: number, el: Element) => +(el as HTMLElement).dataset.d! * 0.012,
+        stagger: (_: number, element: Element) => +(element as HTMLElement).dataset.d! * 0.012,
         clearProps: "opacity,transform",
       }),
     );
-  }, [sel]);
+  }, [selection]);
   // The playhead sweeps Monday to Sunday; each span grows from its start as the playhead reaches it.
   useLayoutEffect(() => {
-    if (!sel) return;
+    if (!selection) return;
     // A replay during a replay would start from half-drawn bars: finish the old one first.
     timeline.current?.progress(1).kill();
     animate(() => {
       const sweep = 1.4;
-      const t = (timeline.current = gsap.timeline());
-      t.from(
+      const playback = (timeline.current = gsap.timeline());
+      playback.from(
         "[data-row]",
         {
           opacity: 0,
@@ -168,14 +170,16 @@ function useTraceMotion(
         },
         0,
       );
-      t.fromTo(
-        "[data-ph]",
-        { left: "0%", opacity: 1 },
-        { left: "100%", duration: sweep, ease: "none" },
-        0,
-      ).to("[data-ph]", { opacity: 0, duration: 0.3 });
+      playback
+        .fromTo(
+          "[data-ph]",
+          { left: "0%", opacity: 1 },
+          { left: "100%", duration: sweep, ease: "none" },
+          0,
+        )
+        .to("[data-ph]", { opacity: 0, duration: 0.3 });
       for (const bar of gsap.utils.toArray<HTMLElement>("[data-at]"))
-        t.from(
+        playback.from(
           bar,
           {
             scaleX: bar.dataset.bar ? 0 : 1,
@@ -187,12 +191,12 @@ function useTraceMotion(
           (+bar.dataset.at! / 100) * sweep,
         );
     });
-  }, [playN]);
+  }, [plays]);
   useLayoutEffect(() => {
-    const el = side.current;
-    if (!el) return;
+    const panel = side.current;
+    if (!panel) return;
     animate(() => {
-      gsap.from(el.children, {
+      gsap.from(panel.children, {
         y: 8,
         opacity: 0,
         filter: "blur(6px)",
@@ -201,7 +205,7 @@ function useTraceMotion(
         stagger: 0.03,
         clearProps: "filter,transform,opacity",
       });
-      gsap.from(el.querySelectorAll("[data-mix]"), {
+      gsap.from(panel.querySelectorAll("[data-mix]"), {
         scaleX: 0,
         duration: 0.6,
         ease: "expo.out",
@@ -209,47 +213,58 @@ function useTraceMotion(
         clearProps: "transform",
       });
     });
-  }, [span, sel, filter]);
+  }, [span, selection, filter]);
 }
 
 // Brush: drag across weeks selects them; shift-click adds or removes one week.
-function useBrush(sel: Set<number> | null, pick: (weeks: Set<number>) => void) {
-  const brush = useRef<{ a: number; b: number; add: boolean; before: Set<number> } | null>(null);
+function useBrush(selection: Set<number> | null, pick: (weeks: Set<number>) => void) {
+  const brush = useRef<{ from: number; to: number; add: boolean; before: Set<number> } | null>(
+    null,
+  );
   const [preview, setPreview] = useState<Set<number> | null>(null);
-  const weekAt = (e: React.PointerEvent) => {
-    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>("[data-w]");
-    return el ? +el.dataset.w! : null;
+  const weekAt = (event: React.PointerEvent) => {
+    const cell = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>("[data-w]");
+    return cell ? +cell.dataset.w! : null;
   };
-  const brushed = (b = brush.current!) => {
-    const weeks = new Set(b.add ? b.before : []);
-    for (let w = Math.min(b.a, b.b); w <= Math.max(b.a, b.b); w++) weeks.add(w);
+  const brushed = (drag = brush.current!) => {
+    const weeks = new Set(drag.add ? drag.before : []);
+    for (let week = Math.min(drag.from, drag.to); week <= Math.max(drag.from, drag.to); week++)
+      weeks.add(week);
     return weeks;
   };
   const handlers = {
-    onPointerDown: (e: React.PointerEvent) => {
-      const w = weekAt(e);
-      if (w == null) return;
-      e.preventDefault();
-      e.currentTarget.setPointerCapture(e.pointerId);
-      brush.current = { a: w, b: w, add: e.shiftKey || e.metaKey, before: new Set(sel) };
+    onPointerDown: (event: React.PointerEvent) => {
+      const week = weekAt(event);
+      if (week == null) return;
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      brush.current = {
+        from: week,
+        to: week,
+        add: event.shiftKey || event.metaKey,
+        before: new Set(selection),
+      };
       setPreview(brushed());
     },
-    onPointerMove: (e: React.PointerEvent) => {
-      const b = brush.current;
-      const w = b && weekAt(e);
-      if (!b || w == null || w === b.b) return;
-      b.b = w;
+    onPointerMove: (event: React.PointerEvent) => {
+      const drag = brush.current;
+      const week = drag && weekAt(event);
+      if (!drag || week == null || week === drag.to) return;
+      drag.to = week;
       setPreview(brushed());
     },
     onPointerUp: () => {
-      const b = brush.current;
-      if (!b) return;
+      const drag = brush.current;
+      if (!drag) return;
       brush.current = null;
       setPreview(null);
-      const removesOne = b.add && b.a === b.b && b.before.has(b.a) && b.before.size > 1;
-      if (!removesOne) return pick(brushed(b));
-      const weeks = new Set(b.before);
-      weeks.delete(b.a);
+      const removesOne =
+        drag.add && drag.from === drag.to && drag.before.has(drag.from) && drag.before.size > 1;
+      if (!removesOne) return pick(brushed(drag));
+      const weeks = new Set(drag.before);
+      weeks.delete(drag.from);
       pick(weeks);
     },
   };
@@ -274,63 +289,63 @@ function TraceHead({ north, children }: { north: North | null; children: React.R
   );
 }
 
-export function Trace({ p }: { p: URLSearchParams }) {
+export function Trace({ params }: { params: URLSearchParams }) {
   const [north] = useNorth();
-  const items = useMemo(() => (north ? spans(north) : []), [north]);
-  const [sel, setSel] = useState<Set<number> | null>(null);
+  const threads = useMemo(() => (north ? spans(north) : []), [north]);
+  const [selection, setSelection] = useState<Set<number> | null>(null);
   const [span, setSpan] = useState<string | null>(null);
   const [roots, setRoots] = useState(new Set<number>());
-  const [filter, setFilter] = useState<Filter>({ mode: null, crit: false });
+  const [filter, setFilter] = useState<Filter>({ mode: null, critical: false });
   const [hover, setHover] = useState<Thread>(null);
-  const [playN, setPlayN] = useState(0);
+  const [plays, setPlays] = useState(0);
   const root = useRef<HTMLElement>(null);
   const side = useRef<HTMLDivElement>(null);
-  const replay = () => setPlayN((n) => n + 1);
+  const replay = () => setPlays((count) => count + 1);
 
   // New weeks open their newest trace (two or fewer open all) and keep the span only if its week stays.
   const pick = (next: Set<number>, keep = span) => {
     const weeks = sorted(next);
-    const spanWeek = items.find((i) => i.id === keep)?.w;
+    const spanWeek = threads.find((thread) => thread.id === keep)?.w;
     const open = new Set(weeks.length <= 2 ? weeks : [weeks.at(-1)!]);
     if (next.has(spanWeek)) open.add(spanWeek);
     else keep = null;
-    setSel(next);
+    setSelection(next);
     setRoots(open);
     setSpan(keep);
     replay();
   };
   // The address picks weeks and the span; no known week means this week.
-  const query = p.toString();
+  const query = params.toString();
   useEffect(() => {
     if (!north) return;
-    const weeks = (p.get("w") ?? "")
+    const weeks = (params.get("w") ?? "")
       .split(",")
-      .map((w) => north.WEEKS.indexOf(w))
-      .filter((i) => i >= 0);
-    pick(new Set(weeks.length ? weeks : [north.WEEKS.length - 1]), p.get("s"));
+      .map((week) => north.WEEKS.indexOf(week))
+      .filter((index) => index >= 0);
+    pick(new Set(weeks.length ? weeks : [north.WEEKS.length - 1]), params.get("s"));
   }, [north, query]);
   // It also keeps them, so reload and a shared link show the same thing.
   useEffect(() => {
-    if (!north || !sel) return;
-    const weeks = sorted(sel)
-      .map((i) => north.WEEKS[i])
+    if (!north || !selection) return;
+    const weeks = sorted(selection)
+      .map((index) => north.WEEKS[index])
       .join(",");
     history.replaceState(
       null,
       "",
       `#/trace?w=${weeks}${span ? `&s=${encodeURIComponent(span)}` : ""}`,
     );
-  }, [sel, span]);
+  }, [selection, span]);
   // Esc lets go of the span, unless it closes the thread sheet. Capture: the sheet is still there.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !document.querySelector("[role=dialog]")) setSpan(null);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !document.querySelector("[role=dialog]")) setSpan(null);
     };
     addEventListener("keydown", onKey, true);
     return () => removeEventListener("keydown", onKey, true);
   }, []);
-  useTraceMotion(root, side, { sel, playN, span, filter });
-  const { preview, handlers } = useBrush(sel, pick);
+  useTraceMotion(root, side, { selection, plays, span, filter });
+  const { preview, handlers } = useBrush(selection, pick);
 
   if (!north)
     return (
@@ -338,7 +353,7 @@ export function Trace({ p }: { p: URLSearchParams }) {
         <TraceHead north={north}>Loading your traces…</TraceHead>
       </section>
     );
-  if (!items.length)
+  if (!threads.length)
     return (
       <section className="view" id="v-trace">
         <TraceHead north={north}>
@@ -346,39 +361,39 @@ export function Trace({ p }: { p: URLSearchParams }) {
         </TraceHead>
       </section>
     );
-  if (!sel) return null;
+  if (!selection) return null;
 
-  const passes = (i: Thread) =>
-    (!filter.mode || i.mode === filter.mode) && (!filter.crit || isCritical(i));
-  const byMode = cnt(items, (i: Thread) => i.mode);
+  const passes = (thread: Thread) =>
+    (!filter.mode || thread.mode === filter.mode) && (!filter.critical || isCritical(thread));
+  const byMode = cnt(threads, (thread: Thread) => thread.mode);
   // Ties go to the mode seen first, not MODES order.
-  const topMode = Object.keys(byMode).sort((a, b) => byMode[b]! - byMode[a]!)[0]!;
-  const critical = items.filter(isCritical).length;
-  const weeks = sorted(sel);
+  const topMode = Object.keys(byMode).sort((first, second) => byMode[second]! - byMode[first]!)[0]!;
+  const critical = threads.filter(isCritical).length;
+  const weeks = sorted(selection);
   const changeFilter = (change: Partial<Filter>) => {
     setFilter({ ...filter, ...change });
     replay();
   };
   const toggle = (id: string) => setSpan(span === id ? null : id);
-  const open = span ? items.find((i) => i.id === span) : null;
-  const passing = items.filter(passes);
+  const open = span ? threads.find((thread) => thread.id === span) : null;
+  const passing = threads.filter(passes);
 
   return (
     <section className="view" id="v-trace" ref={root}>
       <TraceHead north={north}>
-        {`${items.length} threads you kept, drawn as spans. Most are `}
+        {`${threads.length} threads you kept, drawn as spans. Most are `}
         <b>{MODES[topMode]}</b>
-        {` (${percent(byMode[topMode]!, items.length)}%). `}
+        {` (${percent(byMode[topMode]!, threads.length)}%). `}
         <b>{critical}</b>
         {" are on your critical path: without you, they would not happen."}
       </TraceHead>
       <Explorer
         north={north}
         passing={passing}
-        shown={preview ?? sel}
+        shown={preview ?? selection}
         hover={hover}
         brush={handlers}
-        pick={(w) => pick(new Set([w]))}
+        pick={(week) => pick(new Set([week]))}
         color={heatColor(filter.mode)}
       >
         <Filters byMode={byMode} critical={critical} filter={filter} change={changeFilter} />
@@ -386,15 +401,15 @@ export function Trace({ p }: { p: URLSearchParams }) {
       <div className="grid items-start gap-3 min-[980px]:grid-cols-[minmax(0,1fr)_360px]">
         <Waterfall
           north={north}
-          items={items}
+          threads={threads}
           weeks={[...weeks].reverse()}
           passes={passes}
           span={span}
           toggle={toggle}
           hover={setHover}
           roots={roots}
-          setRoots={(r) => {
-            setRoots(r);
+          setRoots={(next) => {
+            setRoots(next);
             replay();
           }}
           replay={replay}
@@ -406,11 +421,11 @@ export function Trace({ p }: { p: URLSearchParams }) {
           className="content-start gap-3.5 p-4.5 sm:p-5 min-[980px]:sticky min-[980px]:top-[calc(env(safe-area-inset-top,0px)+84px)] min-[980px]:max-h-[calc(100vh-104px)] min-[980px]:overflow-y-auto"
         >
           {open ? (
-            <SpanDetail north={north} thread={open} items={items} close={() => setSpan(null)} />
+            <SpanDetail north={north} thread={open} threads={threads} close={() => setSpan(null)} />
           ) : (
             <Summary
-              selected={passing.filter((x) => sel.has(x.w))}
-              rest={passing.filter((x) => !sel.has(x.w))}
+              selected={passing.filter((thread) => selection.has(thread.w))}
+              rest={passing.filter((thread) => !selection.has(thread.w))}
               label={weeksLabel(north, weeks)}
               toggle={toggle}
             />
@@ -439,16 +454,16 @@ function Explorer({
   shown: Set<number>;
   hover: Thread;
   brush: React.HTMLAttributes<HTMLDivElement>;
-  pick: (w: number) => void;
+  pick: (week: number) => void;
   color: string;
   children: React.ReactNode;
 }) {
   const days = north.WEEKS.length * 7;
   // Spans per day and duration bucket.
   const cells: Record<string, number> = {};
-  for (const i of passing) {
-    const k = `${i.w * 7 + i.day}:${i.b}`;
-    cells[k] = (cells[k] ?? 0) + 1;
+  for (const thread of passing) {
+    const key = `${thread.w * 7 + thread.day}:${thread.bucket}`;
+    cells[key] = (cells[key] ?? 0) + 1;
   }
   const max = Math.max(1, ...Object.values(cells));
   return (
@@ -457,7 +472,7 @@ function Explorer({
         <span className="lbl">Explorer · when each thread started, and how long it ran</span>
         <span className="text-[13px] text-ink-2">
           <b>{weeksLabel(north, sorted(shown))}</b>
-          {` · ${passing.filter((i) => shown.has(i.w)).length} spans`}
+          {` · ${passing.filter((thread) => shown.has(thread.w)).length} spans`}
           <small className="ml-2 text-xs text-ink-3">
             drag across weeks to compare · shift-click adds a week
           </small>
@@ -472,52 +487,52 @@ function Explorer({
             gridTemplateRows: "repeat(4, 22px) auto",
           }}
         >
-          {[...shown].map((w) => (
+          {[...shown].map((week) => (
             <i
-              key={`b${w}`}
+              key={`b${week}`}
               className="z-0 -mx-0.5 -my-1.25 rounded-[7px] bg-[color-mix(in_srgb,var(--ink)_5%,transparent)] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--ink)_34%,transparent)]"
-              style={{ gridColumn: `${2 + w * 7} / span 7`, gridRow: "1 / span 4" }}
+              style={{ gridColumn: `${2 + week * 7} / span 7`, gridRow: "1 / span 4" }}
             />
           ))}
-          {BUCKETS.map(([label], b) => [
+          {BUCKETS.map(([label], bucket) => [
             <span
               key={label}
               className="col-start-1 flex items-center font-mono text-[11px] font-medium text-ink-3"
-              style={{ gridRow: b + 1 }}
+              style={{ gridRow: bucket + 1 }}
             >
               {label}
             </span>,
             ...Array.from({ length: days }, (_, day) => (
               <HeatCell
-                key={`${day}:${b}`}
+                key={`${day}:${bucket}`}
                 north={north}
                 day={day}
-                bucket={b}
-                n={cells[`${day}:${b}`] ?? 0}
+                bucket={bucket}
+                count={cells[`${day}:${bucket}`] ?? 0}
                 max={max}
                 color={color}
                 on={shown.has(Math.floor(day / 7))}
-                ping={!!hover && hover.w * 7 + hover.day === day && hover.b === b}
+                ping={!!hover && hover.w * 7 + hover.day === day && hover.bucket === bucket}
               />
             )),
           ])}
           {/* Week labels are buttons, so the keyboard can pick a week too. Pointer picks go through the brush. */}
-          {north.WEEKS.map((week, w) => (
+          {north.WEEKS.map((week, weekIndex) => (
             <button
               key={week}
-              data-w={w}
-              onClick={(e) => {
-                if (e.detail === 0) pick(w);
+              data-w={weekIndex}
+              onClick={(event) => {
+                if (event.detail === 0) pick(weekIndex);
               }}
               className={cn(
                 "row-start-5 flex cursor-pointer items-baseline gap-1.5 border-0 bg-transparent pt-2.25 pl-0.5 text-left font-num text-xs font-semibold tracking-[.08em] whitespace-nowrap hover:text-ink",
-                shown.has(w) ? "text-ink" : "text-ink-3",
+                shown.has(weekIndex) ? "text-ink" : "text-ink-3",
               )}
-              style={{ gridColumn: `${2 + w * 7} / span 7` }}
+              style={{ gridColumn: `${2 + weekIndex * 7} / span 7` }}
             >
               {week}
               <small className="font-mono text-[10.5px] font-medium tracking-normal">
-                {fmtDay(mondayOf(north, w))}
+                {formatDay(mondayOf(north, weekIndex))}
               </small>
             </button>
           ))}
@@ -544,7 +559,7 @@ function HeatCell({
   north,
   day,
   bucket,
-  n,
+  count,
   max,
   color,
   on,
@@ -553,22 +568,22 @@ function HeatCell({
   north: North;
   day: number;
   bucket: number;
-  n: number;
+  count: number;
   max: number;
   color: string;
   on: boolean;
   ping: boolean;
 }) {
-  const w = Math.floor(day / 7);
+  const week = Math.floor(day / 7);
   const weekend = day % 7 > 4;
   return (
     <i
-      data-w={w}
+      data-w={week}
       data-d={day}
-      data-n={n || undefined}
+      data-n={count || undefined}
       title={
-        n
-          ? `${plural(n, "span")} · ${north.WEEKS[w]} ${DOW[day % 7]} · ${BUCKETS[bucket]![0]}`
+        count
+          ? `${plural(count, "span")} · ${north.WEEKS[week]} ${DOW[day % 7]} · ${BUCKETS[bucket]![0]}`
           : undefined
       }
       className={cn(
@@ -580,9 +595,9 @@ function HeatCell({
       style={{
         gridColumn: day + 2,
         gridRow: bucket + 1,
-        ...(n
+        ...(count
           ? {
-              background: `color-mix(in srgb, ${color} ${Math.round(45 + (55 * n) / max)}%, var(--s3))`,
+              background: `color-mix(in srgb, ${color} ${Math.round(45 + (55 * count) / max)}%, var(--s3))`,
               boxShadow: `0 0 ${on ? "16px -3px" : "14px -5px"} ${color}`,
             }
           : {}),
@@ -610,7 +625,7 @@ function Filters({
           color={mc(mode)}
           on={filter.mode === mode}
           dim={!!filter.mode && filter.mode !== mode}
-          n={byMode[mode]!}
+          count={byMode[mode]!}
           click={() => change({ mode: filter.mode === mode ? null : mode })}
         >
           <i className={swatch} />
@@ -620,9 +635,9 @@ function Filters({
       <span className="mx-1 h-4.5 w-px bg-line" aria-hidden="true" />
       <Chip
         color="var(--ink)"
-        on={filter.crit}
-        n={critical}
-        click={() => change({ crit: !filter.crit })}
+        on={filter.critical}
+        count={critical}
+        click={() => change({ critical: !filter.critical })}
         title="Spans where, without you, it would not happen"
       >
         <i className={cn(swatch, "bg-transparent shadow-[inset_0_0_0_1.5px_var(--ink)]")} />
@@ -636,7 +651,7 @@ function Chip({
   color,
   on,
   dim,
-  n,
+  count,
   click,
   title,
   children,
@@ -644,7 +659,7 @@ function Chip({
   color: string;
   on: boolean;
   dim?: boolean;
-  n: number;
+  count: number;
   click: () => void;
   title?: string;
   children: React.ReactNode;
@@ -664,21 +679,21 @@ function Chip({
       )}
     >
       {children}
-      <b className="font-mono text-[11.5px] font-semibold text-ink-3">{n}</b>
+      <b className="font-mono text-[11.5px] font-semibold text-ink-3">{count}</b>
     </Button>
   );
 }
 
 type WaterfallProps = {
   north: North;
-  items: Thread[];
+  threads: Thread[];
   weeks: number[];
-  passes: (i: Thread) => boolean;
+  passes: (thread: Thread) => boolean;
   span: string | null;
   toggle: (id: string) => void;
-  hover: (i: Thread) => void;
+  hover: (thread: Thread) => void;
   roots: Set<number>;
-  setRoots: (r: Set<number>) => void;
+  setRoots: (roots: Set<number>) => void;
   replay: () => void;
 };
 const row = "relative z-1 grid grid-cols-[var(--lc)_minmax(0,1fr)] max-sm:grid-cols-1";
@@ -689,7 +704,7 @@ const controlClass =
 
 function Waterfall({
   north,
-  items,
+  threads,
   weeks,
   passes,
   span,
@@ -699,7 +714,7 @@ function Waterfall({
   setRoots,
   replay,
 }: WaterfallProps) {
-  const shown = items.filter((i) => weeks.includes(i.w) && passes(i));
+  const shown = threads.filter((thread) => weeks.includes(thread.w) && passes(thread));
   const allOpen = roots.size === weeks.length;
   return (
     <Card className="gap-0 overflow-hidden p-0 sm:p-0">
@@ -756,11 +771,11 @@ function Waterfall({
         >
           <span className="lbl pl-5 max-sm:hidden">Span</span>
           <div className="relative h-full">
-            {DOW.map((day, k) => (
+            {DOW.map((day, index) => (
               <span
                 key={day}
                 className="absolute inset-y-0 flex items-center pl-1.75 font-mono text-[10.5px] font-medium tracking-[.06em] text-ink-3 uppercase"
-                style={{ left: `${(k / 7) * 100}%` }}
+                style={{ left: `${(index / 7) * 100}%` }}
               >
                 {day}
               </span>
@@ -769,19 +784,19 @@ function Waterfall({
         </div>
         {/* Linked views: hovering a span lights its heatmap cell. */}
         <div onPointerLeave={() => hover(null)}>
-          {weeks.map((w) => (
+          {weeks.map((week) => (
             <WeekTrace
-              key={w}
+              key={week}
               north={north}
-              w={w}
-              threads={items
-                .filter((i) => i.w === w && passes(i))
-                .sort((a, b) => (a.t0 ?? 0) - (b.t0 ?? 0))}
-              open={roots.has(w)}
+              week={week}
+              threads={threads
+                .filter((thread) => thread.w === week && passes(thread))
+                .sort((first, second) => (first.start ?? 0) - (second.start ?? 0))}
+              open={roots.has(week)}
               fold={() => {
                 const next = new Set(roots);
-                if (roots.has(w)) next.delete(w);
-                else next.add(w);
+                if (roots.has(week)) next.delete(week);
+                else next.add(week);
                 setRoots(next);
               }}
               span={span}
@@ -798,7 +813,7 @@ function Waterfall({
 // One week: its row, with a tick per span start, and when open, its spans.
 function WeekTrace({
   north,
-  w,
+  week,
   threads,
   open,
   fold,
@@ -807,19 +822,19 @@ function WeekTrace({
   hover,
 }: {
   north: North;
-  w: number;
+  week: number;
   threads: Thread[];
   open: boolean;
   fold: () => void;
   span: string | null;
   toggle: (id: string) => void;
-  hover: (i: Thread) => void;
+  hover: (thread: Thread) => void;
 }) {
-  const position = positionIn(north, w);
-  const monday = mondayOf(north, w);
-  const timed = threads.filter((i) => i.t0 != null);
-  const start = timed.length ? position(Math.min(...timed.map((i) => i.t0))) : 0;
-  const end = timed.length ? position(Math.max(...timed.map((i) => i.t1))) : 0;
+  const position = positionIn(north, week);
+  const monday = mondayOf(north, week);
+  const timed = threads.filter((thread) => thread.start != null);
+  const start = timed.length ? position(Math.min(...timed.map((thread) => thread.start))) : 0;
+  const end = timed.length ? position(Math.max(...timed.map((thread) => thread.end))) : 0;
   const Chevron = open ? ChevronDown : ChevronRight;
   return (
     <div>
@@ -834,8 +849,8 @@ function WeekTrace({
           )}
         >
           <Chevron className="size-3 text-ink-3" />
-          {north.WEEKS[w]}
-          <span className="flex-1 font-mono text-[11.5px] font-medium tracking-normal text-ink-3">{`${fmtDay(monday)} – ${fmtDay(monday + 6 * DAY)}`}</span>
+          {north.WEEKS[week]}
+          <span className="flex-1 font-mono text-[11.5px] font-medium tracking-normal text-ink-3">{`${formatDay(monday)} – ${formatDay(monday + 6 * DAY)}`}</span>
           <span className="font-mono text-[11.5px] font-medium tracking-normal text-ink-3 tabular-nums">
             {plural(threads.length, "span")}
           </span>
@@ -849,23 +864,23 @@ function WeekTrace({
               style={{ left: `${start}%`, width: `${end - start}%` }}
             />
           )}
-          {timed.map((i) => (
+          {timed.map((thread) => (
             <i
-              key={i.id}
-              data-at={position(i.t0)}
+              key={thread.id}
+              data-at={position(thread.start)}
               className="absolute top-1/2 -mt-1.5 -ml-[1.5px] h-3 w-0.75 rounded-[2px]"
-              style={{ left: `${position(i.t0)}%`, background: mc(i.mode) }}
+              style={{ left: `${position(thread.start)}%`, background: mc(thread.mode) }}
             />
           ))}
         </div>
       </div>
       {open &&
-        threads.map((i) => (
+        threads.map((thread) => (
           <SpanRow
-            key={i.id}
-            thread={i}
+            key={thread.id}
+            thread={thread}
             position={position}
-            on={span === i.id}
+            on={span === thread.id}
             toggle={toggle}
             hover={hover}
           />
@@ -873,7 +888,7 @@ function WeekTrace({
       {open && !threads.length && (
         <div
           className={cn(rule, "py-3 pr-5 pl-10.5 text-[13px] text-ink-3")}
-        >{`No spans in ${north.WEEKS[w]} match the filter.`}</div>
+        >{`No spans in ${north.WEEKS[week]} match the filter.`}</div>
       )}
     </div>
   );
@@ -881,7 +896,7 @@ function WeekTrace({
 
 // A critical span gets an ink ring; an untimed one is a dashed outline across the week.
 const barLook = (thread: Thread) => {
-  if (thread.t0 == null) return "border border-dashed border-line-2";
+  if (thread.start == null) return "border border-dashed border-line-2";
   return cn(
     "bg-[color-mix(in_srgb,var(--c)_88%,transparent)]",
     isCritical(thread)
@@ -898,13 +913,13 @@ function SpanRow({
   hover,
 }: {
   thread: Thread;
-  position: (t: number) => number;
+  position: (time: number) => number;
   on: boolean;
   toggle: (id: string) => void;
-  hover: (i: Thread) => void;
+  hover: (thread: Thread) => void;
 }) {
-  const left = thread.t0 == null ? 0 : position(thread.t0);
-  const width = thread.t0 == null ? 100 : position(thread.t1) - left;
+  const left = thread.start == null ? 0 : position(thread.start);
+  const width = thread.start == null ? 100 : position(thread.end) - left;
   return (
     <div
       onClick={() => toggle(thread.id)}
@@ -922,8 +937,8 @@ function SpanRow({
       <button
         data-row
         aria-pressed={on}
-        onClick={(e) => {
-          e.stopPropagation();
+        onClick={(event) => {
+          event.stopPropagation();
           toggle(thread.id);
         }}
         className={cn(
@@ -935,14 +950,14 @@ function SpanRow({
         <i className={swatch} />
         <span className="min-w-0 flex-1 truncate">{thread.title}</span>
         <span className="font-mono text-[11.5px] font-medium whitespace-nowrap text-ink-3 tabular-nums">
-          {fmtDuration(thread)}
+          {formatDuration(thread)}
         </span>
       </button>
       <div className="relative min-h-8 max-sm:min-h-6">
         <span
           data-at={left}
           data-bar="1"
-          title={`${thread.title} · ${fmtDuration(thread)} · ${thread.ev.length} events`}
+          title={`${thread.title} · ${formatDuration(thread)} · ${thread.ev.length} events`}
           style={{ left: `${left}%`, width: `${width}%` }}
           className={cn(
             "absolute top-1/2 -mt-1.75 h-3.5 min-w-2 origin-left rounded-sm",
@@ -951,11 +966,11 @@ function SpanRow({
         >
           {/* An instant span is its one event: no ticks inside. */}
           {width >= 0.4 &&
-            timedEvents(thread).map((e: SpanEvent, k: number) => (
+            timedEvents(thread).map((event: SpanEvent, index: number) => (
               <i
-                key={k}
+                key={index}
                 className="absolute inset-y-0.75 -ml-px w-0.5 rounded-[1px] bg-[color-mix(in_srgb,var(--ground)_72%,transparent)]"
-                style={{ left: `${((position(Date.parse(e[1])) - left) / width) * 100}%` }}
+                style={{ left: `${((position(Date.parse(event[1])) - left) / width) * 100}%` }}
               />
             ))}
         </span>
@@ -969,13 +984,13 @@ const keyValue =
   "grid grid-cols-[auto_1fr] items-baseline gap-3 border-t border-line pt-3 text-[13.5px]";
 const keyClass = "font-mono text-xs font-medium text-ink-3";
 
-// pp: how this selection's mode share differs from the weeks outside it.
-function ppChange(selected: Thread[], rest: Thread[], mode: string) {
+// pp, percentage points: how this selection's mode share differs from the weeks outside it.
+function pointsChange(selected: Thread[], rest: Thread[], mode: string) {
   if (!rest.length) return "";
-  const isMode = (x: Thread) => x.mode === mode;
-  const pp = Math.round((shareOf(selected, isMode) - shareOf(rest, isMode)) * 100);
-  if (!pp) return "";
-  return `${pp > 0 ? "+" : "−"}${Math.abs(pp)} pp`;
+  const isMode = (thread: Thread) => thread.mode === mode;
+  const points = Math.round((shareOf(selected, isMode) - shareOf(rest, isMode)) * 100);
+  if (!points) return "";
+  return `${points > 0 ? "+" : "−"}${Math.abs(points)} pp`;
 }
 
 function Summary({
@@ -1016,34 +1031,36 @@ function SummaryBody({
   rest: Thread[];
   toggle: (id: string) => void;
 }) {
-  const byMode = cnt(selected, (x: Thread) => x.mode);
+  const byMode = cnt(selected, (thread: Thread) => thread.mode);
   const modes = modesByCount(byMode);
-  const longest = selected.filter((x) => x.hrs != null).sort((a, b) => b.hrs - a.hrs)[0];
+  const longest = selected
+    .filter((thread) => thread.hours != null)
+    .sort((first, second) => second.hours - first.hours)[0];
   const critical = selected.filter(isCritical);
   return (
     <>
       <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-[5px]" aria-hidden="true">
-        {modes.map((m) => (
+        {modes.map((mode) => (
           <i
-            key={m}
+            key={mode}
             data-mix
             className="origin-left"
-            style={{ flex: byMode[m], background: mc(m) }}
-            title={`${MODES[m]}: ${byMode[m]}`}
+            style={{ flex: byMode[mode], background: mc(mode) }}
+            title={`${MODES[mode]}: ${byMode[mode]}`}
           />
         ))}
       </div>
       <ul className="m-0 grid list-none p-0">
-        {modes.map((m) => (
+        {modes.map((mode) => (
           <li
-            key={m}
+            key={mode}
             className="grid grid-cols-[auto_1fr_auto_64px] items-center gap-2.5 border-t border-line py-1.75 text-[13.5px] first:border-t-0"
           >
-            <i className={swatch} style={colorVar(mc(m))} />
-            <span>{MODES[m]}</span>
-            <b className="font-mono text-[13px] font-semibold">{byMode[m]}</b>
+            <i className={swatch} style={colorVar(mc(mode))} />
+            <span>{MODES[mode]}</span>
+            <b className="font-mono text-[13px] font-semibold">{byMode[mode]}</b>
             <small className="text-right font-mono text-[11.5px] font-medium text-ink-3">
-              {ppChange(selected, rest, m)}
+              {pointsChange(selected, rest, mode)}
             </small>
           </li>
         ))}
@@ -1063,7 +1080,7 @@ function SummaryBody({
           <button
             onClick={() => toggle(longest.id)}
             className="cursor-pointer border-0 bg-transparent p-0 text-left text-ink underline decoration-ink-3 underline-offset-3"
-          >{`${longest.title} · ${fmtDuration(longest)}`}</button>
+          >{`${longest.title} · ${formatDuration(longest)}`}</button>
         </div>
       )}
       <p className={note}>Click a span to see its events.</p>
@@ -1087,22 +1104,26 @@ function ProjectName({ thread, north }: { thread: Thread; north: North }) {
 
 // Timed events in order, then the untimed ones.
 const eventsInOrder = (thread: Thread) => [
-  ...timedEvents(thread).sort((a: SpanEvent, b: SpanEvent) => Date.parse(a[1]) - Date.parse(b[1])),
-  ...thread.ev.filter((e: SpanEvent) => !e[1]),
+  ...timedEvents(thread).sort(
+    (first: SpanEvent, second: SpanEvent) => Date.parse(first[1]) - Date.parse(second[1]),
+  ),
+  ...thread.ev.filter((event: SpanEvent) => !event[1]),
 ];
 
 function SpanDetail({
   north,
   thread,
-  items,
+  threads,
   close,
 }: {
   north: North;
   thread: Thread;
-  items: Thread[];
+  threads: Thread[];
   close: () => void;
 }) {
-  const shorter = Math.round(shareOf(items, (x) => (x.hrs ?? 0) < (thread.hrs ?? 0)) * 100);
+  const shorter = Math.round(
+    shareOf(threads, (other) => (other.hours ?? 0) < (thread.hours ?? 0)) * 100,
+  );
   return (
     <>
       <div className="flex items-center justify-between gap-2">
@@ -1114,9 +1135,9 @@ function SpanDetail({
       </div>
       <h3 className="m-0 text-lg leading-snug font-semibold text-balance">{thread.title}</h3>
       <div className="flex flex-wrap items-baseline gap-2.5">
-        <b className="font-mono text-[28px] leading-none font-semibold">{fmtDuration(thread)}</b>
+        <b className="font-mono text-[28px] leading-none font-semibold">{formatDuration(thread)}</b>
         <span className="text-[13px] text-ink-3">
-          {thread.hrs ? `longer than ${shorter}% of your spans` : "one moment, one event"}
+          {thread.hours ? `longer than ${shorter}% of your spans` : "one moment, one event"}
         </span>
       </div>
       <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-1.75 text-[13px] [&_dd]:m-0 [&_dd]:min-w-0 [&_dd]:wrap-anywhere [&_dt]:font-mono [&_dt]:text-xs [&_dt]:font-medium [&_dt]:text-ink-3">
@@ -1131,13 +1152,13 @@ function SpanDetail({
         <dt>pillar</dt>
         <dd>{PILLAR[thread.pillar] ?? "none"}</dd>
         <dt>started</dt>
-        <dd>{thread.t0 ? `${fmtWhen(thread.t0)}, ${fmtDay(thread.t0)}` : "no time"}</dd>
+        <dd>{thread.start ? `${fmtWhen(thread.start)}, ${formatDay(thread.start)}` : "no time"}</dd>
       </dl>
       {thread.summary && <p className="m-0 text-sm leading-normal text-ink-2">{thread.summary}</p>}
       <span className="lbl">{`Span events · ${thread.ev.length}`}</span>
       <ol className="m-0 grid max-h-80 list-none overflow-y-auto p-0">
-        {eventsInOrder(thread).map((e: SpanEvent, k: number) => (
-          <EventRow key={k} event={e} />
+        {eventsInOrder(thread).map((event: SpanEvent, index: number) => (
+          <EventRow key={index} event={event} />
         ))}
       </ol>
       {/* The old Trace had no way to the thread sheet: here it is one click from the span. */}
@@ -1185,4 +1206,4 @@ function EventRow({ event }: { event: SpanEvent }) {
   );
 }
 
-export const View = ({ p }: { p: URLSearchParams }) => <Trace p={p} />;
+export const View = ({ p: params }: { p: URLSearchParams }) => <Trace params={params} />;

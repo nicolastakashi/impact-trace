@@ -73,55 +73,57 @@ const Swatch = ({ color, striped }: { color: string; striped?: boolean }) => (
   />
 );
 
-type BarPart = { v: number; c: string; p?: boolean; dim?: boolean };
+type BarPart = { value: number; color: string; striped?: boolean; dim?: boolean };
 type Column = { title: string; parts: BarPart[] };
 // Columns on a zero baseline, gridlines on round numbers, this week's label in ink.
 function Plot({
   weeks,
   height,
   label,
-  cols,
-  avg,
+  columns,
+  average,
 }: {
   weeks: string[];
   height: number;
   label: string;
-  cols: Column[];
-  avg?: number;
+  columns: Column[];
+  average?: number;
 }) {
-  const { top, ticks } = axis(Math.max(...cols.map((col) => sum(col.parts.map((x) => x.v)))));
+  const { top, ticks } = axis(
+    Math.max(...columns.map((column) => sum(column.parts.map((part) => part.value)))),
+  );
   const lastWeek = weeks.length - 1;
   const grid = { gridTemplateColumns: `repeat(${weeks.length}, minmax(0, 1fr))` };
   return (
     <figure className="m-0">
       <div className="relative ml-7.5" style={{ height }} role="img" aria-label={label}>
-        {ticks.map((v) => (
+        {ticks.map((tick) => (
           <div
-            key={v}
-            className={cn("absolute inset-x-0 border-t", v ? "border-line" : "border-line-2")}
-            style={{ top: `${(1 - v / top) * 100}%` }}
+            key={tick}
+            className={cn("absolute inset-x-0 border-t", tick ? "border-line" : "border-line-2")}
+            style={{ top: `${(1 - tick / top) * 100}%` }}
           >
             <span className="absolute right-full mr-2 -translate-y-1/2 font-num text-[11px] leading-none font-semibold text-ink-3 tabular-nums">
-              {v}
+              {tick}
             </span>
           </div>
         ))}
         <div className="relative grid h-full items-end gap-[clamp(4px,1.4vw,14px)]" style={grid}>
-          {cols.map((col, w) => (
+          {columns.map((column, week) => (
             <div
-              key={w}
+              key={week}
               data-grow="y"
-              title={col.title}
+              title={column.title}
               className="flex h-full w-full max-w-14 origin-bottom flex-col-reverse justify-self-center"
             >
-              <Stack parts={col.parts.filter((x) => x.v)} top={top} height={height} />
+              <Stack parts={column.parts.filter((part) => part.value)} top={top} height={height} />
             </div>
           ))}
         </div>
-        {avg != null && (
+        {average != null && (
           <div
             className="absolute inset-x-0 border-t-[1.5px] border-dashed border-ink-2"
-            style={{ top: `${(1 - avg / top) * 100}%` }}
+            style={{ top: `${(1 - average / top) * 100}%` }}
           />
         )}
       </div>
@@ -129,8 +131,8 @@ function Plot({
         className="mt-2 ml-7.5 grid gap-[clamp(4px,1.4vw,14px)] text-center font-num text-[11px] leading-none font-semibold text-ink-3"
         style={grid}
       >
-        {weeks.map((week, i) => (
-          <span key={week} className={i === lastWeek ? "text-ink" : ""}>
+        {weeks.map((week, index) => (
+          <span key={week} className={index === lastWeek ? "text-ink" : ""}>
             {week}
           </span>
         ))}
@@ -141,51 +143,57 @@ function Plot({
 
 // One column's parts, bottom up; the top part gets the rounded corners.
 const Stack = ({ parts, top, height }: { parts: BarPart[]; top: number; height: number }) =>
-  parts.map((x, k) => (
+  parts.map((part, index) => (
     <i
-      key={k}
+      key={index}
       className={cn(
         "block flex-none border-t-2 border-s1 transition-opacity",
-        k === parts.length - 1 && "rounded-t",
-        x.dim && "opacity-20",
+        index === parts.length - 1 && "rounded-t",
+        part.dim && "opacity-20",
       )}
       style={{
-        height: (x.v / top) * height,
-        background: x.p
-          ? `repeating-linear-gradient(135deg,${x.c} 0 4px,color-mix(in srgb,${x.c} 35%,transparent) 4px 7px)`
-          : x.c,
+        height: (part.value / top) * height,
+        background: part.striped
+          ? `repeating-linear-gradient(135deg,${part.color} 0 4px,color-mix(in srgb,${part.color} 35%,transparent) 4px 7px)`
+          : part.color,
       }}
     />
   ));
 
-type Series = { id: string; name: string; c: string; p: boolean; its: any[] };
+type Series = { id: string; name: string; color: string; striped: boolean; threads: any[] };
 // One row per goal, and one for the rest. A thread that serves two goals goes to the goal
 // served most, so every thread is in exactly one row.
 function seriesOf(north: North, byGoals: boolean): Series[] {
-  const items = north.ITEMS;
-  const served = (goal: any) => items.filter((i) => goalsOf(north, i).includes(goal.id)).length;
-  const goals = [...north.GOALS].sort((a, b) => served(b) - served(a));
-  const mainGoal = (item: any) =>
-    goals.find((g) => goalsOf(north, item).includes(g.id))?.id ?? "none";
+  const threads = north.ITEMS;
+  const served = (goal: any) =>
+    threads.filter((thread) => goalsOf(north, thread).includes(goal.id)).length;
+  const goals = [...north.GOALS].sort((first, second) => served(second) - served(first));
+  const mainGoal = (thread: any) =>
+    goals.find((goal) => goalsOf(north, thread).includes(goal.id))?.id ?? "none";
   return [
-    ...goals.map((g) => ({ id: g.id, name: g.title, c: g.color, p: g.kind === "personal" })),
+    ...goals.map((goal) => ({
+      id: goal.id,
+      name: goal.title,
+      color: goal.color,
+      striped: goal.kind === "personal",
+    })),
     {
       id: "none",
       name: byGoals ? "Serves no goal" : "Everything else",
-      c: "var(--rest)",
-      p: false,
+      color: "var(--rest)",
+      striped: false,
     },
-  ].map((x) => ({ ...x, its: items.filter((i) => mainGoal(i) === x.id) }));
+  ].map((row) => ({ ...row, threads: threads.filter((thread) => mainGoal(thread) === row.id) }));
 }
 
 // The weeks a row's threads fall in, for Trace.
 function weeksOf(north: North, id: string) {
-  const inRow = (item: any) =>
-    id === "none" ? !goalsOf(north, item).length : goalsOf(north, item).includes(id);
-  const weeks = new Set(north.ITEMS.filter(inRow).map((i) => i.w as number));
+  const inRow = (thread: any) =>
+    id === "none" ? !goalsOf(north, thread).length : goalsOf(north, thread).includes(id);
+  const weeks = new Set(north.ITEMS.filter(inRow).map((thread) => thread.w as number));
   return [...weeks]
-    .sort((a, b) => a - b)
-    .map((w) => north.WEEKS[w])
+    .sort((first, second) => first - second)
+    .map((week) => north.WEEKS[week])
     .join(",");
 }
 
@@ -194,17 +202,19 @@ function Where({ north, byGoals }: { north: North; byGoals: boolean }) {
   const [highlight, setHighlight] = useState<string | null>(null);
   const total = north.ITEMS.length;
   const series = seriesOf(north, byGoals);
-  const fit = sum(series.filter((x) => x.id !== "none").map((x) => x.its.length));
+  const fit = sum(series.filter((row) => row.id !== "none").map((row) => row.threads.length));
   const what = byGoals ? "goal" : "project";
-  const cols = north.WEEKS.map((week, w) => {
-    const parts = series.map((x) => ({
-      v: x.its.filter((i) => i.w === w).length,
-      c: x.c,
-      p: x.p,
-      dim: !!highlight && highlight !== x.id,
+  const columns = north.WEEKS.map((week, weekIndex) => {
+    const parts = series.map((row) => ({
+      value: row.threads.filter((thread) => thread.w === weekIndex).length,
+      color: row.color,
+      striped: row.striped,
+      dim: !!highlight && highlight !== row.id,
     }));
-    const lines = parts.map((x, j) => (x.v ? `\n${series[j]!.name}: ${x.v}` : "")).join("");
-    return { title: `${week}: ${sum(parts.map((x) => x.v))} threads${lines}`, parts };
+    const lines = parts
+      .map((part, index) => (part.value ? `\n${series[index]!.name}: ${part.value}` : ""))
+      .join("");
+    return { title: `${week}: ${sum(parts.map((part) => part.value))} threads${lines}`, parts };
   });
   return (
     <Tile>
@@ -228,7 +238,12 @@ function Where({ north, byGoals }: { north: North; byGoals: boolean }) {
         onMouseLeave={() => setHighlight(null)}
         onBlur={() => setHighlight(null)}
       >
-        <Plot weeks={north.WEEKS} height={220} label={`Threads per week by ${what}`} cols={cols} />
+        <Plot
+          weeks={north.WEEKS}
+          height={220}
+          label={`Threads per week by ${what}`}
+          columns={columns}
+        />
         <WhereTable
           north={north}
           series={series}
@@ -272,28 +287,30 @@ function WhereTable({
         </tr>
       </thead>
       <tbody>
-        {series.map((x) => (
+        {series.map((row) => (
           <tr
-            key={x.id}
-            className={highlight && highlight !== x.id ? "[&>td]:opacity-20" : ""}
-            onMouseEnter={() => setHighlight(x.id)}
+            key={row.id}
+            className={highlight && highlight !== row.id ? "[&>td]:opacity-20" : ""}
+            onMouseEnter={() => setHighlight(row.id)}
           >
             <td className={tdClass}>
               <button
                 className={cn(
                   "flex cursor-pointer items-center gap-2.5 text-left font-sans text-[13.5px] leading-snug font-normal",
-                  x.id === "none" ? "text-ink-2" : "text-ink",
+                  row.id === "none" ? "text-ink-2" : "text-ink",
                 )}
-                onFocus={() => setHighlight(x.id)}
-                onClick={() => go(`#/trace?w=${weeksOf(north, x.id)}`)}
+                onFocus={() => setHighlight(row.id)}
+                onClick={() => go(`#/trace?w=${weeksOf(north, row.id)}`)}
               >
-                <Swatch color={x.c} striped={x.p} />
-                {x.name}
+                <Swatch color={row.color} striped={row.striped} />
+                {row.name}
               </button>
             </td>
-            <td className={tdClass}>{x.its.length}</td>
-            <td className={tdClass}>{percent(x.its.length, total)}%</td>
-            <td className={tdClass}>{x.its.filter((i) => i.wm === "wouldnt").length}</td>
+            <td className={tdClass}>{row.threads.length}</td>
+            <td className={tdClass}>{percent(row.threads.length, total)}%</td>
+            <td className={tdClass}>
+              {row.threads.filter((thread) => thread.wm === "wouldnt").length}
+            </td>
           </tr>
         ))}
       </tbody>
@@ -313,17 +330,19 @@ const Delivered = ({ north }: { north: North }) => (
       </a>
     </TileHead>
     <div className="grid md:grid-cols-3">
-      <ByMode items={north.ITEMS} />
-      <WithoutYou items={north.ITEMS} />
+      <ByMode threads={north.ITEMS} />
+      <WithoutYou threads={north.ITEMS} />
       <ReviewsGiven north={north} />
     </div>
   </Tile>
 );
 
 // By mode: longest first, in the mode colors Trace uses.
-function ByMode({ items }: { items: any[] }) {
-  const byMode = cnt(items, (i) => i.mode);
-  const modes = Object.keys(MODES).sort((a, b) => (byMode[b] ?? 0) - (byMode[a] ?? 0));
+function ByMode({ threads }: { threads: any[] }) {
+  const byMode = cnt(threads, (thread) => thread.mode);
+  const modes = Object.keys(MODES).sort(
+    (first, second) => (byMode[second] ?? 0) - (byMode[first] ?? 0),
+  );
   const longest = Math.max(1, ...Object.values(byMode));
   return (
     <div className={deliveredColumn}>
@@ -358,10 +377,10 @@ const ANSWER_COLOR: Record<string, string> = {
   slower: "var(--ink-2)",
   same: "var(--rest)",
 };
-function WithoutYou({ items }: { items: any[] }) {
-  const byAnswer = cnt(items, (i) => i.wm);
+function WithoutYou({ threads }: { threads: any[] }) {
+  const byAnswer = cnt(threads, (thread) => thread.wm);
   const answers = Object.keys(WMS);
-  const answered = sum(answers.map((k) => byAnswer[k] ?? 0));
+  const answered = sum(answers.map((answer) => byAnswer[answer] ?? 0));
   return (
     <div className={deliveredColumn}>
       <ColumnHead>
@@ -373,36 +392,36 @@ function WithoutYou({ items }: { items: any[] }) {
       <div
         className="flex h-3 gap-0.5 overflow-hidden rounded-[3px]"
         role="img"
-        aria-label={answers.map((k) => `${byAnswer[k] ?? 0} ${WMS[k]}`).join(", ")}
+        aria-label={answers.map((answer) => `${byAnswer[answer] ?? 0} ${WMS[answer]}`).join(", ")}
       >
         {answers
-          .filter((k) => byAnswer[k])
-          .map((k) => (
+          .filter((answer) => byAnswer[answer])
+          .map((answer) => (
             <i
-              key={k}
+              key={answer}
               data-grow="x"
               className="block origin-left"
-              style={{ flex: byAnswer[k], background: ANSWER_COLOR[k] }}
+              style={{ flex: byAnswer[answer], background: ANSWER_COLOR[answer] }}
             />
           ))}
       </div>
       <ul className="m-0 grid list-none gap-2 p-0">
-        {answers.map((k) => (
+        {answers.map((answer) => (
           <li
-            key={k}
+            key={answer}
             className="grid grid-cols-[14px_34px_1fr] items-center gap-2.5 text-[12.5px] text-ink-2"
           >
-            <Swatch color={ANSWER_COLOR[k]!} />
+            <Swatch color={ANSWER_COLOR[answer]!} />
             <b className="text-right font-num text-base leading-none font-semibold text-ink tabular-nums">
-              {byAnswer[k] ?? 0}
+              {byAnswer[answer] ?? 0}
             </b>
             <span>
-              {WMS[k]} · {percent(byAnswer[k] ?? 0, answered)}%
+              {WMS[answer]} · {percent(byAnswer[answer] ?? 0, answered)}%
             </span>
           </li>
         ))}
       </ul>
-      {items.length - answered > 0 && <By>{items.length - answered} not answered yet</By>}
+      {threads.length - answered > 0 && <By>{threads.length - answered} not answered yet</By>}
     </div>
   );
 }
@@ -411,7 +430,7 @@ function WithoutYou({ items }: { items: any[] }) {
 function ReviewsGiven({ north }: { north: North }) {
   const reviews: number[] = north.REVIEWS;
   const lastWeek = lastWeekOf(north);
-  const avg = mean(reviews);
+  const average = mean(reviews);
   return (
     <div className={deliveredColumn}>
       <ColumnHead>
@@ -428,24 +447,30 @@ function ReviewsGiven({ north }: { north: North }) {
           {reviews[lastWeek]}
         </span>
         <span className="text-[12.5px] text-ink-3">
-          in {north.WEEKS[lastWeek]} · average {avg.toFixed(0)}
+          in {north.WEEKS[lastWeek]} · average {average.toFixed(0)}
         </span>
       </div>
       <Plot
         weeks={north.WEEKS}
         height={110}
         label={`Reviews per week: ${reviews.join(", ")}`}
-        avg={avg}
-        cols={reviews.map((v, i) => ({
-          title: `${north.WEEKS[i]}: ${v} reviews`,
-          parts: [{ v, c: i === lastWeek ? "var(--ink)" : "var(--rest)" }],
+        average={average}
+        columns={reviews.map((count, week) => ({
+          title: `${north.WEEKS[week]}: ${count} reviews`,
+          parts: [{ value: count, color: week === lastWeek ? "var(--ink)" : "var(--rest)" }],
         }))}
       />
     </div>
   );
 }
 
-type WeekNumber = { k: string; v: number[]; u?: string; dp?: number; d: string };
+type WeekNumber = {
+  name: string;
+  values: number[];
+  unit?: string;
+  decimals?: number;
+  detail: string;
+};
 // Your time zone comes from this browser, so travel follows you. Work hours are a fixed 09–19.
 function outsideWorkHours(timeZone: string) {
   const format = new Intl.DateTimeFormat("en-GB", {
@@ -454,43 +479,61 @@ function outsideWorkHours(timeZone: string) {
     hour: "numeric",
     hourCycle: "h23",
   });
-  return (t: string) => {
+  return (time: string) => {
     const part = Object.fromEntries(
-      format.formatToParts(new Date(t)).map((x) => [x.type, x.value]),
+      format.formatToParts(new Date(time)).map((piece) => [piece.type, piece.value]),
     );
     return part.weekday === "Sat" || part.weekday === "Sun" || +part.hour! < 9 || +part.hour! >= 19;
   };
 }
 
 // One value per week. Big number is this week; the bars are the weeks, average dashed.
-function Nums({ north }: { north: North }) {
-  const nums = north.NUMS;
+function Numbers({ north }: { north: North }) {
+  const numbers = north.NUMS;
   const reviews: number[] = north.REVIEWS;
   const lastWeek = lastWeekOf(north);
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const isLate = outsideWorkHours(timeZone);
-  const outside = nums.slackAt.map((times: string[]) =>
+  const outside = numbers.slackAt.map((times: string[]) =>
     percent(times.filter(isLate).length, times.length),
   );
   // Give vs take: PRs you reviewed per PR you opened. A week with none opened shows 0, not infinity.
-  const give = reviews.map((r, i) => (nums.opened[i] ? +(r / nums.opened[i]).toFixed(1) : 0));
+  const give = reviews.map((reviewed, week) =>
+    numbers.opened[week] ? +(reviewed / numbers.opened[week]).toFixed(1) : 0,
+  );
   const tiles: WeekNumber[] = [
-    { k: "Slack messages", v: nums.slack, d: `in ${nums.channels[lastWeek]} channels` },
-    { k: "Meetings", v: nums.meetings, u: "h", dp: 1, d: "hours accepted or tentative" },
     {
-      k: "Outside work hours",
-      v: outside,
-      u: "%",
-      d: "of your messages, before 09, after 19 or weekends",
+      name: "Slack messages",
+      values: numbers.slack,
+      detail: `in ${numbers.channels[lastWeek]} channels`,
     },
-    { k: "People who mention you", v: nums.reach, d: "different people in Slack" },
-    { k: "Lead time", v: nums.lead, u: "h", dp: 1, d: "median, opened to merged" },
     {
-      k: "Give vs take",
-      v: give,
-      u: "×",
-      dp: 1,
-      d: `${reviews[lastWeek]} PRs reviewed, ${nums.opened[lastWeek]} opened`,
+      name: "Meetings",
+      values: numbers.meetings,
+      unit: "h",
+      decimals: 1,
+      detail: "hours accepted or tentative",
+    },
+    {
+      name: "Outside work hours",
+      values: outside,
+      unit: "%",
+      detail: "of your messages, before 09, after 19 or weekends",
+    },
+    { name: "People who mention you", values: numbers.reach, detail: "different people in Slack" },
+    {
+      name: "Lead time",
+      values: numbers.lead,
+      unit: "h",
+      decimals: 1,
+      detail: "median, opened to merged",
+    },
+    {
+      name: "Give vs take",
+      values: give,
+      unit: "×",
+      decimals: 1,
+      detail: `${reviews[lastWeek]} PRs reviewed, ${numbers.opened[lastWeek]} opened`,
     },
   ];
   return (
@@ -501,7 +544,7 @@ function Nums({ north }: { north: North }) {
       </TileHead>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(170px,100%),1fr))]">
         {tiles.map((tile) => (
-          <NumberTile key={tile.k} tile={tile} weeks={north.WEEKS} />
+          <NumberTile key={tile.name} tile={tile} weeks={north.WEEKS} />
         ))}
       </div>
     </Tile>
@@ -510,39 +553,39 @@ function Nums({ north }: { north: North }) {
 
 function NumberTile({ tile, weeks }: { tile: WeekNumber; weeks: string[] }) {
   const lastWeek = weeks.length - 1;
-  const avg = mean(tile.v);
-  const max = Math.max(1, ...tile.v);
-  const now = tile.v[lastWeek]!;
+  const average = mean(tile.values);
+  const max = Math.max(1, ...tile.values);
+  const now = tile.values[lastWeek]!;
   return (
     <div className="flex flex-col gap-2 border-line px-5 py-0.5 first:border-l-0 first:pl-0 max-sm:border-t max-sm:px-0 max-sm:py-3 max-sm:first:border-t-0 sm:border-l">
-      <ColumnHead>{tile.k}</ColumnHead>
+      <ColumnHead>{tile.name}</ColumnHead>
       <span className="font-num text-[40px] leading-[.9] font-extrabold tabular-nums">
         <span data-count={Number.isInteger(now) ? now : undefined}>{now}</span>
-        {tile.u && <small className="ml-0.5 text-lg text-ink-3">{tile.u}</small>}
+        {tile.unit && <small className="ml-0.5 text-lg text-ink-3">{tile.unit}</small>}
       </span>
       <span className="text-[12.5px] text-ink-3">
-        {tile.d} · average {tile.dp ? avg.toFixed(1) : Math.round(avg)}
+        {tile.detail} · average {tile.decimals ? average.toFixed(1) : Math.round(average)}
       </span>
       <div
         className="relative mt-auto flex h-9 flex-none items-end gap-0.75"
         role="img"
-        aria-label={`${tile.k} per week: ${tile.v.join(", ")}`}
+        aria-label={`${tile.name} per week: ${tile.values.join(", ")}`}
       >
-        {tile.v.map((x, i) => (
+        {tile.values.map((value, week) => (
           <i
-            key={i}
+            key={week}
             data-grow="y"
             className={cn(
               "flex-1 origin-bottom rounded-t-xs",
-              i === lastWeek ? "bg-ink" : "bg-(--rest)",
+              week === lastWeek ? "bg-ink" : "bg-(--rest)",
             )}
-            style={{ height: `${(x / max) * 100}%` }}
-            title={`${weeks[i]}: ${x}${tile.u ?? ""}`}
+            style={{ height: `${(value / max) * 100}%` }}
+            title={`${weeks[week]}: ${value}${tile.unit ?? ""}`}
           />
         ))}
         <span
           className="absolute inset-x-0 border-t-[1.5px] border-dashed border-ink-2"
-          style={{ bottom: `${(avg / max) * 100}%` }}
+          style={{ bottom: `${(average / max) * 100}%` }}
         />
       </div>
     </div>
@@ -567,68 +610,68 @@ const Avatar = ({ color, who }: { color: string; who: string }) => (
 
 // You correct Claude: the mention becomes information, and Claude sees it as an example next time.
 async function markMention(id: string, kind: string | null) {
-  const r = await post("/api/mention", { id, kind });
-  if (!r.ok) toast(await r.text());
-  return r.ok;
+  const response = await post("/api/mention", { id, kind });
+  if (!response.ok) toast(await response.text());
+  return response.ok;
 }
 
 // RECOGNITION: praise that names your work, Claude's pick checked by code. One in focus, the rest one click away.
-function Rec({ north }: { north: North }) {
-  const [praise, setPraise] = useState<any[]>(north.REC);
+function PraiseBand({ north }: { north: North }) {
+  const [praiseList, setPraiseList] = useState<any[]>(north.REC);
   const [removed, setRemoved] = useState<any>(null);
   // The highlight is where the praise starts; else the newest.
   const [shown, setShown] = useState<number>(
     () =>
-      north.ITEMS.find((x) => x.id === north.HIGHLIGHT?.item)?.rec ??
+      north.ITEMS.find((thread) => thread.id === north.HIGHLIGHT?.item)?.rec ??
       Math.max(0, north.REC.length - 1),
   );
-  async function notRecognition(r: any) {
-    if (!(await markMention(r.id, "info"))) return;
-    const at = praise.indexOf(r);
-    const next = praise.filter((x) => x !== r);
-    setRemoved({ ...r, at });
-    setPraise(next);
+  async function notPraise(praise: any) {
+    if (!(await markMention(praise.id, "info"))) return;
+    const at = praiseList.indexOf(praise);
+    const next = praiseList.filter((other) => other !== praise);
+    setRemoved({ ...praise, at });
+    setPraiseList(next);
     setShown(Math.min(shown, next.length - 1));
   }
   async function undo() {
     if (!(await markMention(removed.id, null))) return;
-    setPraise([...praise.slice(0, removed.at), removed, ...praise.slice(removed.at)]);
+    setPraiseList([...praiseList.slice(0, removed.at), removed, ...praiseList.slice(removed.at)]);
     setShown(removed.at);
     setRemoved(null);
   }
   // A praise takes the color of the goal its work serves, so recognition reads against your goals.
-  const goalOf = (x: any) => {
-    const item = north.ITEMS.find((y) => y.id === x.item);
-    return item && north.GOALS.find((g) => goalsOf(north, item).includes(g.id));
+  const goalOf = (praise: any) => {
+    const thread = north.ITEMS.find((candidate) => candidate.id === praise.item);
+    return thread && north.GOALS.find((goal) => goalsOf(north, thread).includes(goal.id));
   };
-  const colorOf = (x: any) => goalOf(x)?.color ?? "var(--rest)";
-  const current = praise[shown];
+  const colorOf = (praise: any) => goalOf(praise)?.color ?? "var(--rest)";
+  const current = praiseList[shown];
   return (
     <Tile>
       <TileHead>
         <span className="lbl">Recognition</span>
         <By>
-          {praise.length} in {north.WEEKS.length} weeks
+          {praiseList.length} in {north.WEEKS.length} weeks
         </By>
       </TileHead>
       {current ? (
         <Praise
           north={north}
-          r={current}
+          praise={current}
           goal={goalOf(current)}
           color={colorOf(current)}
-          remove={notRecognition}
+          remove={notPraise}
         />
       ) : (
         <p className={smallText}>
           No praise yet. Shoutouts and thanks that name your work show up here.
         </p>
       )}
-      {removed && <Removed r={removed} quoted={!!current} undo={undo} />}
+      {removed && <Removed praise={removed} quoted={!!current} undo={undo} />}
       {current && (
         <PraiseDots
           weeks={north.WEEKS}
-          praise={praise}
+          praiseList={praiseList}
           shown={shown}
           show={setShown}
           colorOf={colorOf}
@@ -638,10 +681,10 @@ function Rec({ north }: { north: North }) {
   );
 }
 
-const Removed = ({ r, quoted, undo }: { r: any; quoted: boolean; undo: () => void }) => (
+const Removed = ({ praise, quoted, undo }: { praise: any; quoted: boolean; undo: () => void }) => (
   <p className={smallText}>
-    Removed: {r.who}
-    {quoted ? `, "${(r.q ?? r.t).slice(0, 60)}"` : ""}.{" "}
+    Removed: {praise.who}
+    {quoted ? `, "${(praise.q ?? praise.t).slice(0, 60)}"` : ""}.{" "}
     <Button variant="outline" size="xs" className={chipClass} onClick={undo}>
       Undo
     </Button>
@@ -650,20 +693,20 @@ const Removed = ({ r, quoted, undo }: { r: any; quoted: boolean; undo: () => voi
 
 function Praise({
   north,
-  r,
+  praise,
   goal,
   color,
   remove,
 }: {
   north: North;
-  r: any;
+  praise: any;
   goal: any;
   color: string;
-  remove: (r: any) => void;
+  remove: (praise: any) => void;
 }) {
-  const item = north.ITEMS.find((x) => x.id === r.item);
-  const url = /^https:\/\//.test(r.url ?? "") ? r.url : null;
-  const quote: string = r.q ?? r.t;
+  const thread = north.ITEMS.find((candidate) => candidate.id === praise.item);
+  const url = /^https:\/\//.test(praise.url ?? "") ? praise.url : null;
+  const quote: string = praise.q ?? praise.t;
   return (
     <>
       <p
@@ -676,13 +719,15 @@ function Praise({
         {quote}
         <span className="text-brand">”</span>
       </p>
-      {r.q && r.q.length < r.t.length * 0.7 && <p className={smallText}>{r.t}</p>}
+      {praise.q && praise.q.length < praise.t.length * 0.7 && (
+        <p className={smallText}>{praise.t}</p>
+      )}
       <div className="flex min-w-0 items-center gap-2.5">
-        <Avatar color={color} who={r.who} />
+        <Avatar color={color} who={praise.who} />
         <div className="grid min-w-0">
-          <b className="text-sm">{r.who}</b>
+          <b className="text-sm">{praise.who}</b>
           <By>
-            {r.where ?? ""} · {r.when || north.WEEKS[r.w]}
+            {praise.where ?? ""} · {praise.when || north.WEEKS[praise.w]}
           </By>
         </div>
       </div>
@@ -700,22 +745,22 @@ function Praise({
             {goal.short}
           </span>
         )}
-        {item && (
+        {thread && (
           <Button
             variant="outline"
             size="xs"
             className={chipClass}
-            onClick={() => openItem(item.id)}
+            onClick={() => openItem(thread.id)}
           >
-            {item.title} →
+            {thread.title} →
           </Button>
         )}
-        {r.id && (
+        {praise.id && (
           <Button
             variant="ghost"
             size="xs"
             className="ml-auto text-[12.5px] font-normal text-ink-3 hover:bg-transparent hover:text-ink"
-            onClick={() => remove(r)}
+            onClick={() => remove(praise)}
           >
             Not recognition
           </Button>
@@ -728,16 +773,16 @@ function Praise({
 // One dot per praise, in its week: the rhythm at a glance, and the way to pick one.
 function PraiseDots({
   weeks,
-  praise,
+  praiseList,
   shown,
   show,
   colorOf,
 }: {
   weeks: string[];
-  praise: any[];
+  praiseList: any[];
   shown: number;
-  show: (i: number) => void;
-  colorOf: (x: any) => string;
+  show: (index: number) => void;
+  colorOf: (praise: any) => string;
 }) {
   return (
     <div
@@ -746,21 +791,22 @@ function PraiseDots({
       role="group"
       aria-label="Praise per week"
     >
-      {weeks.map((week, w) => (
+      {weeks.map((week, weekIndex) => (
         <div key={week}>
           <div className="flex min-h-3.5 flex-wrap items-end justify-center gap-1.25">
-            {praise.map((x, j) =>
-              x.w === w ? (
+            {praiseList.map((praise, index) =>
+              praise.w === weekIndex ? (
                 <button
-                  key={x.id ?? j}
-                  aria-label={`${x.who}, ${week}${j === shown ? ", shown" : ""}`}
-                  title={`${x.who} · ${x.about ?? x.where ?? ""}`}
+                  key={praise.id ?? index}
+                  aria-label={`${praise.who}, ${week}${index === shown ? ", shown" : ""}`}
+                  title={`${praise.who} · ${praise.about ?? praise.where ?? ""}`}
                   className={cn(
                     "size-3 cursor-pointer rounded-full transition-transform hover:scale-125 focus-visible:outline-ink",
-                    j === shown && "scale-130 shadow-[0_0_0_2px_var(--s1),0_0_0_4px_var(--ink)]",
+                    index === shown &&
+                      "scale-130 shadow-[0_0_0_2px_var(--s1),0_0_0_4px_var(--ink)]",
                   )}
-                  style={{ background: colorOf(x) }}
-                  onClick={() => show(j)}
+                  style={{ background: colorOf(praise) }}
+                  onClick={() => show(index)}
                 />
               ) : null,
             )}
@@ -776,7 +822,7 @@ function PraiseDots({
 
 // One stable color per person, from the name. Hues 40–310 only: red is for what needs you, never for a person.
 const personHue = (name: string) =>
-  40 + [...name].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 271, 7);
+  40 + [...name].reduce((hue, character) => (hue * 31 + character.charCodeAt(0)) % 271, 7);
 
 // WHO COMES TO YOU: people who asked you for a review, a decision or an answer in Slack.
 function Asks({ north }: { north: North }) {
@@ -796,7 +842,7 @@ function Asks({ north }: { north: North }) {
         </p>
       </Tile>
     );
-  const max = Math.max(1, ...asks.flatMap((a) => a.per));
+  const max = Math.max(1, ...asks.flatMap((ask) => ask.per));
   return (
     <Tile>
       {head(`asks in Slack · ${north.WEEKS[0]}–${north.WEEKS[lastWeekOf(north)]}`)}
@@ -826,15 +872,16 @@ function AskRow({ ask, weeks, max }: { ask: any; weeks: string[]; max: number })
         role="img"
         aria-label={`per week: ${ask.per.join(", ")}`}
       >
-        {ask.per.map((n: number, w: number) => (
+        {ask.per.map((count: number, week: number) => (
           <i
-            key={w}
+            key={week}
             className="min-h-0.5 w-1.25 rounded-[1px]"
             style={{
-              height: `${n ? (n / max) * 100 : 0}%`,
-              background: w === lastWeek ? color : `color-mix(in srgb, ${color} 45%, transparent)`,
+              height: `${count ? (count / max) * 100 : 0}%`,
+              background:
+                week === lastWeek ? color : `color-mix(in srgb, ${color} 45%, transparent)`,
             }}
-            title={`${weeks[w]}: ${n}`}
+            title={`${weeks[week]}: ${count}`}
           />
         ))}
       </span>
@@ -888,11 +935,11 @@ function ExperimentTrend({ trend, week }: { trend: number[]; week: string }) {
       </span>
       <By>times in {shortWeek(week)}</By>
       <span className="flex h-8.5 items-end gap-0.75" aria-hidden="true">
-        {trend.map((n, k) => (
+        {trend.map((count, index) => (
           <i
-            key={k}
-            className={cn("w-2 rounded-t-xs", k < trend.length - 1 ? "bg-(--rest)" : nowColor)}
-            style={{ height: (n / max) * 30 + 2 }}
+            key={index}
+            className={cn("w-2 rounded-t-xs", index < trend.length - 1 ? "bg-(--rest)" : nowColor)}
+            style={{ height: (count / max) * 30 + 2 }}
           />
         ))}
       </span>
@@ -922,7 +969,7 @@ function ReviewStatus({ left, weeks }: { left: number; weeks: number }) {
 // PENDING: your undecided threads per week. Red only where something waits for you; done weeks stay quiet.
 function ToReview({ pending }: { pending: Record<string, number> }) {
   const weeks = Object.keys(pending).sort();
-  const left = sum(weeks.map((w) => pending[w]!));
+  const left = sum(weeks.map((week) => pending[week]!));
   const doneColor = left ? "bg-ink-2" : "bg-ok/70";
   return (
     <button data-tile className={buttonTileClass} onClick={() => go("#/review")}>
@@ -931,11 +978,11 @@ function ToReview({ pending }: { pending: Record<string, number> }) {
         <ReviewStatus left={left} weeks={weeks.length} />
       </p>
       <div className="flex gap-0.75">
-        {weeks.map((w) => (
+        {weeks.map((week) => (
           <i
-            key={w}
-            className={cn("h-1 flex-1 rounded-xs", pending[w] ? "bg-brand" : doneColor)}
-            title={`${w}: ${pending[w] ? `${pending[w]} left` : "done"}`}
+            key={week}
+            className={cn("h-1 flex-1 rounded-xs", pending[week] ? "bg-brand" : doneColor)}
+            title={`${week}: ${pending[week] ? `${pending[week]} left` : "done"}`}
           />
         ))}
       </div>
@@ -965,14 +1012,14 @@ function animateHome(root: HTMLElement) {
     { scaleX: 0 },
     { scaleX: 1, duration: 0.8, stagger: 0.04, ease: "expo.out", delay: 0.3 },
   );
-  root.querySelectorAll<HTMLElement>("[data-count]").forEach((el) => {
-    countUp(el, +el.dataset.count!, 1.1);
+  root.querySelectorAll<HTMLElement>("[data-count]").forEach((element) => {
+    countUp(element, +element.dataset.count!, 1.1);
   });
 }
 
 function Heading({ north }: { north: North }) {
   const weeks = north.WEEKS;
-  const critical = north.ITEMS.filter((i) => i.wm === "wouldnt").length;
+  const critical = north.ITEMS.filter((thread) => thread.wm === "wouldnt").length;
   return (
     <div className="vhead">
       <div>
@@ -1024,9 +1071,9 @@ function Home() {
       <div className="grid gap-3">
         <Where north={north} byGoals={byGoals} />
         <Delivered north={north} />
-        {north.NUMS && <Nums north={north} />}
+        {north.NUMS && <Numbers north={north} />}
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-3">
-          <Rec north={north} />
+          <PraiseBand north={north} />
           <Asks north={north} />
         </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))] gap-3">

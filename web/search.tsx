@@ -15,13 +15,13 @@ const VIEWS = [
   ["refs", "References"],
   ["setup", "Setup"],
 ];
-// One row: a view, the recap or a thread. `tag` is the right-hand caption; `hay` what the query matches.
+// One row: a view, the recap or a thread. `tag` is the right-hand caption; `haystack` what the query matches.
 type Result = {
   id: string;
   label: string;
   tag: string;
   mode?: string;
-  hay?: string;
+  haystack?: string;
   run: () => void;
 };
 
@@ -35,15 +35,16 @@ function resultsOf(north: North | null): Result[] {
       run: () => go(`#/${view}`),
     })),
     { id: "recap", label: "Open recap (Wrapped)", tag: "recap", run: openStory },
-    ...north.ITEMS.map((i) => {
-      const praisedBy = i.rec != null ? north.REC[i.rec].who : "";
+    ...north.ITEMS.map((thread) => {
+      const praisedBy = thread.rec != null ? north.REC[thread.rec].who : "";
       return {
-        id: `i:${i.id}`,
-        label: i.title,
-        tag: north.WEEKS[i.w]!,
-        mode: i.mode,
-        run: () => openItem(i.id),
-        hay: `${i.title} ${north.PROJECTS[i.s]?.name ?? ""} ${i.quote?.who ?? ""} ${praisedBy}`.toLowerCase(),
+        id: `i:${thread.id}`,
+        label: thread.title,
+        tag: north.WEEKS[thread.w]!,
+        mode: thread.mode,
+        run: () => openItem(thread.id),
+        haystack:
+          `${thread.title} ${north.PROJECTS[thread.s]?.name ?? ""} ${thread.quote?.who ?? ""} ${praisedBy}`.toLowerCase(),
       };
     }),
   ];
@@ -58,7 +59,7 @@ export function Search() {
   const went = useRef(false);
   // ⌘K again closes it.
   useEvent("open-search", () => {
-    setOpen((o) => !o);
+    setOpen((wasOpen) => !wasOpen);
     setQuery("");
     setSelected("");
     went.current = false;
@@ -66,41 +67,43 @@ export function Search() {
   // Our own filter, not cmdk's fuzzy one: a plain substring, at most 12 results.
   const needle = query.toLowerCase();
   const results = resultsOf(north)
-    .filter((r) => !query || (r.hay ?? r.label.toLowerCase()).includes(needle))
+    .filter((result) => !query || (result.haystack ?? result.label.toLowerCase()).includes(needle))
     .slice(0, 12);
-  const active = results.some((r) => r.id === selected) ? selected : (results[0]?.id ?? "");
-  const pick = (r: Result) => {
+  const active = results.some((result) => result.id === selected)
+    ? selected
+    : (results[0]?.id ?? "");
+  const pick = (result: Result) => {
     went.current = true;
     setOpen(false);
-    r.run();
+    result.run();
   };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
         aria-describedby={undefined}
         className="top-[12vh] bottom-auto max-w-155 gap-0 overflow-hidden rounded-2xl p-0"
-        onCloseAutoFocus={(e) => went.current && e.preventDefault()}
+        onCloseAutoFocus={(event) => went.current && event.preventDefault()}
       >
         <DialogTitle className="sr-only">Search</DialogTitle>
         <Command shouldFilter={false} value={active} onValueChange={setSelected}>
           <CommandInput
             placeholder="Search items, people, views…"
             value={query}
-            onValueChange={(v) => {
-              setQuery(v);
+            onValueChange={(value) => {
+              setQuery(value);
               setSelected("");
             }}
           />
           <CommandList>
             <CommandEmpty>Nothing found. Try a person or a stream name.</CommandEmpty>
-            {results.map((r) => (
-              <CommandItem key={r.id} value={r.id} onSelect={() => pick(r)}>
+            {results.map((result) => (
+              <CommandItem key={result.id} value={result.id} onSelect={() => pick(result)}>
                 <i
                   className="size-2.5 flex-none rounded-full"
-                  style={{ background: r.mode ? mc(r.mode) : "var(--line-2)" }}
+                  style={{ background: result.mode ? mc(result.mode) : "var(--line-2)" }}
                 />
-                <span className="min-w-0 flex-1 truncate">{r.label}</span>
-                <span className="font-mono text-[11px] font-medium text-ink-3">{r.tag}</span>
+                <span className="min-w-0 flex-1 truncate">{result.label}</span>
+                <span className="font-mono text-[11px] font-medium text-ink-3">{result.tag}</span>
               </CommandItem>
             ))}
           </CommandList>
