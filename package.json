@@ -1,5 +1,5 @@
 {
-  "name": "impact-trace",
+  "name": "owntrace",
   "private": true,
   "type": "module",
   "scripts": {

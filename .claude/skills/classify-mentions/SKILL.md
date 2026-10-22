@@ -1,6 +1,6 @@
 ---
 name: classify-mentions
-description: Sort the Slack mentions of an engineer for one week into praise, asks, information and bot messages, as JSON for impact-trace.
+description: Sort the Slack mentions of an engineer for one week into praise, asks, information and bot messages, as JSON for owntrace.
 argument-hint: "<YYYY-WNN>"
 ---
 

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "impact-trace",
+      "name": "owntrace",
       "dependencies": {
         "@radix-ui/react-dialog": "1.2.0",
         "@radix-ui/react-slot": "1.5.0",

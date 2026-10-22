@@ -4,7 +4,7 @@
 # launchd runs in your login session, so claude -p reaches your login and connectors.
 set -euo pipefail
 cd "$(dirname "$0")"
-label=com.impact-trace.collect
+label=com.owntrace.collect
 plist="$HOME/Library/LaunchAgents/$label.plist"
 
 case "${1:-}" in
@@ -50,7 +50,7 @@ PLIST
       ./run.sh "$(date -v-$(( $(date +%u) - 1 ))d +%F)" >> "$log" 2>&1 || failed=1
     fi
     # A failure retries on its own, but a broken login would fail every day in silence: say so.
-    [ "$failed" = 0 ] || osascript -e "display notification \"A run failed. See $log\" with title \"impact-trace\"" 2>/dev/null || true
+    [ "$failed" = 0 ] || osascript -e "display notification \"A run failed. See $log\" with title \"owntrace\"" 2>/dev/null || true
     exit $failed
     ;;
   *) echo "usage: ./schedule.sh install | remove | run" >&2; exit 2 ;;

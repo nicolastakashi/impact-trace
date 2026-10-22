@@ -1,6 +1,6 @@
 ---
 name: draft-goals
-description: Draft 3 to 5 objectives with measurable key results from an engineer's impact-trace data, as JSON. The engineer decides; nothing is saved as a goal.
+description: Draft 3 to 5 objectives with measurable key results from an engineer's owntrace data, as JSON. The engineer decides; nothing is saved as a goal.
 ---
 
 The input is JSON: `quarter`, the engineer's `level`, `metrics` (what the app measures, with

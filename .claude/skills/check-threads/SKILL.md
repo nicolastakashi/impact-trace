@@ -1,6 +1,6 @@
 ---
 name: check-threads
-description: Check whether each work thread of one week is one piece of work or mixes unrelated work. An eval for impact-trace grouping.
+description: Check whether each work thread of one week is one piece of work or mixes unrelated work. An eval for owntrace grouping.
 argument-hint: "<YYYY-WNN>"
 ---
 

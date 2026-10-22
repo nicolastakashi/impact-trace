@@ -1,6 +1,6 @@
 ---
 name: collect-slack
-description: Collect your Slack messages (pass own) or the messages that mention you (pass mention) for one ISO week, as JSON for impact-trace. Read-only.
+description: Collect your Slack messages (pass own) or the messages that mention you (pass mention) for one ISO week, as JSON for owntrace. Read-only.
 argument-hint: "<YYYY-MM-DD of the Monday> <own DAY|mention DAY NAME>"
 ---
 

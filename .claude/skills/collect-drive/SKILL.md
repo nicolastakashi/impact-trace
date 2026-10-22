@@ -1,6 +1,6 @@
 ---
 name: collect-drive
-description: Collect the Google Drive files you own that were created or changed in one ISO week, as JSON for impact-trace. Read-only.
+description: Collect the Google Drive files you own that were created or changed in one ISO week, as JSON for owntrace. Read-only.
 argument-hint: "<YYYY-MM-DD of the Monday>"
 ---
 

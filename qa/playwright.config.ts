@@ -22,6 +22,6 @@ export default defineConfig({
     cwd: ROOT,
     url: `http://127.0.0.1:${PORT}/api/setup`,
     reuseExistingServer: false,
-    env: { PORT: String(PORT), IMPACT_DATA: `${ROOT}qa/.data/live` },
+    env: { PORT: String(PORT), OWNTRACE_DATA: `${ROOT}qa/.data/live` },
   },
 });

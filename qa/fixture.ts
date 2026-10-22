@@ -1,4 +1,4 @@
-// A fictional impact-trace database for QA, built through the real ingest code.
+// A fictional owntrace database for QA, built through the real ingest code.
 // Usage: bun qa/fixture.ts   →   qa/.data/fixture.db and fixture-config.json
 // Weeks are the last 4 up to today, so "this week" and "this quarter" always exist.
 // Claude's labels on every thread; you decided all weeks but this one, so Review has work and

@@ -1,6 +1,6 @@
 ---
 name: collect-reviews
-description: Collect every review you submitted on PRs others wrote, updated since a Monday, as JSON for impact-trace. Read-only.
+description: Collect every review you submitted on PRs others wrote, updated since a Monday, as JSON for owntrace. Read-only.
 argument-hint: "<YYYY-MM-DD of the Monday> <LOGIN>"
 ---
 

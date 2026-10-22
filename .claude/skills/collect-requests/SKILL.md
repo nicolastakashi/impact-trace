@@ -1,6 +1,6 @@
 ---
 name: collect-requests
-description: Collect who asked for reviews on PRs where you were asked or reviewed, updated since a Monday, as JSON for impact-trace. Read-only.
+description: Collect who asked for reviews on PRs where you were asked or reviewed, updated since a Monday, as JSON for owntrace. Read-only.
 argument-hint: "<YYYY-MM-DD of the Monday> <LOGIN> [UPDATED]"
 ---
 

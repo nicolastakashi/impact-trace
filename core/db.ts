@@ -4,8 +4,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 export const ROOT = join(import.meta.dir, "..");
-// Your data. IMPACT_DATA points a second copy (QA, screenshots) at its own folder.
-export const DATA = process.env.IMPACT_DATA ?? join(ROOT, "data");
+// Your data. OWNTRACE_DATA points a second copy (QA, screenshots) at its own folder.
+export const DATA = process.env.OWNTRACE_DATA ?? join(ROOT, "data");
 export const CONFIG = join(DATA, "config.json");
 
 // Who you are, from the setup page. Git-ignored, like the rest of data/.

@@ -1,6 +1,6 @@
 ---
 name: suggest-labels
-description: Suggest impact labels for one week of an engineer's work threads, as JSON for impact-trace. Suggestions only; they decide.
+description: Suggest impact labels for one week of an engineer's work threads, as JSON for owntrace. Suggestions only; they decide.
 argument-hint: "<YYYY-WNN>"
 ---
 

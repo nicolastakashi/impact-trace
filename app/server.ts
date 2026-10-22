@@ -109,4 +109,4 @@ const server = Bun.serve({
     return new Response("Not found", { status: 404 });
   },
 });
-console.log(`impact-trace on ${server.url}`);
+console.log(`owntrace on ${server.url}`);

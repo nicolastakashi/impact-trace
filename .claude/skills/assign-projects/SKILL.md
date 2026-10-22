@@ -1,6 +1,6 @@
 ---
 name: assign-projects
-description: Suggest which Linear project each unplaced work thread of one week belongs to, as JSON for impact-trace. Suggestions only; the engineer can undo them.
+description: Suggest which Linear project each unplaced work thread of one week belongs to, as JSON for owntrace. Suggestions only; the engineer can undo them.
 argument-hint: "<YYYY-WNN>"
 ---
 

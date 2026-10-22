@@ -1,6 +1,6 @@
 ---
 name: collect-github
-description: Collect your GitHub PRs and review comments received for one ISO week, as JSON for impact-trace. Read-only.
+description: Collect your GitHub PRs and review comments received for one ISO week, as JSON for owntrace. Read-only.
 argument-hint: "<YYYY-MM-DD of the Monday> <LOGIN> <ORGS>"
 ---
 

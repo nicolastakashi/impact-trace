@@ -1,7 +1,7 @@
 services:
   app:
     build: .
-    image: impact-trace
+    image: owntrace
     # 127.0.0.1 only: your work data and a write endpoint, never on the network.
     ports: ["127.0.0.1:4317:4317"]
     volumes: ["./data:/app/data"]

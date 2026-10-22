@@ -105,7 +105,7 @@ const Brand = () => (
         />
       </svg>
     </span>
-    <b>Impact Trace</b>
+    <b>owntrace</b>
   </div>
 );
 

@@ -4,7 +4,7 @@ Specs that click through the app the way you do, on fictional data.
 
 ```
  bun run qa ━▶ 🧪 qa/fixture.ts builds a fictional DB with the real ingest code
-            ━▶ 🌐 a server on :4390 with IMPACT_DATA=qa/.data/live
+            ━▶ 🌐 a server on :4390 with OWNTRACE_DATA=qa/.data/live
             ━▶ ✅ Playwright in your Chrome, the fixture restored before each test
 ```
 

@@ -1,6 +1,6 @@
 ---
 name: weekly-feedback
-description: Feedback on how an engineer shows up, from their own Slack messages, as JSON for impact-trace. Patterns with exact quotes, one strength, one experiment.
+description: Feedback on how an engineer shows up, from their own Slack messages, as JSON for owntrace. Patterns with exact quotes, one strength, one experiment.
 argument-hint: "<YYYY-WNN>"
 ---
 

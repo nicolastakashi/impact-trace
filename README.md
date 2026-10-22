@@ -1,6 +1,6 @@
-# impact-trace
+# owntrace
 
-Weekly impact tracking for engineers.
+Own the trace of your work. Weekly impact tracking for engineers, on your own machine.
 
 Claude Code collects the facts from GitHub, Linear, Slack, Calendar and Docs through
 CLIs and MCPs. Code here only validates them, stores them in SQLite, and shows them.

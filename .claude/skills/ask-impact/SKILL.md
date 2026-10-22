@@ -1,6 +1,6 @@
 ---
 name: ask-impact
-description: Answer questions about your own impact (weeks, projects, goals, reviews, Slack, feedback) from impact-trace data. Read-only; code counts, Claude explains.
+description: Answer questions about your own impact (weeks, projects, goals, reviews, Slack, feedback) from owntrace data. Read-only; code counts, Claude explains.
 argument-hint: "<your question>"
 ---
 
