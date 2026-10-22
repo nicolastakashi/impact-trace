@@ -106,14 +106,14 @@ export const METRICS: Record<string, Metric> = {
     aggregation: "rate",
     value: (db, weeks) => perWeek(countOf(db, "pr_merged", weeks), weeks),
   },
-  lead_time_h: {
+  lead_time_hours: {
     label: "Lead time, median hours",
     unit: "h",
     better: "down",
     aggregation: "rate",
     value: (db, weeks) => median(leadTimeHours(mergedPrs(db, weeks))),
   },
-  recognition: {
+  praise: {
     label: "Recognition from others",
     unit: "praise",
     better: "up",

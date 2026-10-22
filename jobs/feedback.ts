@@ -66,7 +66,7 @@ function previous(db: Database, week: string, weeks: string[], messages: Message
     .get(week) as any;
   if (!row) return null;
   const verdict = db
-    .query("SELECT verdict FROM feedback_verdicts WHERE week = ? AND item = 'experiment'")
+    .query("SELECT verdict FROM feedback_verdicts WHERE week = ? AND piece = 'experiment'")
     .get(row.week) as any;
   // You passed on that experiment: there is nothing to measure.
   if (verdict?.verdict === "reject") return null;
@@ -160,7 +160,7 @@ export function emit(db: Database, week: string) {
     previous: previous(db, week, weeks, messages),
     verdicts: db
       .query(
-        "SELECT week, item, verdict, why FROM feedback_verdicts WHERE week < ? ORDER BY week DESC LIMIT 40",
+        "SELECT week, piece, verdict, why FROM feedback_verdicts WHERE week < ? ORDER BY week DESC LIMIT 40",
       )
       .all(week),
   };

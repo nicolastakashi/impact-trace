@@ -107,7 +107,7 @@ export function ingestWeek(db: Database, directory: string, week: string, me: Co
       url=excluded.url, author=excluded.author, project_id=excluded.project_id, milestone_id=excluded.milestone_id,
       payload=excluded.payload, run_id=excluded.run_id`);
   const insertLink = db.query(
-    "INSERT OR IGNORE INTO links (from_id, to_ref, rel) VALUES (?, ?, ?)",
+    "INSERT OR IGNORE INTO links (from_id, to_ref, relation) VALUES (?, ?, ?)",
   );
 
   for (const source of SOURCES) {
@@ -497,7 +497,7 @@ function ingestGithub(step: Step, out: any) {
   // your Linear teams' keys are issues. ponytail: teams seen in your issues; a PR citing another
   // team's issue loses that link, fetch the team list from Linear if that matters.
   const keys = issueKeys(db);
-  const dropMentions = db.query("DELETE FROM links WHERE from_id = ? AND rel = 'mentions'");
+  const dropMentions = db.query("DELETE FROM links WHERE from_id = ? AND relation = 'mentions'");
   for (const [kind, prs] of [
     ["pr_merged", out.prs_merged],
     ["pr_open", out.prs_open],

@@ -15,7 +15,7 @@ function goalsById() {
     "SELECT p.id, p.name FROM goal_projects gp JOIN projects p ON p.id = gp.project_id WHERE gp.goal_id = ? ORDER BY p.name",
   );
   const keyResults = db.query(
-    "SELECT id, text, metric, start, target, current FROM key_results WHERE goal_id = ? ORDER BY pos",
+    "SELECT id, text, metric, start, target, current FROM key_results WHERE goal_id = ? ORDER BY position",
   );
   const checkins = db.query(
     "SELECT week, confidence FROM goal_checkins WHERE goal_id = ? ORDER BY week",
@@ -94,10 +94,10 @@ export function goalList() {
     drafts: (
       db
         .query(
-          "SELECT id, title, kind, type, quarter, why, based_on, krs FROM goal_drafts ORDER BY id",
+          "SELECT id, title, kind, type, quarter, why, based_on, key_results FROM goal_drafts ORDER BY id",
         )
         .all() as any[]
-    ).map(({ krs: keyResults, ...draft }) => ({
+    ).map(({ key_results: keyResults, ...draft }) => ({
       ...draft,
       based_on: JSON.parse(draft.based_on),
       keyResults: JSON.parse(keyResults),
@@ -164,7 +164,7 @@ export function saveGoal(body: any) {
 
   const at = new Date().toISOString();
   const putKeyResult = db.query(
-    "INSERT INTO key_results (goal_id, pos, text, metric, start, target, current, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO key_results (goal_id, position, text, metric, start, target, current, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
   );
   let goalId = id;
   db.transaction(() => {
@@ -178,7 +178,7 @@ export function saveGoal(body: any) {
       );
     else
       db.query(
-        "UPDATE goals SET title = ?, description = ?, kind = ?, type = ?, quarter = ?, krs = NULL, at = ? WHERE id = ?",
+        "UPDATE goals SET title = ?, description = ?, kind = ?, type = ?, quarter = ?, at = ? WHERE id = ?",
       ).run(title, description, body.kind, type, quarter, at, goalId);
     db.query("DELETE FROM key_results WHERE goal_id = ?").run(goalId);
     keyResults.rows.forEach((keyResult, position) =>

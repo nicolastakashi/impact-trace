@@ -24,6 +24,7 @@ Names in code use these words in full: `withoutMe`, not `wm`; `keyResult`, not `
 | praise | A mention or review comment that thanks you | rec, recognition |
 | ask | A mention that asks you for something | |
 | feedback | Claude's weekly read of how you write: patterns, a strength, an experiment | fb |
+| feedback piece | One pattern, the strength or the experiment: what you accept or reject | item |
 | span | A thread, drawn on Trace | |
 | trace | A week, drawn on Trace | |
 | sample | The fictional example data shown before your first review | |

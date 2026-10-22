@@ -159,7 +159,7 @@ export function saveDrafts(db: Database, run: any, input: any, version: string, 
   db.transaction(() => {
     db.query("DELETE FROM goal_drafts").run();
     const put = db.query(
-      "INSERT INTO goal_drafts (title, kind, type, quarter, why, based_on, krs, model, prompt_version, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO goal_drafts (title, kind, type, quarter, why, based_on, key_results, model, prompt_version, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     );
     for (const draft of drafts)
       put.run(

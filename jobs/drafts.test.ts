@@ -55,7 +55,7 @@ test("code sets a measured start, keeps a typed one, and drops what is not in yo
           draftGoal({}).key_results[0],
           { text: "Two runbooks by others", metric: null, start: 0, target: 2 },
           { text: "Averaged by Claude", metric: null, start: 2.75, target: 1 },
-          { text: "Praise this quarter", metric: "recognition", start: 3, target: 4 },
+          { text: "Praise this quarter", metric: "praise", start: 3, target: 4 },
           { text: "Bad", metric: "nope", start: 0, target: 1 },
         ],
       }),
@@ -80,7 +80,9 @@ test("code sets a measured start, keeps a typed one, and drops what is not in yo
     "Invented: nothing it is based on is in your data",
     "Made up: numbers not in your data: 37",
   ]);
-  const keyResults = JSON.parse((db.query("SELECT krs FROM goal_drafts").get() as any).krs);
+  const keyResults = JSON.parse(
+    (db.query("SELECT key_results FROM goal_drafts").get() as any).key_results,
+  );
   // W41 and W42 are the closed weeks: (6 + 4) / 2, not Claude's 99.
   expect(
     keyResults.map((keyResult: any) => [keyResult.metric, keyResult.start, keyResult.target]),
@@ -88,7 +90,7 @@ test("code sets a measured start, keeps a typed one, and drops what is not in yo
     ["asked_direct", 5, 2],
     [null, 0, 2],
     [null, null, 1],
-    ["recognition", 0, 4],
+    ["praise", 0, 4],
   ]);
   expect((db.query("SELECT quarter FROM goal_drafts").get() as any).quarter).toBe("2026-Q4");
 });

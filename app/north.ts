@@ -284,13 +284,13 @@ function highlight(threads: any[], weeks: string[], allPraise: any[]) {
 
 // Feedback, newest week first: what the code verified, never the raw Claude output.
 function feedback() {
-  const verdictsOf = db.query("SELECT item, verdict, why FROM feedback_verdicts WHERE week = ?");
+  const verdictsOf = db.query("SELECT piece, verdict, why FROM feedback_verdicts WHERE week = ?");
   const rows = db.query("SELECT week, output FROM feedback ORDER BY week DESC").all() as any[];
   return rows.map((row) => ({
     ...JSON.parse(row.output),
     verdicts: Object.fromEntries(
       (verdictsOf.all(row.week) as any[]).map((saved) => [
-        saved.item,
+        saved.piece,
         { verdict: saved.verdict, why: saved.why },
       ]),
     ),
@@ -331,14 +331,14 @@ export function verdict(body: any) {
   if (!feedbackPieces(JSON.parse(row.output)).includes(piece))
     return badRequest("Unknown feedback item");
   if (body.verdict === null) {
-    db.query("DELETE FROM feedback_verdicts WHERE week = ? AND item = ?").run(body.week, piece);
+    db.query("DELETE FROM feedback_verdicts WHERE week = ? AND piece = ?").run(body.week, piece);
     return Response.json({ ok: true });
   }
   if (body.verdict !== "accept" && body.verdict !== "reject")
     return badRequest("Verdict is accept or reject");
   const why = body.why == null ? null : String(body.why).trim().slice(0, 400) || null;
   db.query(
-    `INSERT INTO feedback_verdicts VALUES (?, ?, ?, ?, ?) ON CONFLICT (week, item) DO UPDATE SET verdict = excluded.verdict, why = excluded.why, at = excluded.at`,
+    `INSERT INTO feedback_verdicts VALUES (?, ?, ?, ?, ?) ON CONFLICT (week, piece) DO UPDATE SET verdict = excluded.verdict, why = excluded.why, at = excluded.at`,
   ).run(body.week, piece, body.verdict, why, new Date().toISOString());
   return Response.json({ ok: true });
 }

@@ -70,7 +70,7 @@ test("metrics are a rate over the weeks asked for", () => {
   });
   expect(measure(db, "reviews_given", ["2026-W42", "2026-W43"])).toBe(4.5); // a week
   expect(measure(db, "give_vs_take", ["2026-W42", "2026-W43"])).toBe(1.5);
-  expect(measure(db, "lead_time_h", ["2026-W43"])).toBe(18);
+  expect(measure(db, "lead_time_hours", ["2026-W43"])).toBe(18);
   expect(measure(db, "give_vs_take", [])).toBeNull();
   expect(measure(db, "nope", ["2026-W43"])).toBeNull();
 });
@@ -88,9 +88,11 @@ test("key results written as text become key results", () => {
     "3 customers on it\n\n  docs live  \n",
   );
   migrate(db);
-  expect(db.query("SELECT pos, text, metric FROM key_results ORDER BY pos").all()).toEqual([
-    { pos: 1, text: "3 customers on it", metric: null },
-    { pos: 3, text: "docs live", metric: null },
+  expect(
+    db.query("SELECT position, text, metric FROM key_results ORDER BY position").all(),
+  ).toEqual([
+    { position: 1, text: "3 customers on it", metric: null },
+    { position: 3, text: "docs live", metric: null },
   ]);
   expect((db.query("SELECT type FROM goals").get() as any).type).toBe("aspirational");
 });
@@ -105,8 +107,8 @@ test("a rare event is the quarter's total so far, this week too; a flow is a rat
     ).run(`m${week}`);
     addEvent(db, `r${week}`, "reviews_given", week, { count: 6 });
   }
-  expect(current(db, "recognition", "2026-Q4", "2026-W43")).toBe(2);
-  expect(current(db, "recognition", "2026-Q3", "2026-W43")).toBe(1);
+  expect(current(db, "praise", "2026-Q4", "2026-W43")).toBe(2);
+  expect(current(db, "praise", "2026-Q3", "2026-W43")).toBe(1);
   // W39 and W41 are the closed weeks, whatever the quarter.
   expect(current(db, "reviews_given", "2026-Q4", "2026-W43")).toBe(6);
   addEvent(db, "r2026-W42", "reviews_given", "2026-W42", { count: 0 });

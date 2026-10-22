@@ -58,7 +58,7 @@ const APP_FACTS = {
       keyResults: [
         {
           text: "Lead time under a day",
-          metric: "lead_time_h",
+          metric: "lead_time_hours",
           start: 30,
           target: 20,
           value: 25,
@@ -123,7 +123,7 @@ test("facts count what North shows, in your time zone", () => {
       keyResult.progress,
     ]),
   ).toEqual([
-    ["lead_time_h", 25, 0.5],
+    ["lead_time_hours", 25, 0.5],
     ["you", 1, 0.5],
   ]);
   expect(result.goals[0].confidence).toEqual([{ week: "2026-W42", value: 6 }]);
