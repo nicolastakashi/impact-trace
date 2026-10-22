@@ -4,7 +4,11 @@ Weekly impact tracking for engineers.
 
 ![Review a thread, then see your weeks drawn as a trace](docs/demo.gif)
 
-All data in the demo is fictional.
+The whole app in 73 seconds, narrated:
+
+https://github.com/user-attachments/assets/b3cd33fc-3e32-4802-92e1-dcd2d3fb6645
+
+All data in the demo and the video is fictional.
 
 ## Quick start
 
