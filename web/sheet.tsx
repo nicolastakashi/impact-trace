@@ -42,52 +42,52 @@ const chipClass = "h-auto gap-1.5 rounded-full px-2.5 py-1 text-[12.5px]";
 const blockClass =
   "flex h-7.5 min-w-0 flex-1 items-center truncate rounded-[5px] px-2.5 font-mono text-[11.5px] font-medium no-underline";
 
-export function ItemSheet() {
+export function ThreadSheet() {
   const [north] = useNorth();
   const [id, setId] = useState<string | null>(null);
   useEvent<string>("open-item", setId);
-  const item = north && id ? north.ITEMS.find((i) => i.id === id) : null;
+  const thread = north && id ? north.ITEMS.find((thread) => thread.id === id) : null;
   const close = () => setId(null);
-  const openRef = (k: string) => {
+  const openReference = (key: string) => {
     close();
-    go(`#/refs?k=${k}`);
+    go(`#/refs?k=${key}`);
   };
-  if (!north || !item) return null;
-  const mode = item.mode;
-  const goal = north.GOALS.find((x) => goalsOf(north, item).includes(x.id));
-  const praise = item.rec != null ? north.REC[item.rec] : null;
-  const quote = item.quote || (praise && { t: praise.t, who: `${praise.who} · ${praise.where}` });
+  if (!north || !thread) return null;
+  const mode = thread.mode;
+  const goal = north.GOALS.find((candidate) => goalsOf(north, thread).includes(candidate.id));
+  const praise = thread.rec != null ? north.REC[thread.rec] : null;
+  const quote = thread.quote || (praise && { t: praise.t, who: `${praise.who} · ${praise.where}` });
   const why = REFS[mode]?.items[0];
   return (
     <Dialog open onOpenChange={(open) => !open && close()}>
       {/* One track that may shrink: long evidence rows truncate instead of widening the sheet past a phone. */}
       <DialogContent aria-describedby={undefined} className="grid-cols-[minmax(0,1fr)]">
-        <LinkChain north={north} item={item} goal={goal} close={close} />
+        <LinkChain north={north} thread={thread} goal={goal} close={close} />
         <DialogTitle className="m-0 font-num text-[clamp(26px,3.4vw,38px)] leading-none font-extrabold text-balance uppercase">
-          {item.title}
+          {thread.title}
         </DialogTitle>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className={chipClass} onClick={() => openRef(mode)}>
+          <Button variant="outline" className={chipClass} onClick={() => openReference(mode)}>
             <Dot color={mc(mode)} />
             {MODES[mode]}
           </Button>
-          {item.wm && (
+          {thread.wm && (
             <Button
               variant="outline"
               className={chipClass}
-              onClick={() => openRef("counterfactual")}
+              onClick={() => openReference("counterfactual")}
             >
-              {WMS[item.wm]}
+              {WMS[thread.wm]}
             </Button>
           )}
-          <Button variant="outline" className={chipClass} onClick={() => openRef("tracking")}>
-            {PILLAR[item.pillar]}
+          <Button variant="outline" className={chipClass} onClick={() => openReference("tracking")}>
+            {PILLAR[thread.pillar]}
           </Button>
           <Badge variant="soft" className="gap-1.5 rounded-full px-2.5 py-1">
             <GoalLabel goal={goal} />
           </Badge>
         </div>
-        <FlameGraph item={item} praise={praise} quote={quote} />
+        <FlameGraph thread={thread} praise={praise} quote={quote} />
         {quote && (
           <figure className="m-0 grid gap-2.5 rounded-xl border border-line bg-secondary px-4.5 py-4">
             <p className="m-0 text-base leading-snug font-medium">{`“${quote.t}”`}</p>
@@ -97,19 +97,19 @@ export function ItemSheet() {
           </figure>
         )}
         <div className="grid gap-3 sm:grid-cols-2">
-          {why && <WhyThisCounts why={why} mode={mode} openRef={openRef} />}
+          {why && <WhyThisCounts why={why} mode={mode} openReference={openReference} />}
           <div className="grid content-start gap-2.5">
             <span className="lbl">Without you, would it have happened?</span>
-            <p className="m-0 text-xl">{item.wm ? WMS[item.wm] : "not answered"}</p>
+            <p className="m-0 text-xl">{thread.wm ? WMS[thread.wm] : "not answered"}</p>
             {!north.SAMPLE && (
-              <a className="ref" href={reviewHref(north, item)} onClick={close}>
+              <a className="ref" href={reviewHref(north, thread)} onClick={close}>
                 change it in review →
               </a>
             )}
             <Button
               variant="link"
               className="ref h-auto justify-self-start p-0"
-              onClick={() => openRef("counterfactual")}
+              onClick={() => openReference("counterfactual")}
             >
               why this question →
             </Button>
@@ -123,16 +123,16 @@ export function ItemSheet() {
 // Goal ▸ project ▸ milestone ▸ thread and week.
 function LinkChain({
   north,
-  item,
+  thread,
   goal,
   close,
 }: {
   north: North;
-  item: any;
+  thread: any;
   goal: any;
   close: () => void;
 }) {
-  const project = north.PROJECTS[item.s] ?? { name: item.s };
+  const project = north.PROJECTS[thread.s] ?? { name: thread.s };
   return (
     // Not the header's tab pill: base.css styles every nav like it.
     <nav
@@ -151,28 +151,30 @@ function LinkChain({
       ) : (
         <b className="font-medium">{project.name}</b>
       )}
-      {item.ms && (
+      {thread.ms && (
         <>
           <Chevron />
-          <b className="font-medium">{item.ms}</b>
+          <b className="font-medium">{thread.ms}</b>
         </>
       )}
       <Chevron />
-      <b className="font-medium wrap-anywhere">{`${item.id} · ${north.WEEKS[item.w]}`}</b>
+      <b className="font-medium wrap-anywhere">{`${thread.id} · ${north.WEEKS[thread.w]}`}</b>
       <CloseButton className="ml-auto" onClick={close} />
     </nav>
   );
 }
 
 // The flame graph: the thread, then its sources, then each link.
-function FlameGraph({ item, praise, quote }: { item: any; praise: any; quote: any }) {
-  const mode = item.mode;
-  const links = item.links as string[][];
-  const sources = cnt(links, (l) => l[0]!);
+function FlameGraph({ thread, praise, quote }: { thread: any; praise: any; quote: any }) {
+  const mode = thread.mode;
+  const links = thread.links as string[][];
+  const sources = cnt(links, (link) => link[0]!);
   const quoteSource = praise ? "Recognition" : "Slack";
   if (quote) sources[quoteSource] = (sources[quoteSource] ?? 0) + 1;
   const names = Object.keys(sources);
-  const tint = (p: number) => ({ background: `color-mix(in srgb, ${mc(mode)} ${p}%, var(--s3))` });
+  const tint = (share: number) => ({
+    background: `color-mix(in srgb, ${mc(mode)} ${share}%, var(--s3))`,
+  });
   // The quote is a block of its own, under its source.
   const quoteBlock = (source: string) =>
     source === "Recognition" || (source === "Slack" && quote && !praise)
@@ -193,35 +195,35 @@ function FlameGraph({ item, praise, quote }: { item: any; praise: any; quote: an
           <span
             className={`${blockClass} text-[#0b0b0b]`}
             style={{ background: mc(mode) }}
-          >{`${item.id} · ${MODES[mode]}`}</span>
+          >{`${thread.id} · ${MODES[mode]}`}</span>
         </div>
         {names.length > 0 && (
           <>
             <div className="flex gap-0.75">
-              {names.map((s) => (
+              {names.map((source) => (
                 <span
-                  key={s}
+                  key={source}
                   className={`${blockClass} text-[#0b0b0b]`}
-                  style={{ flex: sources[s], ...tint(62) }}
-                >{`${s} · ${sources[s]}`}</span>
+                  style={{ flex: sources[source], ...tint(62) }}
+                >{`${source} · ${sources[source]}`}</span>
               ))}
             </div>
             <div className="flex gap-0.75">
-              {names.flatMap((s) => [
+              {names.flatMap((source) => [
                 ...links
-                  .filter((l) => l[0] === s)
-                  .map((l, i) => (
+                  .filter((link) => link[0] === source)
+                  .map((link, index) => (
                     <a
-                      key={s + i}
+                      key={source + index}
                       className={`${blockClass} text-ink hover:brightness-110`}
                       style={tint(38)}
-                      href={l[2]}
+                      href={link[2]}
                       target="_blank"
                       rel="noopener"
-                      title={l[1]}
-                    >{`${l[1]} ↗`}</a>
+                      title={link[1]}
+                    >{`${link[1]} ↗`}</a>
                   )),
-                ...quoteBlock(s),
+                ...quoteBlock(source),
               ])}
             </div>
           </>
@@ -234,11 +236,11 @@ function FlameGraph({ item, praise, quote }: { item: any; praise: any; quote: an
 const WhyThisCounts = ({
   why,
   mode,
-  openRef,
+  openReference,
 }: {
   why: any;
   mode: string;
-  openRef: (k: string) => void;
+  openReference: (key: string) => void;
 }) => (
   <div className="grid content-start gap-2 rounded-xl border border-brand/35 bg-brand/5 p-4">
     <span className="lbl">{`Why this counts · ${MODES[mode]}`}</span>
@@ -247,7 +249,7 @@ const WhyThisCounts = ({
     <Button
       variant="link"
       className="ref h-auto justify-self-start p-0"
-      onClick={() => openRef(mode)}
+      onClick={() => openReference(mode)}
     >
       all sources →
     </Button>
