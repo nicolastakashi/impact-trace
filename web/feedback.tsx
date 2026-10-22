@@ -44,7 +44,7 @@ const patternsOf = (week: FeedbackWeek): Pattern[] => [
   ...(week.strength ? [{ ...week.strength, keep: true, key: "strength" }] : []),
 ];
 const verdictOf = (week: FeedbackWeek, key: string) =>
-  week?.verdicts?.[key]?.v as Verdict | undefined;
+  week?.verdicts?.[key]?.verdict as Verdict | undefined;
 // What a verdict does, said where you made it.
 const NOTE: Record<string, Record<string, string>> = {
   pattern: {
@@ -765,7 +765,7 @@ export function Feedback({ params }: { params: URLSearchParams }) {
   // The server's copy wins each time it comes back; in between, a verdict shows at once.
   useEffect(() => {
     if (!north) return;
-    const all = north.FEEDBACK ?? [];
+    const all = north.feedback ?? [];
     if (!weeks)
       setWeekAt(
         Math.max(
@@ -801,11 +801,11 @@ export function Feedback({ params }: { params: URLSearchParams }) {
         }),
       );
     setJustJudged(key);
-    put(verdict && { v: verdict, why: why ?? null });
-    if (north!.SAMPLE) return say(sampleMessage(verdict));
+    put(verdict && { verdict, why: why ?? null });
+    if (north!.sample) return say(sampleMessage(verdict));
     const response = await post("/api/feedback", {
       week: week.week,
-      item: key,
+      piece: key,
       verdict,
       why,
     }).catch(() => null);
@@ -825,7 +825,7 @@ export function Feedback({ params }: { params: URLSearchParams }) {
   const lead = leadOf(week);
   return (
     <section className="view" id="v-feedback">
-      {north?.SAMPLE && (
+      {north?.sample && (
         <SampleNote href="#/setup">
           Example feedback, not yours. Yours comes with your first collection.
         </SampleNote>
@@ -917,7 +917,7 @@ function WeekFeedback({
           key={`${week.week}:${current}`}
           week={week}
           pattern={pattern}
-          categories={north.FB_CATS ?? []}
+          categories={north.feedbackCategories ?? []}
           note={justJudged === pattern?.key}
           set={save}
         />

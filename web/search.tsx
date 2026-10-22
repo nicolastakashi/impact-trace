@@ -35,16 +35,16 @@ function resultsOf(north: North | null): Result[] {
       run: () => go(`#/${view}`),
     })),
     { id: "recap", label: "Open recap (Wrapped)", tag: "recap", run: openStory },
-    ...north.ITEMS.map((thread) => {
-      const praisedBy = thread.rec != null ? north.REC[thread.rec].who : "";
+    ...north.threads.map((thread) => {
+      const praisedBy = thread.praiseIndex != null ? north.praise[thread.praiseIndex].who : "";
       return {
         id: `i:${thread.id}`,
         label: thread.title,
-        tag: north.WEEKS[thread.w]!,
+        tag: north.weeks[thread.weekIndex]!,
         mode: thread.mode,
         run: () => openItem(thread.id),
         haystack:
-          `${thread.title} ${north.PROJECTS[thread.s]?.name ?? ""} ${thread.quote?.who ?? ""} ${praisedBy}`.toLowerCase(),
+          `${thread.title} ${north.projects[thread.projectId]?.name ?? ""} ${thread.quote?.who ?? ""} ${praisedBy}`.toLowerCase(),
       };
     }),
   ];

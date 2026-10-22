@@ -1,6 +1,6 @@
 {
- "SAMPLE": true,
- "WEEKS": [
+ "sample": true,
+ "weeks": [
   "W35",
   "W36",
   "W37",
@@ -10,7 +10,7 @@
   "W41",
   "W42"
  ],
- "REVIEWS": [
+ "reviewsGiven": [
   28,
   19,
   22,
@@ -20,8 +20,8 @@
   15,
   10
  ],
- "PERIOD": "2026-W35 – 2026-W42",
- "GOALS": [
+ "period": "2026-W35 – 2026-W42",
+ "goals": [
   {
    "id": "o1",
    "short": "Self-serve",
@@ -41,13 +41,13 @@
    "color": "var(--g3)"
   }
  ],
- "PROJECTS": {
+ "projects": {
   "access": {
    "name": "Access model for shared assets",
    "url": null,
    "lead": null,
    "status": "In Progress",
-   "goal": "o1",
+   "goalId": "o1",
    "done": [
     2,
     3,
@@ -59,14 +59,14 @@
     2
    ],
    "open": 6,
-   "ms": []
+   "milestones": []
   },
   "exports": {
    "name": "Exports API",
    "url": null,
    "lead": "Sam Rivera",
    "status": "Completed",
-   "goal": "o1",
+   "goalId": "o1",
    "done": [
     0,
     0,
@@ -78,7 +78,7 @@
     9
    ],
    "open": 2,
-   "ms": [
+   "milestones": [
     {
      "name": "Safe delete",
      "progress": 90
@@ -90,7 +90,7 @@
    "url": null,
    "lead": "Alex Kim",
    "status": "In Progress",
-   "goal": "o1",
+   "goalId": "o1",
    "done": [
     0,
     1,
@@ -102,14 +102,14 @@
     0
    ],
    "open": 1,
-   "ms": []
+   "milestones": []
   },
   "silences": {
    "name": "Silences",
    "url": null,
    "lead": "Jordan Lee",
    "status": "In Progress",
-   "goal": "o2",
+   "goalId": "o2",
    "done": [
     0,
     0,
@@ -121,7 +121,7 @@
     0
    ],
    "open": 0,
-   "ms": [
+   "milestones": [
     {
      "name": "Silence one failed check",
      "progress": 70
@@ -137,10 +137,10 @@
    "url": null,
    "lead": null,
    "status": "outside the tracker",
-   "goal": "o3",
+   "goalId": "o3",
    "done": null,
    "open": 0,
-   "ms": [],
+   "milestones": [],
    "note": "PRs on GitHub and talks. No tracker project."
   },
   "none": {
@@ -148,7 +148,7 @@
    "url": null,
    "lead": null,
    "status": "—",
-   "goal": null,
+   "goalId": null,
    "done": [
     1,
     1,
@@ -160,69 +160,69 @@
     1
    ],
    "open": 12,
-   "ms": [],
+   "milestones": [],
    "note": "Ideas, support, people work and open gaps."
   }
  },
- "REC": [
+ "praise": [
   {
-   "w": 2,
+   "weekIndex": 2,
    "who": "Morgan (manager)",
    "role": "director",
    "where": "#kudos",
    "about": "private runners v0",
-   "q": "Huge thanks for getting private runners to v0",
-   "t": "Huge thanks for getting private runners to v0. A customer saw it the next day."
+   "quote": "Huge thanks for getting private runners to v0",
+   "text": "Huge thanks for getting private runners to v0. A customer saw it the next day."
   },
   {
-   "w": 4,
+   "weekIndex": 4,
    "who": "Riley",
    "role": "peer",
    "where": "#kudos",
    "about": "changelog animation",
-   "q": "The release animation in the changelog is lovely.",
-   "t": "The release animation in the changelog is lovely."
+   "quote": "The release animation in the changelog is lovely.",
+   "text": "The release animation in the changelog is lovely."
   },
   {
-   "w": 5,
+   "weekIndex": 5,
    "who": "Casey",
    "role": "own team",
    "where": "PR review",
    "about": "old cleanup finished",
-   "t": "We started this months ago and never finished. Thank you!"
+   "text": "We started this months ago and never finished. Thank you!"
   },
   {
-   "w": 6,
+   "weekIndex": 6,
    "who": "Morgan (manager)",
    "role": "director",
    "where": "#project-exports",
    "about": "exports design",
-   "q": "this design made the plan obvious",
-   "t": "Thanks, this design made the plan obvious. We can build it quickly."
+   "quote": "this design made the plan obvious",
+   "text": "Thanks, this design made the plan obvious. We can build it quickly."
   },
   {
-   "w": 6,
+   "weekIndex": 6,
    "who": "Taylor",
    "role": "principal, other team",
    "where": "PR review",
    "about": "review on the operator",
-   "t": "praise: Good call."
+   "text": "praise: Good call."
   },
   {
-   "w": 7,
+   "weekIndex": 7,
    "who": "Riley",
    "role": "peer",
    "where": "#kudos",
    "about": "unblocking a key customer",
-   "q": "Worked through the whole offsite to unblock a key customer.",
-   "t": "Worked through the whole offsite to unblock a key customer."
+   "quote": "Worked through the whole offsite to unblock a key customer.",
+   "text": "Worked through the whole offsite to unblock a key customer."
   }
  ],
- "ASKS": [
+ "asks": [
   {
    "who": "Jordan",
-   "n": 9,
-   "per": [
+   "count": 9,
+   "perWeek": [
     1,
     2,
     1,
@@ -240,8 +240,8 @@
   },
   {
    "who": "Casey",
-   "n": 7,
-   "per": [
+   "count": 7,
+   "perWeek": [
     0,
     1,
     2,
@@ -258,8 +258,8 @@
   },
   {
    "who": "Sam",
-   "n": 4,
-   "per": [
+   "count": 4,
+   "perWeek": [
     0,
     0,
     1,
@@ -276,8 +276,8 @@
   },
   {
    "who": "Avery",
-   "n": 3,
-   "per": [
+   "count": 3,
+   "perWeek": [
     1,
     0,
     0,
@@ -292,17 +292,17 @@
    ]
   }
  ],
- "ITEMS": [
+ "threads": [
   {
    "id": "2026-W35-i01",
-   "w": 0,
-   "s": "up",
+   "weekIndex": 0,
+   "projectId": "up",
    "title": "Three upstream PRs in one week",
    "mode": "external",
    "pillar": "big",
-   "wm": "wouldnt",
+   "withoutMe": "wouldnt",
    "links": [],
-   "ev": [
+   "events": [
     [
      "pr_open",
      "2026-08-24T10:12:00",
@@ -333,23 +333,19 @@
      "prometheus: fix staleness markers on remote write retry",
      null
     ]
-   ],
-   "p": {
-    "external": 0.9,
-    "build": 0.1
-   }
+   ]
   },
   {
    "id": "2026-W37-i01",
-   "w": 2,
-   "s": "runners",
+   "weekIndex": 2,
+   "projectId": "runners",
    "title": "Private runners v0 shipped, shown to a customer the next day",
    "mode": "build",
    "pillar": "exec",
-   "wm": "wouldnt",
-   "rec": 0,
+   "withoutMe": "wouldnt",
+   "praiseIndex": 0,
    "links": [],
-   "ev": [
+   "events": [
     [
      "issue_completed",
      "2026-09-07T09:40:00",
@@ -386,27 +382,23 @@
      "Private runners v0",
      null
     ]
-   ],
-   "p": {
-    "build": 0.85,
-    "solve": 0.15
-   }
+   ]
   },
   {
    "id": "2026-W37-i02",
-   "w": 2,
-   "s": "silences",
-   "ms": "Maintenance windows",
+   "weekIndex": 2,
+   "projectId": "silences",
+   "milestone": "Maintenance windows",
    "title": "Challenged the maintenance-window model in review; the decision was reopened",
    "mode": "clarify",
    "pillar": "big",
-   "wm": "slower",
+   "withoutMe": "slower",
    "quote": {
-    "t": "A window should be its own asset that creates and aggregates silences.",
+    "text": "A window should be its own asset that creates and aggregates silences.",
     "who": "Example, design review"
    },
    "links": [],
-   "ev": [
+   "events": [
     [
      "review_comment",
      null,
@@ -431,23 +423,19 @@
      "Maintenance windows: decision review",
      null
     ]
-   ],
-   "p": {
-    "clarify": 0.8,
-    "prevent": 0.2
-   }
+   ]
   },
   {
    "id": "2026-W39-i01",
-   "w": 4,
-   "s": "none",
+   "weekIndex": 4,
+   "projectId": "none",
    "title": "Release animation in the in-app changelog",
    "mode": "build",
    "pillar": "exec",
-   "wm": "slower",
-   "rec": 1,
+   "withoutMe": "slower",
+   "praiseIndex": 1,
    "links": [],
-   "ev": [
+   "events": [
     [
      "pr_open",
      "2026-09-22T10:05:00",
@@ -460,26 +448,22 @@
      "feat(ui): release animation in the changelog",
      null
     ]
-   ],
-   "p": {
-    "build": 0.9,
-    "clarify": 0.1
-   }
+   ]
   },
   {
    "id": "2026-W40-i01",
-   "w": 5,
-   "s": "none",
+   "weekIndex": 5,
+   "projectId": "none",
    "title": "The memory spike was not what the team assumed",
    "mode": "prevent",
    "pillar": "big",
-   "wm": "same",
+   "withoutMe": "same",
    "quote": {
-    "t": "A series cap is not the right tool here. The problem is fat labels.",
+    "text": "A series cap is not the right tool here. The problem is fat labels.",
     "who": "Example, Slack"
    },
    "links": [],
-   "ev": [
+   "events": [
     [
      "slack_mention",
      "2026-09-29T09:12:00",
@@ -504,49 +488,41 @@
      "fix(ingest): bound the label cache",
      null
     ]
-   ],
-   "p": {
-    "prevent": 0.6,
-    "clarify": 0.4
-   }
+   ]
   },
   {
    "id": "2026-W40-i02",
-   "w": 5,
-   "s": "none",
+   "weekIndex": 5,
+   "projectId": "none",
    "title": "Told a new teammate to push back on anything over-engineered",
    "mode": "elevate",
    "pillar": "level",
-   "wm": "same",
+   "withoutMe": "same",
    "quote": {
-    "t": "Feel free to push back on whatever you see as overengineered.",
+    "text": "Feel free to push back on whatever you see as overengineered.",
     "who": "Example, Slack"
    },
    "links": [],
-   "ev": [
+   "events": [
     [
      "slack_message",
      "2026-10-01T16:05:00",
      "DM",
      null
     ]
-   ],
-   "p": {
-    "elevate": 0.9,
-    "clarify": 0.1
-   }
+   ]
   },
   {
    "id": "2026-W40-i03",
-   "w": 5,
-   "s": "access",
+   "weekIndex": 5,
+   "projectId": "access",
    "title": "Finished work on rules that had stalled for months",
    "mode": "build",
    "pillar": "exec",
-   "wm": "same",
-   "rec": 2,
+   "withoutMe": "same",
+   "praiseIndex": 2,
    "links": [],
-   "ev": [
+   "events": [
     [
      "pr_merged",
      "2026-09-28T13:00:00",
@@ -571,23 +547,19 @@
      "Stalled rules migrated",
      null
     ]
-   ],
-   "p": {
-    "build": 0.8,
-    "solve": 0.2
-   }
+   ]
   },
   {
    "id": "2026-W41-i01",
-   "w": 6,
-   "s": "exports",
+   "weekIndex": 6,
+   "projectId": "exports",
    "title": "Opened the exports project: channel, design and tickets on day one",
    "mode": "solve",
    "pillar": "big",
-   "wm": "wouldnt",
-   "rec": 3,
+   "withoutMe": "wouldnt",
+   "praiseIndex": 3,
    "links": [],
-   "ev": [
+   "events": [
     [
      "slack_message",
      "2026-10-05T09:20:00",
@@ -618,23 +590,19 @@
      "Exports kickoff",
      null
     ]
-   ],
-   "p": {
-    "solve": 0.6,
-    "clarify": 0.4
-   }
+   ]
   },
   {
    "id": "2026-W41-i02",
-   "w": 6,
-   "s": "runners",
+   "weekIndex": 6,
+   "projectId": "runners",
    "title": "Review on the operator, praised by a principal on another team",
    "mode": "clarify",
    "pillar": "level",
-   "wm": "slower",
-   "rec": 4,
+   "withoutMe": "slower",
+   "praiseIndex": 4,
    "links": [],
-   "ev": [
+   "events": [
     [
      "pr_merged",
      "2026-10-07T10:44:00",
@@ -647,24 +615,20 @@
      "#engineering",
      null
     ]
-   ],
-   "p": {
-    "clarify": 0.5,
-    "elevate": 0.5
-   }
+   ]
   },
   {
    "id": "2026-W42-i01",
-   "w": 7,
-   "s": "exports",
-   "ms": "Safe delete",
+   "weekIndex": 7,
+   "projectId": "exports",
+   "milestone": "Safe delete",
    "title": "Exports API released before a customer escalation",
    "mode": "solve",
    "pillar": "exec",
-   "wm": "wouldnt",
-   "rec": 5,
+   "withoutMe": "wouldnt",
+   "praiseIndex": 5,
    "links": [],
-   "ev": [
+   "events": [
     [
      "pr_merged",
      "2026-10-12T10:30:00",
@@ -689,22 +653,18 @@
      "#customer-escalations",
      null
     ]
-   ],
-   "p": {
-    "solve": 0.8,
-    "build": 0.2
-   }
+   ]
   },
   {
    "id": "2026-W42-i02",
-   "w": 7,
-   "s": "up",
+   "weekIndex": 7,
+   "projectId": "up",
    "title": "Conference talk on metric contracts",
    "mode": "external",
    "pillar": "big",
-   "wm": "wouldnt",
+   "withoutMe": "wouldnt",
    "links": [],
-   "ev": [
+   "events": [
     [
      "doc_created",
      "2026-10-13T09:00:00",
@@ -717,19 +677,15 @@
      "Conference talk on metric contracts",
      null
     ]
-   ],
-   "p": {
-    "external": 0.95,
-    "clarify": 0.05
-   }
+   ]
   }
  ],
- "HIGHLIGHT": {
-  "item": "2026-W42-i01",
+ "highlight": {
+  "threadId": "2026-W42-i01",
   "when": "2026-10-16"
  },
- "NUMS": {
-  "slack": [
+ "numbers": {
+  "slackMessages": [
    96,
    112,
    88,
@@ -739,7 +695,7 @@
    99,
    117
   ],
-  "channels": [
+  "slackChannels": [
    11,
    13,
    9,
@@ -1634,7 +1590,7 @@
     "2026-10-13T16:00:00.000Z"
    ]
   ],
-  "meetings": [
+  "meetingHours": [
    8.5,
    11,
    7,
@@ -1674,7 +1630,7 @@
    8,
    10
   ],
-  "lead": [
+  "leadTimeHours": [
    20.5,
    14,
    31,
@@ -1685,35 +1641,35 @@
    15.5
   ]
  },
- "PHASES": [
+ "phases": [
   {
-   "k": "Phase 1 · W35–W38",
-   "h": "Runners and the access model",
+   "label": "Phase 1 · W35–W38",
+   "headline": "Runners and the access model",
    "from": 0,
    "to": 3
   },
   {
-   "k": "Phase 1 · W37",
-   "rec": 0
+   "label": "Phase 1 · W37",
+   "praiseIndex": 0
   },
   {
-   "k": "Phase 2 · W39–W40",
-   "h": "Ideas, and one assumption corrected",
+   "label": "Phase 2 · W39–W40",
+   "headline": "Ideas, and one assumption corrected",
    "from": 4,
    "to": 5
   },
   {
-   "k": "Phase 3 · W41–W42",
-   "h": "Exports, and a customer unblocked",
+   "label": "Phase 3 · W41–W42",
+   "headline": "Exports, and a customer unblocked",
    "from": 6,
    "to": 7
   },
   {
-   "k": "Phase 3 · W42",
-   "rec": 5
+   "label": "Phase 3 · W42",
+   "praiseIndex": 5
   }
  ],
- "FEEDBACK": [
+ "feedback": [
   {
    "week": "2026-W42",
    "weeks": [

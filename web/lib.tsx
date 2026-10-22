@@ -123,15 +123,15 @@ export const CloseButton = ({
 );
 
 // North, Trace, Feedback and Search read one object: your kept threads, or the sample.
-// Same shape as app/sample.json; SAMPLE is true only for the sample.
+// Same shape as app/sample.json; sample is true only for the sample.
 export type North = Record<string, any> & {
-  WEEKS: string[];
-  ITEMS: any[];
-  GOALS: any[];
-  PROJECTS: Record<string, any>;
-  REC: any[];
-  FEEDBACK: any[];
-  SAMPLE?: boolean;
+  weeks: string[];
+  threads: any[];
+  goals: any[];
+  projects: Record<string, any>;
+  praise: any[];
+  feedback: any[];
+  sample?: boolean;
 };
 let north: Promise<North> | null = null;
 export const loadNorth = (fresh = false) =>
@@ -192,13 +192,14 @@ export const fmtWhen = (time: number) => {
 
 // The goals a thread serves. The sample names one goal per project instead.
 export const goalsOf = (north: North, thread: any): string[] =>
-  thread.g ?? (north.PROJECTS[thread.s]?.goal ? [north.PROJECTS[thread.s].goal] : []);
+  thread.goalIds ??
+  (north.projects[thread.projectId]?.goalId ? [north.projects[thread.projectId].goalId] : []);
 // The ISO year of a week index: a window across New Year starts in the old year.
 export const yearOf = (north: North, week: number) =>
-  +north.PERIOD.slice(0, 4) + (+north.WEEKS[week]!.slice(1) < +north.WEEKS[0]!.slice(1) ? 1 : 0);
+  +north.period.slice(0, 4) + (+north.weeks[week]!.slice(1) < +north.weeks[0]!.slice(1) ? 1 : 0);
 // Where you change a thread's answers.
 export const reviewHref = (north: North, thread: any) =>
-  `#/review?week=${yearOf(north, thread.w)}-${north.WEEKS[thread.w]}&key=${encodeURIComponent(thread.id)}`;
+  `#/review?week=${yearOf(north, thread.weekIndex)}-${north.weeks[thread.weekIndex]}&key=${encodeURIComponent(thread.id)}`;
 
 // Count axis: a step of 1, 2 or 5 times a power of ten, at most 5 gridlines above zero.
 export const axis = (max: number) => {

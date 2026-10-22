@@ -46,7 +46,7 @@ export function ThreadSheet() {
   const [north] = useNorth();
   const [id, setId] = useState<string | null>(null);
   useEvent<string>("open-item", setId);
-  const thread = north && id ? north.ITEMS.find((thread) => thread.id === id) : null;
+  const thread = north && id ? north.threads.find((thread) => thread.id === id) : null;
   const close = () => setId(null);
   const openReference = (key: string) => {
     close();
@@ -54,9 +54,10 @@ export function ThreadSheet() {
   };
   if (!north || !thread) return null;
   const mode = thread.mode;
-  const goal = north.GOALS.find((candidate) => goalsOf(north, thread).includes(candidate.id));
-  const praise = thread.rec != null ? north.REC[thread.rec] : null;
-  const quote = thread.quote || (praise && { t: praise.t, who: `${praise.who} · ${praise.where}` });
+  const goal = north.goals.find((candidate) => goalsOf(north, thread).includes(candidate.id));
+  const praise = thread.praiseIndex != null ? north.praise[thread.praiseIndex] : null;
+  const quote =
+    thread.quote || (praise && { text: praise.text, who: `${praise.who} · ${praise.where}` });
   const why = REFS[mode]?.items[0];
   return (
     <Dialog open onOpenChange={(open) => !open && close()}>
@@ -71,13 +72,13 @@ export function ThreadSheet() {
             <Dot color={mc(mode)} />
             {MODES[mode]}
           </Button>
-          {thread.wm && (
+          {thread.withoutMe && (
             <Button
               variant="outline"
               className={chipClass}
               onClick={() => openReference("counterfactual")}
             >
-              {WMS[thread.wm]}
+              {WMS[thread.withoutMe]}
             </Button>
           )}
           <Button variant="outline" className={chipClass} onClick={() => openReference("tracking")}>
@@ -90,7 +91,7 @@ export function ThreadSheet() {
         <FlameGraph thread={thread} praise={praise} quote={quote} />
         {quote && (
           <figure className="m-0 grid gap-2.5 rounded-xl border border-line bg-secondary px-4.5 py-4">
-            <p className="m-0 text-base leading-snug font-medium">{`“${quote.t}”`}</p>
+            <p className="m-0 text-base leading-snug font-medium">{`“${quote.text}”`}</p>
             <figcaption>
               <By>{quote.who}</By>
             </figcaption>
@@ -100,8 +101,10 @@ export function ThreadSheet() {
           {why && <WhyThisCounts why={why} mode={mode} openReference={openReference} />}
           <div className="grid content-start gap-2.5">
             <span className="lbl">Without you, would it have happened?</span>
-            <p className="m-0 text-xl">{thread.wm ? WMS[thread.wm] : "not answered"}</p>
-            {!north.SAMPLE && (
+            <p className="m-0 text-xl">
+              {thread.withoutMe ? WMS[thread.withoutMe] : "not answered"}
+            </p>
+            {!north.sample && (
               <a className="ref" href={reviewHref(north, thread)} onClick={close}>
                 change it in review →
               </a>
@@ -132,7 +135,7 @@ function LinkChain({
   goal: any;
   close: () => void;
 }) {
-  const project = north.PROJECTS[thread.s] ?? { name: thread.s };
+  const project = north.projects[thread.projectId] ?? { name: thread.projectId };
   return (
     // Not the header's tab pill: base.css styles every nav like it.
     <nav
@@ -151,14 +154,14 @@ function LinkChain({
       ) : (
         <b className="font-medium">{project.name}</b>
       )}
-      {thread.ms && (
+      {thread.milestone && (
         <>
           <Chevron />
-          <b className="font-medium">{thread.ms}</b>
+          <b className="font-medium">{thread.milestone}</b>
         </>
       )}
       <Chevron />
-      <b className="font-medium wrap-anywhere">{`${thread.id} · ${north.WEEKS[thread.w]}`}</b>
+      <b className="font-medium wrap-anywhere">{`${thread.id} · ${north.weeks[thread.weekIndex]}`}</b>
       <CloseButton className="ml-auto" onClick={close} />
     </nav>
   );

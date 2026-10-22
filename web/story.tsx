@@ -37,12 +37,12 @@ const pill = "rounded-full border border-white/25 bg-black/20 px-3.5 py-2 text-s
 
 // A phase shows its praise if it has one, else its headline and threads.
 function PhaseSlide({ north, phase }: { north: North; phase: any }) {
-  const praise = phase.rec != null ? north.REC[phase.rec] : null;
+  const praise = phase.praiseIndex != null ? north.praise[phase.praiseIndex] : null;
   if (praise)
     return (
       <>
-        <Kicker>{phase.k}</Kicker>
-        <p className="m-0 text-[clamp(22px,3.2vw,36px)] leading-[1.2] font-bold tracking-[-.015em] text-balance">{`“${praise.t}”`}</p>
+        <Kicker>{phase.label}</Kicker>
+        <p className="m-0 text-[clamp(22px,3.2vw,36px)] leading-[1.2] font-bold tracking-[-.015em] text-balance">{`“${praise.text}”`}</p>
         <Caption>
           {praise.who}
           {praise.role ? ` · ${praise.role}` : ""}
@@ -51,23 +51,23 @@ function PhaseSlide({ north, phase }: { north: North; phase: any }) {
     );
   return (
     <>
-      <Kicker>{phase.k}</Kicker>
-      <Headline>{phase.h}</Headline>
+      <Kicker>{phase.label}</Kicker>
+      <Headline>{phase.headline}</Headline>
       <div className="flex flex-wrap gap-2.5">
-        {north.ITEMS.filter((thread) => thread.w >= phase.from && thread.w <= phase.to).map(
-          (thread) => (
+        {north.threads
+          .filter((thread) => thread.weekIndex >= phase.from && thread.weekIndex <= phase.to)
+          .map((thread) => (
             <span key={thread.id} className={pill}>
               {thread.title}
             </span>
-          ),
-        )}
+          ))}
       </div>
     </>
   );
 }
 
 function ModesSlide({ north }: { north: North }) {
-  const byMode = cnt(north.ITEMS, (thread) => thread.mode);
+  const byMode = cnt(north.threads, (thread) => thread.mode);
   const longest = Math.max(1, ...Object.values(byMode));
   return (
     <>
@@ -95,14 +95,14 @@ function ModesSlide({ north }: { north: North }) {
 }
 
 function slides(north: North, close: () => void): { background: string; body: React.ReactNode }[] {
-  const answered = north.ITEMS.filter((thread) => thread.wm).length;
+  const answered = north.threads.filter((thread) => thread.withoutMe).length;
   return [
     {
       background: "linear-gradient(160deg,#16161d,#3a0d12 60%,#ff4d52)",
       body: (
         <>
-          <Kicker>{north.PERIOD}</Kicker>
-          <Huge value={north.WEEKS.length} />
+          <Kicker>{north.period}</Kicker>
+          <Huge value={north.weeks.length} />
           <Headline>weeks of work, with a trace</Headline>
         </>
       ),
@@ -112,12 +112,12 @@ function slides(north: North, close: () => void): { background: string; body: Re
       body: (
         <>
           <Kicker>In total</Kicker>
-          <Huge value={north.ITEMS.length} />
-          <Headline>{`threads with evidence. ${north.REC.length} times people praised your work.`}</Headline>
+          <Huge value={north.threads.length} />
+          <Headline>{`threads with evidence. ${north.praise.length} times people praised your work.`}</Headline>
         </>
       ),
     },
-    ...(north.PHASES as any[]).map((phase, index) => ({
+    ...(north.phases as any[]).map((phase, index) => ({
       background: PHASE_BACKGROUND[index % PHASE_BACKGROUND.length]!,
       body: <PhaseSlide north={north} phase={phase} />,
     })),
@@ -131,7 +131,7 @@ function slides(north: North, close: () => void): { background: string; body: Re
         <>
           <Kicker>The open question</Kicker>
           <Headline>Without you, which of these would have happened?</Headline>
-          <Caption className="text-[15px]">{`${answered} of ${north.ITEMS.length} answered. Only you know the answer.`}</Caption>
+          <Caption className="text-[15px]">{`${answered} of ${north.threads.length} answered. Only you know the answer.`}</Caption>
           <div className="flex flex-wrap gap-2.5">
             <button
               className={`${pill} cursor-pointer text-white`}

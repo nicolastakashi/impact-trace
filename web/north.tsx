@@ -37,7 +37,7 @@ const initials = (name: string) =>
     .join("")
     .slice(0, 2)
     .toUpperCase() || "?";
-const lastWeekOf = (north: North) => north.WEEKS.length - 1;
+const lastWeekOf = (north: North) => north.weeks.length - 1;
 
 const tileClass =
   "flex min-w-0 flex-col gap-3 overflow-hidden rounded-[18px] border-line p-4.5 sm:p-4.5";
@@ -164,10 +164,10 @@ type Series = { id: string; name: string; color: string; striped: boolean; threa
 // One row per goal, and one for the rest. A thread that serves two goals goes to the goal
 // served most, so every thread is in exactly one row.
 function seriesOf(north: North, byGoals: boolean): Series[] {
-  const threads = north.ITEMS;
+  const threads = north.threads;
   const served = (goal: any) =>
     threads.filter((thread) => goalsOf(north, thread).includes(goal.id)).length;
-  const goals = [...north.GOALS].sort((first, second) => served(second) - served(first));
+  const goals = [...north.goals].sort((first, second) => served(second) - served(first));
   const mainGoal = (thread: any) =>
     goals.find((goal) => goalsOf(north, thread).includes(goal.id))?.id ?? "none";
   return [
@@ -190,23 +190,23 @@ function seriesOf(north: North, byGoals: boolean): Series[] {
 function weeksOf(north: North, id: string) {
   const inRow = (thread: any) =>
     id === "none" ? !goalsOf(north, thread).length : goalsOf(north, thread).includes(id);
-  const weeks = new Set(north.ITEMS.filter(inRow).map((thread) => thread.w as number));
+  const weeks = new Set(north.threads.filter(inRow).map((thread) => thread.weekIndex as number));
   return [...weeks]
     .sort((first, second) => first - second)
-    .map((week) => north.WEEKS[week])
+    .map((week) => north.weeks[week])
     .join(",");
 }
 
 // Where the work goes: threads per week, stacked by goal. Every bar adds up to its week.
 function Where({ north, byGoals }: { north: North; byGoals: boolean }) {
   const [highlight, setHighlight] = useState<string | null>(null);
-  const total = north.ITEMS.length;
+  const total = north.threads.length;
   const series = seriesOf(north, byGoals);
   const fit = sum(series.filter((row) => row.id !== "none").map((row) => row.threads.length));
   const what = byGoals ? "goal" : "project";
-  const columns = north.WEEKS.map((week, weekIndex) => {
+  const columns = north.weeks.map((week, weekIndex) => {
     const parts = series.map((row) => ({
-      value: row.threads.filter((thread) => thread.w === weekIndex).length,
+      value: row.threads.filter((thread) => thread.weekIndex === weekIndex).length,
       color: row.color,
       striped: row.striped,
       dim: !!highlight && highlight !== row.id,
@@ -239,7 +239,7 @@ function Where({ north, byGoals }: { north: North; byGoals: boolean }) {
         onBlur={() => setHighlight(null)}
       >
         <Plot
-          weeks={north.WEEKS}
+          weeks={north.weeks}
           height={220}
           label={`Threads per week by ${what}`}
           columns={columns}
@@ -273,7 +273,7 @@ function WhereTable({
   highlight: string | null;
   setHighlight: (id: string) => void;
 }) {
-  const total = north.ITEMS.length;
+  const total = north.threads.length;
   return (
     <table className="w-full border-collapse">
       <thead>
@@ -309,7 +309,7 @@ function WhereTable({
             <td className={tdClass}>{row.threads.length}</td>
             <td className={tdClass}>{percent(row.threads.length, total)}%</td>
             <td className={tdClass}>
-              {row.threads.filter((thread) => thread.wm === "wouldnt").length}
+              {row.threads.filter((thread) => thread.withoutMe === "wouldnt").length}
             </td>
           </tr>
         ))}
@@ -330,8 +330,8 @@ const Delivered = ({ north }: { north: North }) => (
       </a>
     </TileHead>
     <div className="grid md:grid-cols-3">
-      <ByMode threads={north.ITEMS} />
-      <WithoutYou threads={north.ITEMS} />
+      <ByMode threads={north.threads} />
+      <WithoutYou threads={north.threads} />
       <ReviewsGiven north={north} />
     </div>
   </Tile>
@@ -378,7 +378,7 @@ const ANSWER_COLOR: Record<string, string> = {
   same: "var(--rest)",
 };
 function WithoutYou({ threads }: { threads: any[] }) {
-  const byAnswer = cnt(threads, (thread) => thread.wm);
+  const byAnswer = cnt(threads, (thread) => thread.withoutMe);
   const answers = Object.keys(WMS);
   const answered = sum(answers.map((answer) => byAnswer[answer] ?? 0));
   return (
@@ -428,7 +428,7 @@ function WithoutYou({ threads }: { threads: any[] }) {
 
 // Reviews given: the average as a dashed line, this week in ink. Not accent: a quiet week is not an alert.
 function ReviewsGiven({ north }: { north: North }) {
-  const reviews: number[] = north.REVIEWS;
+  const reviews: number[] = north.reviewsGiven;
   const lastWeek = lastWeekOf(north);
   const average = mean(reviews);
   return (
@@ -447,16 +447,16 @@ function ReviewsGiven({ north }: { north: North }) {
           {reviews[lastWeek]}
         </span>
         <span className="text-[12.5px] text-ink-3">
-          in {north.WEEKS[lastWeek]} · average {average.toFixed(0)}
+          in {north.weeks[lastWeek]} · average {average.toFixed(0)}
         </span>
       </div>
       <Plot
-        weeks={north.WEEKS}
+        weeks={north.weeks}
         height={110}
         label={`Reviews per week: ${reviews.join(", ")}`}
         average={average}
         columns={reviews.map((count, week) => ({
-          title: `${north.WEEKS[week]}: ${count} reviews`,
+          title: `${north.weeks[week]}: ${count} reviews`,
           parts: [{ value: count, color: week === lastWeek ? "var(--ink)" : "var(--rest)" }],
         }))}
       />
@@ -489,8 +489,8 @@ function outsideWorkHours(timeZone: string) {
 
 // One value per week. Big number is this week; the bars are the weeks, average dashed.
 function Numbers({ north }: { north: North }) {
-  const numbers = north.NUMS;
-  const reviews: number[] = north.REVIEWS;
+  const numbers = north.numbers;
+  const reviews: number[] = north.reviewsGiven;
   const lastWeek = lastWeekOf(north);
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const isLate = outsideWorkHours(timeZone);
@@ -504,12 +504,12 @@ function Numbers({ north }: { north: North }) {
   const tiles: WeekNumber[] = [
     {
       name: "Slack messages",
-      values: numbers.slack,
-      detail: `in ${numbers.channels[lastWeek]} channels`,
+      values: numbers.slackMessages,
+      detail: `in ${numbers.slackChannels[lastWeek]} channels`,
     },
     {
       name: "Meetings",
-      values: numbers.meetings,
+      values: numbers.meetingHours,
       unit: "h",
       decimals: 1,
       detail: "hours accepted or tentative",
@@ -523,7 +523,7 @@ function Numbers({ north }: { north: North }) {
     { name: "People who mention you", values: numbers.reach, detail: "different people in Slack" },
     {
       name: "Lead time",
-      values: numbers.lead,
+      values: numbers.leadTimeHours,
       unit: "h",
       decimals: 1,
       detail: "median, opened to merged",
@@ -544,7 +544,7 @@ function Numbers({ north }: { north: North }) {
       </TileHead>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(170px,100%),1fr))]">
         {tiles.map((tile) => (
-          <NumberTile key={tile.name} tile={tile} weeks={north.WEEKS} />
+          <NumberTile key={tile.name} tile={tile} weeks={north.weeks} />
         ))}
       </div>
     </Tile>
@@ -617,13 +617,13 @@ async function markMention(id: string, kind: string | null) {
 
 // RECOGNITION: praise that names your work, Claude's pick checked by code. One in focus, the rest one click away.
 function PraiseBand({ north }: { north: North }) {
-  const [praiseList, setPraiseList] = useState<any[]>(north.REC);
+  const [praiseList, setPraiseList] = useState<any[]>(north.praise);
   const [removed, setRemoved] = useState<any>(null);
   // The highlight is where the praise starts; else the newest.
   const [shown, setShown] = useState<number>(
     () =>
-      north.ITEMS.find((thread) => thread.id === north.HIGHLIGHT?.item)?.rec ??
-      Math.max(0, north.REC.length - 1),
+      north.threads.find((thread) => thread.id === north.highlight?.threadId)?.praiseIndex ??
+      Math.max(0, north.praise.length - 1),
   );
   async function notPraise(praise: any) {
     if (!(await markMention(praise.id, "info"))) return;
@@ -641,8 +641,8 @@ function PraiseBand({ north }: { north: North }) {
   }
   // A praise takes the color of the goal its work serves, so recognition reads against your goals.
   const goalOf = (praise: any) => {
-    const thread = north.ITEMS.find((candidate) => candidate.id === praise.item);
-    return thread && north.GOALS.find((goal) => goalsOf(north, thread).includes(goal.id));
+    const thread = north.threads.find((candidate) => candidate.id === praise.threadId);
+    return thread && north.goals.find((goal) => goalsOf(north, thread).includes(goal.id));
   };
   const colorOf = (praise: any) => goalOf(praise)?.color ?? "var(--rest)";
   const current = praiseList[shown];
@@ -651,7 +651,7 @@ function PraiseBand({ north }: { north: North }) {
       <TileHead>
         <span className="lbl">Recognition</span>
         <By>
-          {praiseList.length} in {north.WEEKS.length} weeks
+          {praiseList.length} in {north.weeks.length} weeks
         </By>
       </TileHead>
       {current ? (
@@ -670,7 +670,7 @@ function PraiseBand({ north }: { north: North }) {
       {removed && <Removed praise={removed} quoted={!!current} undo={undo} />}
       {current && (
         <PraiseDots
-          weeks={north.WEEKS}
+          weeks={north.weeks}
           praiseList={praiseList}
           shown={shown}
           show={setShown}
@@ -684,7 +684,7 @@ function PraiseBand({ north }: { north: North }) {
 const Removed = ({ praise, quoted, undo }: { praise: any; quoted: boolean; undo: () => void }) => (
   <p className={smallText}>
     Removed: {praise.who}
-    {quoted ? `, "${(praise.q ?? praise.t).slice(0, 60)}"` : ""}.{" "}
+    {quoted ? `, "${(praise.quote ?? praise.text).slice(0, 60)}"` : ""}.{" "}
     <Button variant="outline" size="xs" className={chipClass} onClick={undo}>
       Undo
     </Button>
@@ -704,9 +704,9 @@ function Praise({
   color: string;
   remove: (praise: any) => void;
 }) {
-  const thread = north.ITEMS.find((candidate) => candidate.id === praise.item);
+  const thread = north.threads.find((candidate) => candidate.id === praise.threadId);
   const url = /^https:\/\//.test(praise.url ?? "") ? praise.url : null;
-  const quote: string = praise.q ?? praise.t;
+  const quote: string = praise.quote ?? praise.text;
   return (
     <>
       <p
@@ -719,15 +719,15 @@ function Praise({
         {quote}
         <span className="text-brand">”</span>
       </p>
-      {praise.q && praise.q.length < praise.t.length * 0.7 && (
-        <p className={smallText}>{praise.t}</p>
+      {praise.quote && praise.quote.length < praise.text.length * 0.7 && (
+        <p className={smallText}>{praise.text}</p>
       )}
       <div className="flex min-w-0 items-center gap-2.5">
         <Avatar color={color} who={praise.who} />
         <div className="grid min-w-0">
           <b className="text-sm">{praise.who}</b>
           <By>
-            {praise.where ?? ""} · {praise.when || north.WEEKS[praise.w]}
+            {praise.where ?? ""} · {praise.when || north.weeks[praise.weekIndex]}
           </By>
         </div>
       </div>
@@ -795,7 +795,7 @@ function PraiseDots({
         <div key={week}>
           <div className="flex min-h-3.5 flex-wrap items-end justify-center gap-1.25">
             {praiseList.map((praise, index) =>
-              praise.w === weekIndex ? (
+              praise.weekIndex === weekIndex ? (
                 <button
                   key={praise.id ?? index}
                   aria-label={`${praise.who}, ${week}${index === shown ? ", shown" : ""}`}
@@ -826,7 +826,7 @@ const personHue = (name: string) =>
 
 // WHO COMES TO YOU: people who asked you for a review, a decision or an answer in Slack.
 function Asks({ north }: { north: North }) {
-  const asks: any[] = north.ASKS ?? [];
+  const asks: any[] = north.asks ?? [];
   const head = (caption: string) => (
     <TileHead>
       <span className="lbl">Who comes to you</span>
@@ -842,13 +842,13 @@ function Asks({ north }: { north: North }) {
         </p>
       </Tile>
     );
-  const max = Math.max(1, ...asks.flatMap((ask) => ask.per));
+  const max = Math.max(1, ...asks.flatMap((ask) => ask.perWeek));
   return (
     <Tile>
-      {head(`asks in Slack · ${north.WEEKS[0]}–${north.WEEKS[lastWeekOf(north)]}`)}
+      {head(`asks in Slack · ${north.weeks[0]}–${north.weeks[lastWeekOf(north)]}`)}
       <ol className="m-0 grid list-none p-0">
         {asks.map((ask) => (
-          <AskRow key={ask.who} ask={ask} weeks={north.WEEKS} max={max} />
+          <AskRow key={ask.who} ask={ask} weeks={north.weeks} max={max} />
         ))}
       </ol>
     </Tile>
@@ -870,9 +870,9 @@ function AskRow({ ask, weeks, max }: { ask: any; weeks: string[]; max: number })
       <span
         className="flex h-5.5 items-end gap-0.5"
         role="img"
-        aria-label={`per week: ${ask.per.join(", ")}`}
+        aria-label={`per week: ${ask.perWeek.join(", ")}`}
       >
-        {ask.per.map((count: number, week: number) => (
+        {ask.perWeek.map((count: number, week: number) => (
           <i
             key={week}
             className="min-h-0.5 w-1.25 rounded-[1px]"
@@ -886,7 +886,7 @@ function AskRow({ ask, weeks, max }: { ask: any; weeks: string[]; max: number })
         ))}
       </span>
       <span className="num min-w-[2ch] text-right font-num text-xl leading-none font-bold">
-        {ask.n}
+        {ask.count}
       </span>
     </li>
   );
@@ -894,8 +894,8 @@ function AskRow({ ask, weeks, max }: { ask: any; weeks: string[]; max: number })
 
 // The experiment from your last feedback week, unless you passed on it.
 function TryThisWeek({ north }: { north: North }) {
-  const week = north.FEEDBACK?.[0];
-  const experiment = week?.verdicts?.experiment?.v === "reject" ? null : week?.experiment;
+  const week = north.feedback?.[0];
+  const experiment = week?.verdicts?.experiment?.verdict === "reject" ? null : week?.experiment;
   if (!experiment) return null;
   const trend: number[] | undefined = experiment.trend;
   return (
@@ -1018,8 +1018,8 @@ function animateHome(root: HTMLElement) {
 }
 
 function Heading({ north }: { north: North }) {
-  const weeks = north.WEEKS;
-  const critical = north.ITEMS.filter((thread) => thread.wm === "wouldnt").length;
+  const weeks = north.weeks;
+  const critical = north.threads.filter((thread) => thread.withoutMe === "wouldnt").length;
   return (
     <div className="vhead">
       <div>
@@ -1027,7 +1027,7 @@ function Heading({ north }: { north: North }) {
           {weeks[0]}–{weeks.at(-1)} <em>·</em> {weeks.length} weeks
         </h1>
         <p>
-          <b>{north.ITEMS.length}</b> threads you kept, <b>{north.REC.length}</b> times people
+          <b>{north.threads.length}</b> threads you kept, <b>{north.praise.length}</b> times people
           praised your work, <b>{critical}</b> that would not have happened without you.
         </p>
       </div>
@@ -1042,7 +1042,7 @@ function Heading({ north }: { north: North }) {
         >
           <Play className="size-3 fill-current" />
         </span>
-        Recap · {north.PHASES.length + 4} screens
+        Recap · {north.phases.length + 4} screens
       </Button>
     </div>
   );
@@ -1057,10 +1057,10 @@ function Home() {
   }, []);
   useMotion(root, () => animateHome(root.current!), [north]);
   if (!north) return <section className="view" id="v-home" />;
-  const byGoals = north.GOALS_FROM == null || north.GOALS_FROM === "goals";
+  const byGoals = north.goalsFrom == null || north.goalsFrom === "goals";
   return (
     <section className="view" id="v-home" ref={root}>
-      {north.SAMPLE && (
+      {north.sample && (
         <SampleNote href="#/review">
           Example data, not yours. North and Trace show your weeks once you keep a thread in review.{" "}
           <b className="font-semibold text-brand">Open Review →</b>
@@ -1071,7 +1071,7 @@ function Home() {
       <div className="grid gap-3">
         <Where north={north} byGoals={byGoals} />
         <Delivered north={north} />
-        {north.NUMS && <Numbers north={north} />}
+        {north.numbers && <Numbers north={north} />}
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-3">
           <PraiseBand north={north} />
           <Asks north={north} />

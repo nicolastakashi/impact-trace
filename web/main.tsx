@@ -72,7 +72,7 @@ function useIsSample() {
   const [sample, setSample] = useState(false);
   useEffect(() => {
     loadNorth()
-      .then((north) => setSample(!!north.SAMPLE))
+      .then((north) => setSample(!!north.sample))
       .catch(() => {});
   }, []);
   return sample;

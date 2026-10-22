@@ -64,12 +64,13 @@ const GET: Record<string, (params: URLSearchParams) => Response> = {
   "/api/facts": () => {
     const data = north();
     return data
-      ? Response.json({ ...data, OBJECTIVES: goalList().goals })
+      ? Response.json({ ...data, goalDetails: goalList().goals })
       : new Response("No kept threads yet", { status: 404 });
   },
-  // North, Trace, Feedback and Search: your kept threads, or the sample with SAMPLE: true.
+  // North, Trace, Feedback and Search: your kept threads, or the sample with sample: true.
   // The feedback categories and their sources come with the data, the example too.
-  "/api/north": () => Response.json({ FB_CATS: CATEGORIES, ...(north() ?? SAMPLE_DATA) }),
+  "/api/north": () =>
+    Response.json({ feedbackCategories: CATEGORIES, ...(north() ?? SAMPLE_DATA) }),
   "/api/goals": () => Response.json(goalList()),
   "/api/projects": (params) =>
     Response.json(

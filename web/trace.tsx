@@ -55,7 +55,7 @@ const BUCKETS: [string, number][] = [
 const mondayOf = (north: North, week: number) => {
   const year = yearOf(north, week);
   const jan4 = new Date(year, 0, 4);
-  const weekNumber = +north.WEEKS[week]!.slice(1);
+  const weekNumber = +north.weeks[week]!.slice(1);
   return new Date(year, 0, 4 - ((jan4.getDay() + 6) % 7) + (weekNumber - 1) * 7).getTime();
 };
 const formatDay = (time: number) =>
@@ -81,26 +81,27 @@ const positionIn = (north: North, week: number) => {
   const monday = mondayOf(north, week);
   return (time: number) => Math.min(100, Math.max(0, ((time - monday) / (7 * DAY)) * 100));
 };
-const timedEvents = (thread: Thread) => thread.ev.filter((event: SpanEvent) => event[1]);
-const isCritical = (thread: Thread) => thread.wm === "wouldnt";
+const timedEvents = (thread: Thread) => thread.events.filter((event: SpanEvent) => event[1]);
+const isCritical = (thread: Thread) => thread.withoutMe === "wouldnt";
 const swatch = "inline-block h-1.5 w-3.5 flex-none rounded-[2px] bg-(--c)";
 const rule = "border-b border-[color-mix(in_srgb,var(--line)_55%,transparent)]";
 const colorVar = (color: string) => ({ "--c": color }) as React.CSSProperties;
 
 // Each thread's start, end and duration, from its timed events.
 function spans(north: North) {
-  return north.ITEMS.map((thread: Thread) => {
-    const events = thread.ev ?? [];
+  return north.threads.map((thread: Thread) => {
+    const events = thread.events ?? [];
     const times = events
       .filter((event: SpanEvent) => event[1])
       .map((event: SpanEvent) => Date.parse(event[1]));
     const start = times.length ? Math.min(...times) : null;
     const end = times.length ? Math.max(...times) : null;
     const hours = start == null ? null : (end! - start) / 36e5;
-    const dayIndex = start == null ? 0 : Math.floor((start - mondayOf(north, thread.w)) / DAY);
+    const dayIndex =
+      start == null ? 0 : Math.floor((start - mondayOf(north, thread.weekIndex)) / DAY);
     return {
       ...thread,
-      ev: events,
+      events,
       start,
       end,
       hours,
@@ -113,8 +114,8 @@ function spans(north: North) {
 // "W40–W43" for a run of weeks, else "W40, W42".
 const weeksLabel = (north: North, weeks: number[]) =>
   weeks.length > 1 && weeks.at(-1)! - weeks[0]! === weeks.length - 1
-    ? `${north.WEEKS[weeks[0]!]}–${north.WEEKS[weeks.at(-1)!]}`
-    : weeks.map((week) => north.WEEKS[week]).join(", ");
+    ? `${north.weeks[weeks[0]!]}–${north.weeks[weeks.at(-1)!]}`
+    : weeks.map((week) => north.weeks[week]).join(", ");
 
 // The animations share one gsap context, reverted when Trace goes.
 function useTraceMotion(
@@ -274,7 +275,7 @@ function useBrush(selection: Set<number> | null, pick: (weeks: Set<number>) => v
 function TraceHead({ north, children }: { north: North | null; children: React.ReactNode }) {
   return (
     <>
-      {north?.SAMPLE && (
+      {north?.sample && (
         <SampleNote href="#/review">
           Example data, not yours. <b className="font-semibold text-brand">Open Review →</b>
         </SampleNote>
@@ -305,7 +306,7 @@ export function Trace({ params }: { params: URLSearchParams }) {
   // New weeks open their newest trace (two or fewer open all) and keep the span only if its week stays.
   const pick = (next: Set<number>, keep = span) => {
     const weeks = sorted(next);
-    const spanWeek = threads.find((thread) => thread.id === keep)?.w;
+    const spanWeek = threads.find((thread) => thread.id === keep)?.weekIndex;
     const open = new Set(weeks.length <= 2 ? weeks : [weeks.at(-1)!]);
     if (next.has(spanWeek)) open.add(spanWeek);
     else keep = null;
@@ -320,15 +321,15 @@ export function Trace({ params }: { params: URLSearchParams }) {
     if (!north) return;
     const weeks = (params.get("w") ?? "")
       .split(",")
-      .map((week) => north.WEEKS.indexOf(week))
+      .map((week) => north.weeks.indexOf(week))
       .filter((index) => index >= 0);
-    pick(new Set(weeks.length ? weeks : [north.WEEKS.length - 1]), params.get("s"));
+    pick(new Set(weeks.length ? weeks : [north.weeks.length - 1]), params.get("s"));
   }, [north, query]);
   // It also keeps them, so reload and a shared link show the same thing.
   useEffect(() => {
     if (!north || !selection) return;
     const weeks = sorted(selection)
-      .map((index) => north.WEEKS[index])
+      .map((index) => north.weeks[index])
       .join(",");
     history.replaceState(
       null,
@@ -424,8 +425,8 @@ export function Trace({ params }: { params: URLSearchParams }) {
             <SpanDetail north={north} thread={open} threads={threads} close={() => setSpan(null)} />
           ) : (
             <Summary
-              selected={passing.filter((thread) => selection.has(thread.w))}
-              rest={passing.filter((thread) => !selection.has(thread.w))}
+              selected={passing.filter((thread) => selection.has(thread.weekIndex))}
+              rest={passing.filter((thread) => !selection.has(thread.weekIndex))}
               label={weeksLabel(north, weeks)}
               toggle={toggle}
             />
@@ -458,11 +459,11 @@ function Explorer({
   color: string;
   children: React.ReactNode;
 }) {
-  const days = north.WEEKS.length * 7;
+  const days = north.weeks.length * 7;
   // Spans per day and duration bucket.
   const cells: Record<string, number> = {};
   for (const thread of passing) {
-    const key = `${thread.w * 7 + thread.day}:${thread.bucket}`;
+    const key = `${thread.weekIndex * 7 + thread.day}:${thread.bucket}`;
     cells[key] = (cells[key] ?? 0) + 1;
   }
   const max = Math.max(1, ...Object.values(cells));
@@ -472,7 +473,7 @@ function Explorer({
         <span className="lbl">Explorer · when each thread started, and how long it ran</span>
         <span className="text-[13px] text-ink-2">
           <b>{weeksLabel(north, sorted(shown))}</b>
-          {` · ${passing.filter((thread) => shown.has(thread.w)).length} spans`}
+          {` · ${passing.filter((thread) => shown.has(thread.weekIndex)).length} spans`}
           <small className="ml-2 text-xs text-ink-3">
             drag across weeks to compare · shift-click adds a week
           </small>
@@ -512,12 +513,12 @@ function Explorer({
                 max={max}
                 color={color}
                 on={shown.has(Math.floor(day / 7))}
-                ping={!!hover && hover.w * 7 + hover.day === day && hover.bucket === bucket}
+                ping={!!hover && hover.weekIndex * 7 + hover.day === day && hover.bucket === bucket}
               />
             )),
           ])}
           {/* Week labels are buttons, so the keyboard can pick a week too. Pointer picks go through the brush. */}
-          {north.WEEKS.map((week, weekIndex) => (
+          {north.weeks.map((week, weekIndex) => (
             <button
               key={week}
               data-w={weekIndex}
@@ -583,7 +584,7 @@ function HeatCell({
       data-n={count || undefined}
       title={
         count
-          ? `${plural(count, "span")} · ${north.WEEKS[week]} ${DOW[day % 7]} · ${BUCKETS[bucket]![0]}`
+          ? `${plural(count, "span")} · ${north.weeks[week]} ${DOW[day % 7]} · ${BUCKETS[bucket]![0]}`
           : undefined
       }
       className={cn(
@@ -714,7 +715,7 @@ function Waterfall({
   setRoots,
   replay,
 }: WaterfallProps) {
-  const shown = threads.filter((thread) => weeks.includes(thread.w) && passes(thread));
+  const shown = threads.filter((thread) => weeks.includes(thread.weekIndex) && passes(thread));
   const allOpen = roots.size === weeks.length;
   return (
     <Card className="gap-0 overflow-hidden p-0 sm:p-0">
@@ -722,7 +723,7 @@ function Waterfall({
         <div>
           <span className="lbl">Trace view</span>
           <h2 className="m-0 mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 font-num text-[28px] leading-none font-extrabold uppercase">
-            {weeks.length === 1 ? north.WEEKS[weeks[0]!] : weeksLabel(north, [...weeks].reverse())}
+            {weeks.length === 1 ? north.weeks[weeks[0]!] : weeksLabel(north, [...weeks].reverse())}
             <small className="font-mono text-xs font-medium text-ink-3 normal-case">{`${plural(shown.length, "span")} · ${plural(weeks.length, "trace")}`}</small>
           </h2>
         </div>
@@ -790,7 +791,7 @@ function Waterfall({
               north={north}
               week={week}
               threads={threads
-                .filter((thread) => thread.w === week && passes(thread))
+                .filter((thread) => thread.weekIndex === week && passes(thread))
                 .sort((first, second) => (first.start ?? 0) - (second.start ?? 0))}
               open={roots.has(week)}
               fold={() => {
@@ -849,7 +850,7 @@ function WeekTrace({
           )}
         >
           <Chevron className="size-3 text-ink-3" />
-          {north.WEEKS[week]}
+          {north.weeks[week]}
           <span className="flex-1 font-mono text-[11.5px] font-medium tracking-normal text-ink-3">{`${formatDay(monday)} – ${formatDay(monday + 6 * DAY)}`}</span>
           <span className="font-mono text-[11.5px] font-medium tracking-normal text-ink-3 tabular-nums">
             {plural(threads.length, "span")}
@@ -888,7 +889,7 @@ function WeekTrace({
       {open && !threads.length && (
         <div
           className={cn(rule, "py-3 pr-5 pl-10.5 text-[13px] text-ink-3")}
-        >{`No spans in ${north.WEEKS[week]} match the filter.`}</div>
+        >{`No spans in ${north.weeks[week]} match the filter.`}</div>
       )}
     </div>
   );
@@ -957,7 +958,7 @@ function SpanRow({
         <span
           data-at={left}
           data-bar="1"
-          title={`${thread.title} · ${formatDuration(thread)} · ${thread.ev.length} events`}
+          title={`${thread.title} · ${formatDuration(thread)} · ${thread.events.length} events`}
           style={{ left: `${left}%`, width: `${width}%` }}
           className={cn(
             "absolute top-1/2 -mt-1.75 h-3.5 min-w-2 origin-left rounded-sm",
@@ -1089,8 +1090,8 @@ function SummaryBody({
 }
 
 function ProjectName({ thread, north }: { thread: Thread; north: North }) {
-  const project = north.PROJECTS[thread.s];
-  if (!project || thread.s === "none") return <>none</>;
+  const project = north.projects[thread.projectId];
+  if (!project || thread.projectId === "none") return <>none</>;
   if (!project.url) return <>{project.name}</>;
   return (
     <a
@@ -1107,7 +1108,7 @@ const eventsInOrder = (thread: Thread) => [
   ...timedEvents(thread).sort(
     (first: SpanEvent, second: SpanEvent) => Date.parse(first[1]) - Date.parse(second[1]),
   ),
-  ...thread.ev.filter((event: SpanEvent) => !event[1]),
+  ...thread.events.filter((event: SpanEvent) => !event[1]),
 ];
 
 function SpanDetail({
@@ -1129,7 +1130,7 @@ function SpanDetail({
       <div className="flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-2 text-[12.5px] text-ink-2">
           <i className={swatch} style={colorVar(mc(thread.mode))} />
-          {`${MODES[thread.mode]} · ${north.WEEKS[thread.w]}`}
+          {`${MODES[thread.mode]} · ${north.weeks[thread.weekIndex]}`}
         </span>
         <CloseButton onClick={close} />
       </div>
@@ -1144,7 +1145,7 @@ function SpanDetail({
         <dt>mode</dt>
         <dd>{MODES[thread.mode]}</dd>
         <dt>without_you</dt>
-        <dd>{thread.wm ? WMS[thread.wm] : "not answered"}</dd>
+        <dd>{thread.withoutMe ? WMS[thread.withoutMe] : "not answered"}</dd>
         <dt>project</dt>
         <dd>
           <ProjectName thread={thread} north={north} />
@@ -1155,7 +1156,7 @@ function SpanDetail({
         <dd>{thread.start ? `${fmtWhen(thread.start)}, ${formatDay(thread.start)}` : "no time"}</dd>
       </dl>
       {thread.summary && <p className="m-0 text-sm leading-normal text-ink-2">{thread.summary}</p>}
-      <span className="lbl">{`Span events · ${thread.ev.length}`}</span>
+      <span className="lbl">{`Span events · ${thread.events.length}`}</span>
       <ol className="m-0 grid max-h-80 list-none overflow-y-auto p-0">
         {eventsInOrder(thread).map((event: SpanEvent, index: number) => (
           <EventRow key={index} event={event} />
@@ -1172,7 +1173,7 @@ function SpanDetail({
           <Maximize2 className="size-3" />
           open thread
         </Button>
-        {!north.SAMPLE && (
+        {!north.sample && (
           <a className="ref" href={reviewHref(north, thread)}>
             change it in review →
           </a>

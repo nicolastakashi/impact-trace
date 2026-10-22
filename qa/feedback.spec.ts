@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { expect, test } from "./helpers";
 
 const verdicts = async (request: any) =>
-  (await (await request.get("/api/north")).json()).FEEDBACK[0].verdicts;
+  (await (await request.get("/api/north")).json()).feedback[0].verdicts;
 // The verdict's note is a status too: find the toast by its exact text.
 const said = (page: any, text: string) =>
   expect(page.getByRole("status").getByText(text, { exact: true })).toBeVisible();
@@ -70,7 +70,7 @@ test("accept a pattern, then take it back", async ({ page, view, request }) => {
   ).toBeVisible();
   await expect(page.getByRole("tab", { name: /accepted ·/ })).toBeVisible();
   expect((await verdicts(request))["pattern:Asking permission on what you own"]).toEqual({
-    v: "accept",
+    verdict: "accept",
     why: null,
   });
   await verdictGroup(page, focus)
@@ -92,7 +92,7 @@ test("reject with a reason that Claude reads next week", async ({ page, view, re
   await page.getByRole("button", { name: "Save reason" }).click();
   await said(page, "Reason saved. Claude reads it next week.");
   expect((await verdicts(request))["pattern:Asking permission on what you own"]).toEqual({
-    v: "reject",
+    verdict: "reject",
     why: "I was asking a real question",
   });
 });
@@ -102,10 +102,10 @@ test("A and R judge the pattern in focus", async ({ page, view, request }) => {
   await page.getByRole("tab", { name: /Closing with a written decision/ }).click();
   await page.keyboard.press("a");
   await said(page, "Accepted");
-  expect((await verdicts(request)).strength).toEqual({ v: "accept", why: null });
+  expect((await verdicts(request)).strength).toEqual({ verdict: "accept", why: null });
   await page.keyboard.press("r");
   await said(page, "Rejected. Say why, and Claude learns from it.");
-  expect((await verdicts(request)).strength.v).toBe("reject");
+  expect((await verdicts(request)).strength.verdict).toBe("reject");
 });
 
 test("pass on the experiment", async ({ page, view, request }) => {
@@ -116,7 +116,7 @@ test("pass on the experiment", async ({ page, view, request }) => {
       "Passed. Next week Claude proposes a different experiment, and nothing is measured for this one.",
     ),
   ).toBeVisible();
-  expect((await verdicts(request)).experiment).toEqual({ v: "reject", why: null });
+  expect((await verdicts(request)).experiment).toEqual({ verdict: "reject", why: null });
 });
 
 test("before your first collection: the example, and verdicts stay on the page", async ({
