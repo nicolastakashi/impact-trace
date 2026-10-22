@@ -69,7 +69,10 @@ gh search prs --reviewed-by "$login" --updated ">=$monday" --limit 1000 \
   jq -s "[add[]|select(.author.login!=\"$login\")|.url]|unique|length" > "$out/requests.expected"
 gh api --paginate user/teams --jq '.[]|"team:\(.organization.login)/\(.slug)"' > "$out/teams.txt"
 
-bun jobs/ingest.ts "$week"
+# Exit 2 is a short count: what was stored still gets projects and labels, and the week ends
+# flagged so the schedule says so and retries it. Any other failure stops here.
+ingest=0; bun jobs/ingest.ts "$week" || ingest=$?
+[ "$ingest" = 0 ] || [ "$ingest" = 2 ] || exit "$ingest"
 
 # Place threads Linear does not put in a project, before labels, so labels see whole threads.
 echo "▶ projects $week"
@@ -94,7 +97,8 @@ bun jobs/mentions.ts save "$week" "$out/mentions.run.json"
 
 # Feedback on how you show up, from your own messages: Claude quotes, the code checks quotes and counts.
 # Once per week, after it ends: the weekday runs would pay for feedback on half a week.
-if [[ "$(date +%F)" > "$sunday" ]]; then
+# Not on a flagged week: feedback closes a week, and a flagged week must stay open to retry.
+if [ "$ingest" = 0 ] && [[ "$(date +%F)" > "$sunday" ]]; then
   echo "▶ feedback $week"
   if [ "$(bun jobs/feedback.ts count "$week")" = 0 ]; then bun jobs/feedback.ts empty "$week"; else
   bun jobs/feedback.ts emit "$week" > "$out/feedback.json"
@@ -102,3 +106,5 @@ if [[ "$(date +%F)" > "$sunday" ]]; then
     --json-schema "$(cat schemas/feedback.json)" < "$out/feedback.json" > "$out/feedback.run.json"
   bun jobs/feedback.ts save "$week" "$out/feedback.run.json"; fi
 fi
+
+exit "$ingest"
