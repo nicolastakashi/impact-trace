@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "qa": "bun qa/build.ts && bun qa/fixture.ts && playwright test -c qa",
+    "qa": "eslint . && bun qa/build.ts && bun qa/fixture.ts && playwright test -c qa",
     "fmt": "prettier --write \"{app,core,jobs,web,qa}/**/*.{ts,tsx}\""
   },
   "devDependencies": {
