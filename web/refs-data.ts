@@ -1,11 +1,13 @@
 // The sources behind each mode and idea: References lists them, the thread sheet quotes one.
 // Quotes checked on 2026-10-18. `warn` marks a secondary source.
-export type Ref = { q?: string; says?: string; who: string; url: string; warn?: string };
-export const REFS: Record<string, { title: string; d: string; ex: string[]; items: Ref[] }> = {
+// `q` is the quote; the thread sheet reads it too.
+export type Reference = { q?: string; says?: string; who: string; url: string; warn?: string };
+export type Topic = { title: string; description: string; examples: string[]; items: Reference[] };
+export const REFS: Record<string, Topic> = {
   clarify: {
     title: "Clarify",
-    d: "Made a fuzzy problem clear.",
-    ex: ["Proposals", "Decision docs", "Framing", "Scoping"],
+    description: "Made a fuzzy problem clear.",
+    examples: ["Proposals", "Decision docs", "Framing", "Scoping"],
     items: [
       {
         q: "The highest-leverage work I do is to provide technical clarity to the organization",
@@ -26,8 +28,8 @@ export const REFS: Record<string, { title: string; d: string; ex: string[]; item
   },
   prevent: {
     title: "Prevent the wrong build",
-    d: "Stopped a bad outcome before it happened.",
-    ex: ["A risk caught in review", "A guard", 'A "let\'s not build this"'],
+    description: "Stopped a bad outcome before it happened.",
+    examples: ["A risk caught in review", "A guard", 'A "let\'s not build this"'],
     items: [
       {
         q: "Often the most impactful things I do is convince someone not to write a new thing.",
@@ -43,8 +45,8 @@ export const REFS: Record<string, { title: string; d: string; ex: string[]; item
   },
   solve: {
     title: "Solve what has no owner",
-    d: "Fixed a live problem.",
-    ex: ["An incident", "A bug", "An unblock"],
+    description: "Fixed a live problem.",
+    examples: ["An incident", "A bug", "An unblock"],
     items: [
       {
         q: "The Solver digs deep into arbitrarily complex problems and finds an appropriate path forward.",
@@ -60,8 +62,8 @@ export const REFS: Record<string, { title: string; d: string; ex: string[]; item
   },
   build: {
     title: "Build at company scope",
-    d: "Shipped product or platform work.",
-    ex: ["Features", "Platform", "Migrations"],
+    description: "Shipped product or platform work.",
+    examples: ["Features", "Platform", "Migrations"],
     items: [
       {
         q: "I own and deliver org/company-wide multi-year, multi-team goals",
@@ -83,8 +85,8 @@ export const REFS: Record<string, { title: string; d: string; ex: string[]; item
   },
   elevate: {
     title: "Elevate people",
-    d: "Made other people better.",
-    ex: ["Teaching reviews", "Mentoring", "Pairing", "Recognition"],
+    description: "Made other people better.",
+    examples: ["Teaching reviews", "Mentoring", "Pairing", "Recognition"],
     items: [
       {
         q: "To sponsor someone is to feel on the hook to help get someone promoted.",
@@ -105,8 +107,8 @@ export const REFS: Record<string, { title: string; d: string; ex: string[]; item
   },
   external: {
     title: "Industry presence",
-    d: "Work outside the company.",
-    ex: ["Open source upstream", "Talks", "Community"],
+    description: "Work outside the company.",
+    examples: ["Open source upstream", "Talks", "Community"],
     items: [
       {
         q: "She is an approver for the OpenTelemetry Go SIG, wrote vendor exporters for Go and Python",
@@ -127,8 +129,9 @@ export const REFS: Record<string, { title: string; d: string; ex: string[]; item
   },
   glue: {
     title: "Glue work",
-    d: "The work that holds a project together and rarely shows in a PR. Count it, but not only it.",
-    ex: ["Onboarding", "Coordination", "Docs", "Unblocking"],
+    description:
+      "The work that holds a project together and rarely shows in a PR. Count it, but not only it.",
+    examples: ["Onboarding", "Coordination", "Docs", "Unblocking"],
     items: [
       {
         q: "Glue work is the difference between a project that succeeds and one that fails.",
@@ -149,8 +152,9 @@ export const REFS: Record<string, { title: string; d: string; ex: string[]; item
   },
   counterfactual: {
     title: "Without you, would it have happened?",
-    d: "The question you answer for each thread in review: would this have happened without you?",
-    ex: ["Wouldn't happen", "Slower", "Same"],
+    description:
+      "The question you answer for each thread in review: would this have happened without you?",
+    examples: ["Wouldn't happen", "Slower", "Same"],
     items: [
       {
         q: "things that simply won't happen if you don't do them are your biggest opportunity to work on something that matters",
@@ -166,8 +170,8 @@ export const REFS: Record<string, { title: string; d: string; ex: string[]; item
   },
   scope: {
     title: "Scope",
-    d: "Scope grows with level: your team, then several teams, then a company goal.",
-    ex: ["Your team", "Across teams", "Company goal"],
+    description: "Scope grows with level: your team, then several teams, then a company goal.",
+    examples: ["Your team", "Across teams", "Company goal"],
     items: [
       {
         q: "While a senior engineer typically works across a team, a Staff or Principal engineer usually works across a larger organization.",
@@ -188,8 +192,9 @@ export const REFS: Record<string, { title: string; d: string; ex: string[]; item
   },
   tracking: {
     title: "Track the work",
-    d: "Write the work down while it happens, so your manager can advocate for you. This app is that log.",
-    ex: ["Brag doc", "Work log"],
+    description:
+      "Write the work down while it happens, so your manager can advocate for you. This app is that log.",
+    examples: ["Brag doc", "Work log"],
     items: [
       {
         q: "So if your manager is going to effectively advocate for you, they need help.",
