@@ -1,7 +1,7 @@
 // The database and what every API area reads from it: weeks, one thread, its labels, goal links.
-import { open } from "../ingest/ingest";
-import { labelsOf, reviewThreads } from "../ingest/review";
-import { links } from "../ingest/goals";
+import { open } from "../core/db";
+import { labelsOf, reviewThreads } from "../core/threads";
+import { links } from "../core/goals";
 
 // Collection writes from the host. Over Docker's file share an open connection can keep reading
 // old pages, so the server reopens it on each request. A live binding: importers see the new one.

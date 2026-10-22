@@ -8,7 +8,8 @@ COPY --chown=bun package.json bun.lock tsconfig.json bunfig.toml ./
 RUN bun install --frozen-lockfile --production
 COPY --chown=bun app app
 COPY --chown=bun web web
-COPY --chown=bun ingest ingest
+COPY --chown=bun core core
+COPY --chown=bun jobs jobs
 COPY --chown=bun db db
 ENV HOST=0.0.0.0 COLLECT_ON_HOST=1
 EXPOSE 4317

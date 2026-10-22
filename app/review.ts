@@ -1,7 +1,7 @@
 // Review: your decisions on Claude's labels, the gold set.
-import { labelsOf, reviewThreads } from "../ingest/review";
-import { direct, viaProject } from "../ingest/goals";
-import { LIVE } from "../ingest/ingest";
+import { labelsOf, reviewThreads } from "../core/threads";
+import { direct, viaProject } from "../core/goals";
+import { LIVE } from "../core/threads";
 import { db, goalLinks, labeled, thread } from "./data";
 
 const FIELDS = { title: null, summary: null, mode: ["clarify", "prevent", "solve", "build", "elevate", "external"], pillar: ["big", "exec", "level"], without_me: ["wouldnt", "slower", "same"], discard: ["yes", "no"] } as Record<string, string[] | null>;

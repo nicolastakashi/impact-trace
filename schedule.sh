@@ -40,7 +40,7 @@ PLIST
     # collect this week so far. A failed week does not stop the others; tomorrow retries it.
     mkdir -p data/logs; log="data/logs/$(date +%F).log"; failed=0
     # A failure here must not read as "nothing pending".
-    pending=$(bun ingest/feedback.ts pending) || { echo "✗ could not read pending weeks" >> "$log"; exit 1; }
+    pending=$(bun jobs/feedback.ts pending) || { echo "✗ could not read pending weeks" >> "$log"; exit 1; }
     for monday in $pending; do
       echo "━━ close week of $monday" >> "$log"
       ./run.sh "$monday" >> "$log" 2>&1 || { echo "✗ week of $monday failed, retried next run" >> "$log"; failed=1; }

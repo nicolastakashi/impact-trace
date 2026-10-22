@@ -1,11 +1,11 @@
 // Claude sorts the Slack mentions of you: praise, a request, information, or a bot.
-// Usage: bun ingest/mentions.ts emit 2026-W42 | claude -p "/classify-mentions 2026-W42" ...
-//        bun ingest/mentions.ts save 2026-W42 data/raw/2026-W42/mentions.run.json
+// Usage: bun jobs/mentions.ts emit 2026-W42 | claude -p "/classify-mentions 2026-W42" ...
+//        bun jobs/mentions.ts save 2026-W42 data/raw/2026-W42/mentions.run.json
 import type { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { open, plain, ROOT } from "./ingest";
+import { open, plain, ROOT } from "../core/db";
 
 // Whitespace and case aside, so a quote that drops a line break still matches.
 const norm = (t: string) => t.replace(/\s+/g, " ").trim().toLowerCase();
@@ -53,5 +53,5 @@ if (import.meta.main) {
   else if (cmd === "save") {
     const version = createHash("sha256").update(readFileSync(join(ROOT, ".claude/skills/classify-mentions/SKILL.md"))).digest("hex").slice(0, 8);
     console.log(saveMentions(db, week, JSON.parse(readFileSync(file, "utf8")), version));
-  } else throw new Error("usage: bun ingest/mentions.ts emit|save <week> [file]");
+  } else throw new Error("usage: bun jobs/mentions.ts emit|save <week> [file]");
 }

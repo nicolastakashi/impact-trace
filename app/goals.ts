@@ -1,8 +1,9 @@
 // Goals. A thread serves a goal through a project you linked, or because you linked the thread.
-import { labelsOf, reviewThreads } from "../ingest/review";
-import { current, known, METRICS, progress } from "../ingest/metrics";
-import { direct, goalsOf } from "../ingest/goals";
-import { isoWeek, LIVE } from "../ingest/ingest";
+import { labelsOf, reviewThreads } from "../core/threads";
+import { current, known, METRICS, progress } from "../core/metrics";
+import { direct, goalsOf } from "../core/goals";
+import { isoWeek } from "../core/db";
+import { LIVE } from "../core/threads";
 import { db, discard, goalLinks, labeled, pick, thread } from "./data";
 
 const QUARTER = /^\d{4}-Q[1-4]$/;
@@ -28,7 +29,7 @@ export function goalList() {
   // What a key result can measure: the app's metrics, and milestones of the projects a goal serves.
   const milestones = db.query(`SELECT m.id, m.name, m.progress, p.name project FROM milestones m JOIN projects p ON p.id = m.project_id WHERE p.id IN (SELECT id FROM projects WHERE ${LIVE}) ORDER BY p.name, m.name`).all();
   return { week: isoWeek(new Date().toISOString()), metrics: Object.entries(METRICS).map(([key, m]) => ({ key, label: m.label, unit: m.unit, better: m.better, agg: m.agg })), milestones,
-    // Claude's drafts wait here until you use or dismiss them. A metric start is code's (ingest/drafts.ts).
+    // Claude's drafts wait here until you use or dismiss them. A metric start is code's (jobs/drafts.ts).
     drafts: (db.query("SELECT id, title, kind, type, quarter, why, based_on, krs FROM goal_drafts ORDER BY id").all() as any[])
       .map((r) => ({ ...r, based_on: JSON.parse(r.based_on), krs: JSON.parse(r.krs) })),
     weeks, goals: [...gs.values()], projects: (db.query(`SELECT id, name, kind FROM projects WHERE ${LIVE} ORDER BY name`).all() as any[]).map((p) => ({ ...p, threads: busy.get(p.id) ?? 0 })) };

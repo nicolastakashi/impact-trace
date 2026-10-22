@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { CONFIG } from "../ingest/ingest";
+import { CONFIG } from "../core/db";
 
 // Setup: who you are, so the collectors search for you. ?guess=1 fills the form from the CLIs you already use.
 const sh = (...cmd: string[]) => { try { const p = Bun.spawnSync(cmd, { stderr: "ignore" }); return p.success ? p.stdout.toString().trim() : ""; } catch { return ""; } };

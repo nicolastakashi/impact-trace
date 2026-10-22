@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
-import { migrate } from "./ingest";
+import { migrate } from "../core/db";
 import { correct, mentions, saveMentions } from "./mentions";
 
 test("praise is kept only with its words in the message", () => {

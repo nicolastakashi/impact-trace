@@ -38,4 +38,4 @@ expect. A drop in confidence while progress looks fine is the thing to talk abou
 An aspirational goal at 0.7 went well; a committed one below 1.0 needs a reason. The score
 is for you to learn from: never put it in a performance review.
 
-Code: `ingest/drafts.ts`, `.claude/skills/draft-goals/SKILL.md`, `draft-goals.sh`.
+Code: `jobs/drafts.ts`, `.claude/skills/draft-goals/SKILL.md`, `draft-goals.sh`.

@@ -1,6 +1,6 @@
 // Projects: Linear's and your topics, what you merged or deleted, and each one's threads.
-import { labelsOf, reviewThreads } from "../ingest/review";
-import { LIVE, PLACED } from "../ingest/ingest";
+import { labelsOf, reviewThreads } from "../core/threads";
+import { LIVE, PLACED } from "../core/threads";
 import { db, discard, labeled, pick, thread } from "./data";
 
 export function projects(weeks: string[]) {

@@ -1,7 +1,7 @@
 // Serve the app and its data. Usage: bun app/server.ts  →  http://localhost:4317
 // The routes only: each API area is its own file in app/.
-import { CATEGORIES } from "../ingest/feedback";
-import { correct } from "../ingest/mentions";
+import { CATEGORIES } from "../jobs/feedback";
+import { correct } from "../jobs/mentions";
 import { db, reopen, WEEK } from "./data";
 import { decide, pending, review, unassign } from "./review";
 import { del, group, groups, merge, project, projects, restore, unmerge } from "./projects";
@@ -30,7 +30,7 @@ const GET: Record<string, (q: URLSearchParams) => Response> = {
     const week = q.get("week") ?? left?.[0] ?? (db.query("SELECT max(week) w FROM labels").get() as any).w;
     return WEEK.test(week ?? "") ? Response.json(review(week)) : Response.json({ week: null, weeks: [], threads: [] });
   },
-  // Same data as North, as JSON, for ingest/facts.ts. No sample: facts are only ever yours.
+  // Same data as North, as JSON, for jobs/facts.ts. No sample: facts are only ever yours.
   "/api/facts": () => { const d = north(); return d ? Response.json({ ...d, OBJECTIVES: goalList().goals }) : new Response("No kept threads yet", { status: 404 }); },
   // North, Trace, Feedback and Search: your kept threads, or the sample with SAMPLE: true.
   // The feedback categories and their sources come with the data, the example too.

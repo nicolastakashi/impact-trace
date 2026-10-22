@@ -21,4 +21,4 @@ launchd runs `./schedule.sh run` on weekdays at 18:00. Install with `./schedule.
 
 Logs: `data/logs/`. Cost: about $0.67 a weekday, plus $0.66 for feedback once a week.
 
-Code: `schedule.sh`, `run.sh`, `ingest/feedback.ts` (`pending`).
+Code: `schedule.sh`, `run.sh`, `jobs/feedback.ts` (`pending`).

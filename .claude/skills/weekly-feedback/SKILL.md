@@ -11,7 +11,7 @@ null, and `verdicts`, what the engineer accepted or rejected in earlier feedback
 reason when they gave one.
 
 Coach them on how they show up at `level`, not on how much they did. Use only `categories`:
-each one has a source behind it in `ingest/feedback-categories.json`. A `pattern` category
+each one has a source behind it in `jobs/feedback-categories.json`. A `pattern` category
 weakens their authority, a `strength` category builds it. `look_for` says what it looks like
 in a message; `not` says what does not count. Code drops anything with another `category`.
 

@@ -31,4 +31,4 @@ or delete projects on the Projects page.
 
 **Check:** `evals/check-threads.sh` asks Claude how many threads mix unrelated work.
 
-Code: `ingest/ingest.ts` (threads), `ingest/assign.ts`. Next: [review](review.md).
+Code: `core/threads.ts`, `jobs/assign.ts`. Next: [review](review.md).

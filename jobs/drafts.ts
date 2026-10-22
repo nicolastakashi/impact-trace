@@ -1,12 +1,12 @@
 // Objectives Claude drafts from your data. Claude picks what to aim for; code checks each draft
 // and sets every start it can measure, so a draft never invents where you are today.
-// Usage: bun ingest/drafts.ts emit > in.json   |   bun ingest/drafts.ts save run.json
+// Usage: bun jobs/drafts.ts emit > in.json   |   bun jobs/drafts.ts save run.json
 import type { Database } from "bun:sqlite";
 import { createHash } from "crypto";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { CONFIG, isoWeek, open, ROOT } from "./ingest";
-import { current, known, METRICS, quarterAll } from "./metrics";
+import { CONFIG, isoWeek, open, ROOT } from "../core/db";
+import { current, known, METRICS, quarterAll } from "../core/metrics";
 
 export const quarterOf = (d: Date) => `${d.getUTCFullYear()}-Q${Math.floor(d.getUTCMonth() / 3) + 1}`;
 const lastQuarter = (q: string) => { const [y, n] = q.split("-Q").map(Number); return n > 1 ? `${y}-Q${n - 1}` : `${y - 1}-Q4`; };
@@ -79,5 +79,5 @@ if (import.meta.main) {
   } else if (cmd === "save") {
     const version = createHash("sha256").update(readFileSync(join(ROOT, ".claude/skills/draft-goals/SKILL.md"))).digest("hex").slice(0, 8);
     console.log(saveDrafts(db, JSON.parse(readFileSync(file, "utf8")), JSON.parse(readFileSync(inFile, "utf8")), version));
-  } else throw new Error("usage: bun ingest/drafts.ts emit | save <run.json> <in.json>");
+  } else throw new Error("usage: bun jobs/drafts.ts emit | save <run.json> <in.json>");
 }

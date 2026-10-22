@@ -4,9 +4,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 out="data/raw/drafts"; mkdir -p "$out"
-bun ingest/drafts.ts emit > "$out/in.json"
+bun jobs/drafts.ts emit > "$out/in.json"
 # Judgment, like labels: only the input, no collectors.
 claude -p "/draft-goals" --model sonnet --output-format json \
   --json-schema "$(cat schemas/drafts.json)" < "$out/in.json" > "$out/run.json"
-bun ingest/drafts.ts save "$out/run.json" "$out/in.json"
+bun jobs/drafts.ts save "$out/run.json" "$out/in.json"
 echo "Open http://127.0.0.1:4317/#/goals"

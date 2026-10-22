@@ -69,36 +69,36 @@ gh search prs --reviewed-by "$login" --updated ">=$monday" --limit 1000 \
   jq -s "[add[]|select(.author.login!=\"$login\")|.url]|unique|length" > "$out/requests.expected"
 gh api --paginate user/teams --jq '.[]|"team:\(.organization.login)/\(.slug)"' > "$out/teams.txt"
 
-bun ingest/ingest.ts "$week"
+bun jobs/ingest.ts "$week"
 
 # Place threads Linear does not put in a project, before labels, so labels see whole threads.
 echo "▶ projects $week"
-bun ingest/assign.ts emit "$week" > "$out/unplaced.json"
+bun jobs/assign.ts emit "$week" > "$out/unplaced.json"
 claude -p "/assign-projects $week" --model sonnet --output-format json \
   --json-schema "$(cat schemas/assign.json)" < "$out/unplaced.json" > "$out/assign.run.json"
-bun ingest/assign.ts save "$week" "$out/assign.run.json"
+bun jobs/assign.ts save "$week" "$out/assign.run.json"
 
 # Labels are judgment, not lifting: a stronger model, no tools, only the threads as input.
 echo "▶ labels $week"
-bun ingest/review.ts emit "$week" > "$out/threads.json"
+bun jobs/review.ts emit "$week" > "$out/threads.json"
 claude -p "/suggest-labels $week" --model sonnet --output-format json \
   --json-schema "$(cat schemas/labels.json)" < "$out/threads.json" > "$out/labels.run.json"
-bun ingest/review.ts save "$week" "$out/labels.run.json"
+bun jobs/review.ts save "$week" "$out/labels.run.json"
 
 # Praise, asks and bots among the mentions of you: North shows praise and who comes to you.
 echo "▶ mentions $week"
-bun ingest/mentions.ts emit "$week" > "$out/mentions.json"
+bun jobs/mentions.ts emit "$week" > "$out/mentions.json"
 claude -p "/classify-mentions $week" --model sonnet --output-format json \
   --json-schema "$(cat schemas/mentions.json)" < "$out/mentions.json" > "$out/mentions.run.json"
-bun ingest/mentions.ts save "$week" "$out/mentions.run.json"
+bun jobs/mentions.ts save "$week" "$out/mentions.run.json"
 
 # Feedback on how you show up, from your own messages: Claude quotes, the code checks quotes and counts.
 # Once per week, after it ends: the weekday runs would pay for feedback on half a week.
 if [[ "$(date +%F)" > "$sunday" ]]; then
   echo "▶ feedback $week"
-  if [ "$(bun ingest/feedback.ts count "$week")" = 0 ]; then bun ingest/feedback.ts empty "$week"; else
-  bun ingest/feedback.ts emit "$week" > "$out/feedback.json"
+  if [ "$(bun jobs/feedback.ts count "$week")" = 0 ]; then bun jobs/feedback.ts empty "$week"; else
+  bun jobs/feedback.ts emit "$week" > "$out/feedback.json"
   claude -p "/weekly-feedback $week" --model sonnet --output-format json \
     --json-schema "$(cat schemas/feedback.json)" < "$out/feedback.json" > "$out/feedback.run.json"
-  bun ingest/feedback.ts save "$week" "$out/feedback.run.json"; fi
+  bun jobs/feedback.ts save "$week" "$out/feedback.run.json"; fi
 fi

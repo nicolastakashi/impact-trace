@@ -5,7 +5,7 @@ North shows.
 
 ```
 ╭──────────────╮     ╭─────────────────────╮     ╭───────────────╮
-│ 💬 question   │ ━━▶ │ 📦 bun ingest/facts.ts │ ━━▶ │ 🗣️ answer + links │
+│ 💬 question   │ ━━▶ │ 📦 bun jobs/facts.ts │ ━━▶ │ 🗣️ answer + links │
 ╰──────────────╯     │  code counts, JSON      │     ╰───────────────╯
                      ╰─────────────────────╯
 ```
@@ -39,6 +39,6 @@ North shows.
 1. Weekdays at 18:00 the [schedule](schedule.md) collects and suggests labels.
 2. You keep or drop threads in [review](review.md). Only kept threads count.
 3. North shows the week. Something stands out: ask about it here.
-4. A missing number: add it to `ingest/facts.ts` with a test, so the next session has it.
+4. A missing number: add it to `jobs/facts.ts` with a test, so the next session has it.
 
-Code: `ingest/facts.ts`, `/api/facts` in `app/server.ts`, `.claude/skills/ask-impact`.
+Code: `jobs/facts.ts`, `/api/facts` in `app/server.ts`, `.claude/skills/ask-impact`.

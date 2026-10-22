@@ -1,71 +1,15 @@
 // Ingest one week of collector output from data/raw/<week>/ into SQLite.
-// Usage: bun ingest/ingest.ts 2026-W42
+// Usage: bun jobs/ingest.ts 2026-W42
 import { Database } from "bun:sqlite";
-import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { config, type Config, DATA, dayOf, isCurrentWeek, isoWeek, open } from "../core/db";
 
-export const ROOT = join(import.meta.dir, "..");
-// Your data. IMPACT_DATA points a second copy (QA, screenshots) at its own folder.
-export const DATA = process.env.IMPACT_DATA ?? join(ROOT, "data");
-export const CONFIG = join(DATA, "config.json");
-
-// Who you are, from the setup page. Git-ignored, like the rest of data/.
-export type Config = { name: string; github: string; orgs: string[]; level: string };
-export function config(): Config {
-  if (!existsSync(CONFIG)) throw new Error("No data/config.json yet: run bun app/server.ts and open http://127.0.0.1:4317/#/setup");
-  return JSON.parse(readFileSync(CONFIG, "utf8"));
-}
 type Status = "ok" | "count_mismatch" | "error";
 // Rows per Slack search page; the collect-slack skill asks for `limit: 20`.
 const SLACK_PAGE = 20;
-
-export function open(path = join(DATA, "impact.db")) {
-  // A fresh clone has no data/ yet.
-  if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
-  const db = new Database(path, { create: true, strict: true });
-  db.exec("PRAGMA foreign_keys = ON");
-  migrate(db);
-  return db;
-}
-
-export function migrate(db: Database) {
-  const dir = join(ROOT, "db/migrations");
-  const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
-  const { user_version } = db.query("PRAGMA user_version").get() as { user_version: number };
-  files.slice(user_version).forEach((f, i) =>
-    db.transaction(() => {
-      db.exec(readFileSync(join(dir, f), "utf8"));
-      db.exec(`PRAGMA user_version = ${user_version + i + 1}`);
-    })(),
-  );
-}
-
-// Slack markup to what a person reads: <@U1|Ana> → @Ana, <url|label> → label, bare links dropped.
-export const plain = (t: string) => t.replace(/<@[A-Z0-9]+\|([^>]+)>/g, "@$1").replace(/<@[A-Z0-9]+>/g, "@someone").replace(/<#[A-Z0-9]+\|([^>]*)>/g, "#$1")
-  .replace(/<(?:https?|mailto):[^|>]+\|([^>]+)>/g, "$1").replace(/<(?:https?|mailto):[^>]+>/g, "").replace(/\s+/g, " ").trim();
-
-// Midnight UTC of a day in an ISO week: 0 is Monday.
-export function dayOf(week: string, i: number) {
-  const [y, w] = week.split("-W").map(Number), jan4 = Date.UTC(y, 0, 4);
-  return jan4 - ((new Date(jan4).getUTCDay() + 6) % 7) * 864e5 + ((w - 1) * 7 + i) * 864e5;
-}
-
-// ponytail: week of the UTC date; a Sunday-night Berlin timestamp lands in the next week.
-export function isoWeek(iso: string) {
-  const d = new Date(iso.slice(0, 10) + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + 3 - ((d.getUTCDay() + 6) % 7)); // Thursday of that week
-  const jan1 = Date.UTC(d.getUTCFullYear(), 0, 1);
-  const w = 1 + Math.floor((d.getTime() - jan1) / 864e5 / 7);
-  return `${d.getUTCFullYear()}-W${String(w).padStart(2, "0")}`;
-}
-
 const completedIn = (i: any, week: string) => i.status_type === "completed" && !!i.completed_at && isoWeek(i.completed_at) === week;
 const OPEN = new Set(["started", "unstarted", "backlog", "triage"]);
-
-// The open state Linear returns is today's, so it only describes the current week.
-export function isCurrentWeek(week: string, today = new Date()) {
-  return isoWeek(today.toISOString()) <= week;
-}
 
 // One id per PR, issue or doc, whichever source mentions it. Anything else stays a URL.
 export function refOf(url: string) {
@@ -300,20 +244,6 @@ function ingestGithub(db: Database, out: any, week: string, runId: string, event
   }
 }
 
-// An event's group, strongest first: yours; Linear's project; a dedicated #internal-* channel
-// as a topic; Claude's placement, unless you undid it (your row with no group).
-export const PLACED = `coalesce(
-  (SELECT a.project_id FROM assignments a WHERE a.event_id = events.id AND a.source = 'human'),
-  events.project_id,
-  CASE WHEN events.source = 'slack' AND events.title LIKE '#internal-%' THEN 'topic:' || substr(events.title, 2) END,
-  (SELECT a.project_id FROM assignments a WHERE a.event_id = events.id AND a.source = 'claude'
-     AND NOT EXISTS (SELECT 1 FROM assignments h WHERE h.event_id = events.id AND h.source = 'human')))`;
-// A merged project counts as the one you merged it into; a deleted one counts as no project.
-export const PROJECT = `CASE WHEN ${PLACED} IN (SELECT id FROM project_deletions) THEN NULL
-  ELSE coalesce((SELECT m.into_id FROM project_merges m WHERE m.from_id = ${PLACED}), ${PLACED}) END`;
-// Projects you can still pick: not merged into another, not deleted.
-export const LIVE = "id NOT IN (SELECT from_id FROM project_merges) AND id NOT IN (SELECT id FROM project_deletions)";
-
 // "#internal-acme" → topic "Acme".
 export function channelTopic(db: Database, channel: string) {
   if (!channel.startsWith("#internal-")) return;
@@ -322,72 +252,9 @@ export function channelTopic(db: Database, channel: string) {
     .run(`topic:${channel.slice(1)}`, name, new Date().toISOString());
 }
 
-// Work threads. Strong links join events: a PR and its issues, a review and its PR, a doc and
-// itself. Then threads with the same main Linear project merge (yours or Claude's placement
-// counts for events Linear leaves out); only the main project counts, so one PR that cites
-// two projects cannot merge both. Slack messages and meetings are weak: they attach to the one
-// thread they cite most, and never join two threads, because one "PTAL #1 #2 #3" would.
-// Raw URLs do not join.
-const WEAK = new Set(["slack", "calendar"]);
-export function threads(db: Database, weeks: string[]) {
-  const parent = new Map<string, string>();
-  const find = (x: string): string => {
-    const p = parent.get(x) ?? x;
-    if (p === x) return x;
-    const r = find(p);
-    parent.set(x, r);
-    return r;
-  };
-  const marks = weeks.map(() => "?").join(",");
-  const events = db.query(`SELECT id, source, ${PROJECT} p FROM events WHERE week IN (${marks})`).all(...weeks) as any[];
-  const links = db.query(`SELECT from_id, to_ref FROM links JOIN events ON events.id = from_id
-    WHERE week IN (${marks}) AND (to_ref LIKE 'github:%' OR to_ref LIKE 'linear:%' OR to_ref LIKE 'gdoc:%')`).all(...weeks) as any[];
-  const weak = new Set(events.filter((e) => WEAK.has(e.source)).map((e) => e.id));
-  for (const l of links) if (!weak.has(l.from_id)) parent.set(find(l.from_id), find(l.to_ref));
-
-  const groups = new Map<string, string[]>();
-  for (const e of events) if (!weak.has(e.id)) groups.set(find(e.id), [...(groups.get(find(e.id)) ?? []), e.id]);
-  const project = new Map(events.filter((e) => e.p).map((e) => [e.id, e.p as string]));
-  // An open issue lives in the latest week that saw it, so a PR can cite an issue that has
-  // moved on to a later week. Its project still places the PR: W43 took three W42 PRs out of their thread.
-  const inWeek = new Set(events.map((e) => e.id)), placed = db.query(`SELECT ${PROJECT} p FROM events WHERE id = ?`);
-  const away = new Map<string, string[]>(); // group root → projects of issues cited from other weeks
-  for (const l of links) {
-    if (weak.has(l.from_id) || !l.to_ref.startsWith("linear:") || inWeek.has(l.to_ref)) continue;
-    const p = (placed.get(l.to_ref) as any)?.p;
-    if (p) away.set(find(l.from_id), [...(away.get(find(l.from_id)) ?? []), p]);
-  }
-  const out: string[][] = [];
-  const byProject = new Map<string, string[]>();
-  const home = new Map<string, string[]>(); // group root → its thread
-  for (const [root, ids] of groups) {
-    const n = new Map<string, number>();
-    for (const p of [...ids.filter((id) => project.has(id)).map((id) => project.get(id)!), ...(away.get(root) ?? [])]) n.set(p, (n.get(p) ?? 0) + 1);
-    // Most issues wins; a tie goes to the smaller id so the result does not depend on order.
-    const main = [...n].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0];
-    let t: string[];
-    if (main) { if (!byProject.has(main)) byProject.set(main, []); t = byProject.get(main)!; t.push(...ids); }
-    else { t = [...ids]; out.push(t); }
-    home.set(root, t);
-  }
-
-  const cites = new Map<string, string[]>();
-  for (const l of links) if (weak.has(l.from_id)) cites.set(l.from_id, [...(cites.get(l.from_id) ?? []), l.to_ref]);
-  for (const id of weak) {
-    const hit = new Map<string[], number>();
-    for (const r of cites.get(id) ?? []) { const t = home.get(find(r)); if (t) hit.set(t, (hit.get(t) ?? 0) + 1); }
-    // Most cited wins; a tie goes to the bigger thread.
-    const best = [...hit].sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0]?.[0];
-    if (best) best.push(id);
-    else if (project.has(id)) { if (!byProject.has(project.get(id)!)) byProject.set(project.get(id)!, []); byProject.get(project.get(id)!)!.push(id); }
-    else out.push([id]);
-  }
-  return [...out, ...byProject.values()].sort((a, b) => b.length - a.length);
-}
-
 if (import.meta.main) {
   const week = process.argv[2];
-  check(/^\d{4}-W\d{2}$/.test(week ?? ""), "usage: bun ingest/ingest.ts 2026-W42");
+  check(/^\d{4}-W\d{2}$/.test(week ?? ""), "usage: bun jobs/ingest.ts 2026-W42");
   const res = ingestWeek(open(), join(DATA, "raw", week), week);
   for (const [s, st] of Object.entries(res)) console.log(`${st === "ok" ? "✓" : "✗"} ${s} ${week}: ${st}`);
   if (Object.values(res).some((s) => s !== "ok")) process.exit(2);

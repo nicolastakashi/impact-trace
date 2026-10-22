@@ -6,11 +6,13 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ingestWeek, isoWeek, open } from "../ingest/ingest";
-import { saveDrafts } from "../ingest/drafts";
-import { reviewThreads, saveSuggestions } from "../ingest/review";
-import { saveMentions } from "../ingest/mentions";
-import { verify } from "../ingest/feedback";
+import { ingestWeek } from "../jobs/ingest";
+import { isoWeek, open } from "../core/db";
+import { saveDrafts } from "../jobs/drafts";
+import { reviewThreads } from "../core/threads";
+import { saveSuggestions } from "../jobs/review";
+import { saveMentions } from "../jobs/mentions";
+import { verify } from "../jobs/feedback";
 
 export const OUT = join(import.meta.dir, ".data");
 export const ME = { name: "Riley Chen", github: "rchen", orgs: ["acme"], level: "Senior Engineer" };

@@ -1,13 +1,13 @@
 // Feedback on how you show up, from your own Slack messages. Claude finds patterns and quotes them;
 // this file keeps only quotes it finds in your messages and makes every count itself.
-// Usage: bun ingest/feedback.ts emit 2026-W42 | claude -p "/weekly-feedback 2026-W42" ...
-//        bun ingest/feedback.ts save 2026-W42 data/raw/2026-W42/feedback.run.json
+// Usage: bun jobs/feedback.ts emit 2026-W42 | claude -p "/weekly-feedback 2026-W42" ...
+//        bun jobs/feedback.ts save 2026-W42 data/raw/2026-W42/feedback.run.json
 import type { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { config, open, ROOT } from "./ingest";
-import { reviewThreads } from "./review";
+import { config, open, ROOT } from "../core/db";
+import { reviewThreads } from "../core/threads";
 
 // What Claude may flag, and who says it matters. Claude picks from this list; code drops anything else.
 export const CATEGORIES: { id: string; kind: "pattern" | "strength"; name: string; look_for: string; not?: string; refs: any[] }[] =
@@ -124,5 +124,5 @@ if (import.meta.main) {
       prompt_version = excluded.prompt_version, cost_usd = excluded.cost_usd, at = excluded.at`)
       .run(week, JSON.stringify(v), Object.keys(run.modelUsage ?? {})[0] ?? null, version, run.total_cost_usd ?? null, new Date().toISOString());
     console.log({ patterns: v.patterns.length, quotes_dropped: v.dropped, experiment: !!v.experiment?.trend });
-  } else throw new Error("usage: bun ingest/feedback.ts emit|save|count|empty <week> [file] | pending");
+  } else throw new Error("usage: bun jobs/feedback.ts emit|save|count|empty <week> [file] | pending");
 }

@@ -23,4 +23,4 @@ Claude suggests labels for each thread. You decide. Only threads you keep reach 
 
 Labels run on Sonnet with no tools: only the threads as input.
 
-Code: `ingest/review.ts`, `.claude/skills/suggest-labels`. Next: [views](views.md).
+Code: `jobs/review.ts`, `.claude/skills/suggest-labels`. Next: [views](views.md).

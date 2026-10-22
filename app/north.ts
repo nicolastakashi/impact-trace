@@ -1,7 +1,7 @@
 // North, Trace, Feedback and Search read one object, built here from the threads you kept.
-import { labelsOf, reviewThreads } from "../ingest/review";
-import { goalsOf } from "../ingest/goals";
-import { plain } from "../ingest/ingest";
+import { labelsOf, reviewThreads } from "../core/threads";
+import { goalsOf } from "../core/goals";
+import { plain } from "../core/db";
 import { db, discard, goalLinks, labeled, pick } from "./data";
 import { projects } from "./projects";
 
