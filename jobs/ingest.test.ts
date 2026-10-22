@@ -94,7 +94,7 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
   );
   writeFileSync(join(directory, "github.expected"), "2\n");
   // Reviews by when you submitted them: two on one PR count once, other weeks and your own PRs do not count.
-  const rv = (number: number, submitted_at: string | null, author = "blair") => ({
+  const review = (number: number, submitted_at: string | null, author = "blair") => ({
     repo: "acme/api",
     number,
     author,
@@ -107,12 +107,12 @@ test("ingest resolves links, is idempotent and flags dropped rows", () => {
       from: "2026-10-05",
       prs_read: 4,
       reviews: [
-        rv(7, "2026-10-13T09:00:00Z"),
-        rv(7, "2026-10-14T09:00:00Z"),
-        rv(8, "2026-10-16T09:00:00Z"),
-        rv(9, "2026-10-08T09:00:00Z"),
-        rv(10, null),
-        rv(11, "2026-10-13T09:00:00Z", "rchen"),
+        review(7, "2026-10-13T09:00:00Z"),
+        review(7, "2026-10-14T09:00:00Z"),
+        review(8, "2026-10-16T09:00:00Z"),
+        review(9, "2026-10-08T09:00:00Z"),
+        review(10, null),
+        review(11, "2026-10-13T09:00:00Z", "rchen"),
       ],
     }),
   );
@@ -437,7 +437,7 @@ test("reviews given count people's PRs you reviewed in the week, not PRs updated
   const directory = mkdtempSync(join(tmpdir(), "rv-"));
   const db = new Database(":memory:", { strict: true });
   migrate(db);
-  const rv = (number: number, submitted_at: string, author = "blair") => ({
+  const review = (number: number, submitted_at: string, author = "blair") => ({
     repo: "acme/api",
     number,
     author,
@@ -452,11 +452,11 @@ test("reviews given count people's PRs you reviewed in the week, not PRs updated
         from: "2026-10-05",
         prs_read: 3,
         reviews: [
-          rv(7, "2026-10-13T09:00:00Z"),
-          rv(7, "2026-10-14T09:00:00Z"),
-          rv(8, "2026-10-16T09:00:00Z"),
-          rv(9, "2026-10-08T09:00:00Z"),
-          rv(10, "2026-10-15T09:00:00Z", "renovate[bot]"),
+          review(7, "2026-10-13T09:00:00Z"),
+          review(7, "2026-10-14T09:00:00Z"),
+          review(8, "2026-10-16T09:00:00Z"),
+          review(9, "2026-10-08T09:00:00Z"),
+          review(10, "2026-10-15T09:00:00Z", "renovate[bot]"),
         ],
       },
     }),
@@ -515,7 +515,7 @@ test("review requests count PRs that asked you, and PRs that asked your teams, a
   const directory = mkdtempSync(join(tmpdir(), "rq-"));
   const db = new Database(":memory:", { strict: true });
   migrate(db);
-  const rq = (at: string, reviewer: string) => ({ at, reviewer, requester: "blair" });
+  const request = (at: string, reviewer: string) => ({ at, reviewer, requester: "blair" });
   writeFileSync(
     join(directory, "requests.run.json"),
     JSON.stringify({
@@ -527,28 +527,31 @@ test("review requests count PRs that asked you, and PRs that asked your teams, a
             repo: "acme/api",
             number: 1,
             author: "blair",
-            requests: [rq("2026-10-13T09:00:00Z", "rchen"), rq("2026-10-14T09:00:00Z", "rchen")],
+            requests: [
+              request("2026-10-13T09:00:00Z", "rchen"),
+              request("2026-10-14T09:00:00Z", "rchen"),
+            ],
           },
           {
             repo: "acme/api",
             number: 2,
             author: "blair",
             requests: [
-              rq("2026-10-13T09:00:00Z", "team:acme/iac"),
-              rq("2026-10-13T09:00:00Z", "team:acme/other"),
+              request("2026-10-13T09:00:00Z", "team:acme/iac"),
+              request("2026-10-13T09:00:00Z", "team:acme/other"),
             ],
           },
           {
             repo: "acme/api",
             number: 3,
             author: "blair",
-            requests: [rq("2026-10-06T09:00:00Z", "rchen")],
+            requests: [request("2026-10-06T09:00:00Z", "rchen")],
           },
           {
             repo: "acme/api",
             number: 4,
             author: "renovate[bot]",
-            requests: [rq("2026-10-13T09:00:00Z", "team:acme/iac")],
+            requests: [request("2026-10-13T09:00:00Z", "team:acme/iac")],
           },
           { repo: "acme/api", number: 5, author: "blair", requests: [] },
         ],

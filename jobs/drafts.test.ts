@@ -43,7 +43,6 @@ const run = (goals: any[]) => ({
   is_error: false,
   total_cost_usd: 0.1,
   structured_output: { objectives: goals },
-
 });
 
 test("code sets a measured start, keeps a typed one, and drops what is not in your data", () => {
