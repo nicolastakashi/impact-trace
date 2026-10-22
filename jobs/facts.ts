@@ -2,53 +2,98 @@
 // Usage: bun jobs/facts.ts [week]   (the app must run: docker compose up -d)
 // Without a week: totals and every week. With one (2026-W42): that week's threads in full.
 
-const tally = (xs: (string | undefined)[]) =>
-  xs.reduce(
-    (m, x) => ({ ...m, [x ?? "unset"]: (m[x ?? "unset"] ?? 0) + 1 }),
+const RULES =
+  "Counts are code's. Kept threads are the ones you kept in review; labels_by says if you set a label or it is still Claude's. Slack, GitHub and calendar numbers count everything collected, kept or not. review_requests_* are PRs that named you (direct) or one of your teams (team) that week; null means not collected.";
+
+// What North shows, from the running app.
+export async function fetchAppFacts() {
+  const response = await fetch("http://127.0.0.1:4317/api/facts").catch(() => null);
+  if (!response?.ok)
+    throw new Error(
+      response ? await response.text() : "The app is not running: docker compose up -d",
+    );
+  return response.json();
+}
+
+// Your time zone comes from this machine, like the browser does for North.
+export const localTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+// How many of each value, e.g. { build: 3, unset: 1 }.
+const tally = (values: (string | undefined)[]) =>
+  values.reduce(
+    (counts, value) => ({ ...counts, [value ?? "unset"]: (counts[value ?? "unset"] ?? 0) + 1 }),
     {} as Record<string, number>,
   );
 
-export function facts(d: any, tz: string, week?: string) {
-  const f = new Intl.DateTimeFormat("en-GB", {
+// A weekend, or before 9 or from 19 on a weekday, in your time zone.
+function outsideHours(tz: string) {
+  const format = new Intl.DateTimeFormat("en-GB", {
     timeZone: tz,
     weekday: "short",
     hour: "numeric",
     hourCycle: "h23",
   });
-  const late = (t: string) => {
-    const p = Object.fromEntries(f.formatToParts(new Date(t)).map((x) => [x.type, x.value]));
-    return p.weekday === "Sat" || p.weekday === "Sun" || +p.hour < 9 || +p.hour >= 19;
+  return (time: string) => {
+    const parts = Object.fromEntries(
+      format.formatToParts(new Date(time)).map((part) => [part.type, part.value]),
+    );
+    const weekend = parts.weekday === "Sat" || parts.weekday === "Sun";
+    return weekend || +parts.hour < 9 || +parts.hour >= 19;
   };
-  const goal = Object.fromEntries(d.GOALS.map((g: any) => [g.id, g.title]));
-  const N = d.NUMS,
-    year = d.PERIOD.slice(0, 4);
+}
+
+function weekRows(data: any, tz: string) {
+  const late = outsideHours(tz);
+  const nums = data.NUMS;
+  const year = data.PERIOD.slice(0, 4);
   // ponytail: an 8-week window across New Year labels the old weeks with the new year; fine until January.
-  const weeks = d.WEEKS.map((w: string, i: number) => {
-    const kept = d.ITEMS.filter((it: any) => it.w === i);
+  return data.WEEKS.map((w: string, i: number) => {
+    const kept = data.ITEMS.filter((item: any) => item.w === i);
+    const slackTimes = nums.slackAt[i];
     return {
       week: `${year}-${w}`,
       kept: kept.length,
       mode: tally(kept.map((x: any) => x.mode)),
       pillar: tally(kept.map((x: any) => x.pillar)),
       without_me: tally(kept.map((x: any) => x.wm)),
-      prs_reviewed: d.REVIEWS[i],
-      prs_opened: N.opened[i],
-      prs_merged: N.merged[i],
-      review_requests_direct: N.asked_direct?.[i] ?? null,
-      review_requests_team: N.asked_team?.[i] ?? null,
-      give_vs_take: N.opened[i] ? +(d.REVIEWS[i] / N.opened[i]).toFixed(2) : null,
-      lead_time_h: N.lead[i],
-      slack_messages: N.slack[i],
-      slack_channels: N.channels[i],
-      outside_hours_pct: N.slackAt[i].length
-        ? Math.round((N.slackAt[i].filter(late).length / N.slackAt[i].length) * 100)
+      prs_reviewed: data.REVIEWS[i],
+      prs_opened: nums.opened[i],
+      prs_merged: nums.merged[i],
+      review_requests_direct: nums.asked_direct?.[i] ?? null,
+      review_requests_team: nums.asked_team?.[i] ?? null,
+      give_vs_take: nums.opened[i] ? +(data.REVIEWS[i] / nums.opened[i]).toFixed(2) : null,
+      lead_time_h: nums.lead[i],
+      slack_messages: nums.slack[i],
+      slack_channels: nums.channels[i],
+      outside_hours_pct: slackTimes.length
+        ? Math.round((slackTimes.filter(late).length / slackTimes.length) * 100)
         : null,
-      meeting_h: N.meetings[i],
-      people_mentioning: N.reach[i],
-      praise: d.REC.filter((r: any) => r.w === i).length,
+      meeting_h: nums.meetings[i],
+      people_mentioning: nums.reach[i],
+      praise: data.REC.filter((r: any) => r.w === i).length,
     };
   });
-  const item = (x: any) => ({
+}
+
+function totals(data: any) {
+  const items = data.ITEMS;
+  return {
+    kept: items.length,
+    mode: tally(items.map((x: any) => x.mode)),
+    pillar: tally(items.map((x: any) => x.pillar)),
+    without_me: tally(items.map((x: any) => x.wm)),
+    goals: Object.fromEntries(
+      data.GOALS.map((g: any) => [g.title, items.filter((x: any) => x.g.includes(g.id)).length]),
+    ),
+    no_goal: items.filter((x: any) => !x.g.length).length,
+    project: tally(items.map((x: any) => data.PROJECTS[x.s]?.name ?? x.s)),
+  };
+}
+
+// One thread in full, as Trace shows it.
+function threadOf(data: any, weeks: any[]) {
+  const goalTitle = Object.fromEntries(data.GOALS.map((g: any) => [g.id, g.title]));
+  return (x: any) => ({
     id: x.id,
     week: weeks[x.w].week,
     title: x.title,
@@ -58,47 +103,62 @@ export function facts(d: any, tz: string, week?: string) {
     without_me: x.wm,
     labels_by: x.by,
     events: tally(x.ev.map((e: any) => e[0])),
-    project: d.PROJECTS[x.s]?.name ?? x.s,
-    goals: x.g.map((g: string) => goal[g] ?? g),
+    project: data.PROJECTS[x.s]?.name ?? x.s,
+    goals: x.g.map((g: string) => goalTitle[g] ?? g),
     links: x.links.map(([source, title, url]: string[]) => ({ source, title, url })),
   });
-  const fb = d.FEEDBACK[0];
-  const out: any = {
-    period: d.PERIOD,
-    time_zone: tz,
-    rules:
-      "Counts are code's. Kept threads are the ones you kept in review; labels_by says if you set a label or it is still Claude's. Slack, GitHub and calendar numbers count everything collected, kept or not. review_requests_* are PRs that named you (direct) or one of your teams (team) that week; null means not collected.",
-    totals: {
-      kept: d.ITEMS.length,
-      mode: tally(d.ITEMS.map((x: any) => x.mode)),
-      pillar: tally(d.ITEMS.map((x: any) => x.pillar)),
-      without_me: tally(d.ITEMS.map((x: any) => x.wm)),
-      goals: Object.fromEntries(
-        d.GOALS.map((g: any) => [g.title, d.ITEMS.filter((x: any) => x.g.includes(g.id)).length]),
-      ),
-      no_goal: d.ITEMS.filter((x: any) => !x.g.length).length,
-      project: tally(d.ITEMS.map((x: any) => d.PROJECTS[x.s]?.name ?? x.s)),
-    },
-    weeks,
-    // Your goals with their key results. "now" is code's: a rate over the last 4 closed weeks, or what you typed.
-    objectives: (d.OBJECTIVES ?? []).map((g: any) => ({
-      title: g.title,
-      description: g.description ?? null,
-      kind: g.kind,
-      type: g.type,
-      quarter: g.quarter,
-      key_results: g.krs.map((k: any) => ({
-        text: k.text,
-        measured_by: k.metric ?? "you",
-        start: k.start,
-        target: k.target,
-        now: k.value,
-        progress: k.progress,
-      })),
-      confidence: g.checkins.map((c: any) => ({ week: c.week, value: c.confidence })),
+}
+
+// Your goals with their key results. "now" is code's: a rate over the last 4 closed weeks, or what you typed.
+const objectives = (data: any) =>
+  (data.OBJECTIVES ?? []).map((g: any) => ({
+    title: g.title,
+    description: g.description ?? null,
+    kind: g.kind,
+    type: g.type,
+    quarter: g.quarter,
+    key_results: g.krs.map((k: any) => ({
+      text: k.text,
+      measured_by: k.metric ?? "you",
+      start: k.start,
+      target: k.target,
+      now: k.value,
+      progress: k.progress,
     })),
+    confidence: g.checkins.map((c: any) => ({ week: c.week, value: c.confidence })),
+  }));
+
+// Feedback has its own 8 weeks (it ends with the last closed week): per_week follows `weeks`.
+function feedback(data: any) {
+  const latest = data.FEEDBACK[0];
+  if (!latest) return null;
+  return {
+    week: latest.week,
+    weeks: latest.weeks,
+    patterns: latest.patterns.map((p: any) => ({
+      name: p.name,
+      per_week: p.trend,
+      your_verdict: latest.verdicts?.[`pattern:${p.name}`]?.v ?? null,
+      examples: p.evidence.map((e: any) => ({ week: e.week, quote: e.quote, url: e.url })),
+    })),
+    strength: latest.strength
+      ? { name: latest.strength.name, your_verdict: latest.verdicts?.strength?.v ?? null }
+      : null,
+  };
+}
+
+export function facts(data: any, tz: string, week?: string) {
+  const weeks = weekRows(data, tz);
+  const thread = threadOf(data, weeks);
+  const out: any = {
+    period: data.PERIOD,
+    time_zone: tz,
+    rules: RULES,
+    totals: totals(data),
+    weeks,
+    objectives: objectives(data),
     // Praise Claude found and code checked (the quote is in the message), and who asks you for things.
-    recognition: d.REC.map((r: any) => ({
+    recognition: data.REC.map((r: any) => ({
       week: weeks[r.w]?.week,
       who: r.who,
       where: r.where,
@@ -106,35 +166,20 @@ export function facts(d: any, tz: string, week?: string) {
       quote: r.q ?? r.t,
       url: r.url ?? null,
     })),
-    who_comes_to_you: (d.ASKS ?? []).map((a: any) => ({
+    who_comes_to_you: (data.ASKS ?? []).map((a: any) => ({
       who: a.who,
       asks: a.n,
       per_week: a.per,
       about: a.about,
     })),
-    wouldnt_happen_without_you: d.ITEMS.filter((x: any) => x.wm === "wouldnt").map(item),
-    // Feedback has its own 8 weeks (it ends with the last closed week): per_week follows `weeks`.
-    feedback: fb
-      ? {
-          week: fb.week,
-          weeks: fb.weeks,
-          patterns: fb.patterns.map((p: any) => ({
-            name: p.name,
-            per_week: p.trend,
-            your_verdict: fb.verdicts?.[`pattern:${p.name}`]?.v ?? null,
-            examples: p.evidence.map((e: any) => ({ week: e.week, quote: e.quote, url: e.url })),
-          })),
-          strength: fb.strength
-            ? { name: fb.strength.name, your_verdict: fb.verdicts?.strength?.v ?? null }
-            : null,
-        }
-      : null,
+    wouldnt_happen_without_you: data.ITEMS.filter((x: any) => x.wm === "wouldnt").map(thread),
+    feedback: feedback(data),
   };
   if (week) {
     const i = weeks.findIndex((w: any) => w.week === week);
-    if (i < 0) throw new Error(`${week} is not in ${d.PERIOD}`);
-    out.threads = d.ITEMS.filter((x: any) => x.w === i).map(item);
-    out.praise = d.REC.filter((r: any) => r.w === i).map((r: any) => ({
+    if (i < 0) throw new Error(`${week} is not in ${data.PERIOD}`);
+    out.threads = data.ITEMS.filter((x: any) => x.w === i).map(thread);
+    out.praise = data.REC.filter((r: any) => r.w === i).map((r: any) => ({
       who: r.who,
       where: r.where,
       when: r.when,
@@ -147,14 +192,5 @@ export function facts(d: any, tz: string, week?: string) {
 if (import.meta.main) {
   const week = process.argv[2];
   if (week && !/^\d{4}-W\d{2}$/.test(week)) throw new Error("usage: bun jobs/facts.ts [2026-W42]");
-  const r = await fetch("http://127.0.0.1:4317/api/facts").catch(() => null);
-  if (!r?.ok) throw new Error(r ? await r.text() : "The app is not running: docker compose up -d");
-  // Your time zone comes from this machine, like the browser does for North.
-  console.log(
-    JSON.stringify(
-      facts(await r.json(), Intl.DateTimeFormat().resolvedOptions().timeZone, week),
-      null,
-      1,
-    ),
-  );
+  console.log(JSON.stringify(facts(await fetchAppFacts(), localTimeZone(), week), null, 1));
 }
