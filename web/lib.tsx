@@ -1,5 +1,7 @@
 // Shared by the views.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import gsap from "gsap";
+import { Button } from "./ui/button";
 
 // One JSON POST: the server takes a write only with this exact content-type.
 export const post = (url: string, body: unknown) =>
@@ -9,16 +11,26 @@ export const post = (url: string, body: unknown) =>
     body: JSON.stringify(body),
   });
 
-let say: (msg: string, ms: number) => void = () => {};
-export const toast = (msg: string, ms = 1800) => say(msg, ms);
+// Undecided threads per week. No answer counts as nothing left.
+export const loadPending = (): Promise<Record<string, number>> =>
+  fetch("/api/pending")
+    .then((r) => (r.ok ? r.json() : {}))
+    .catch(() => ({}));
+
+export const go = (hash: string) => {
+  location.hash = hash;
+};
+
+let show: (msg: string, ms: number) => void = () => {};
+export const toast = (msg: string, ms = 1800) => show(msg, ms);
 export function Toast() {
-  const [msg, setMsg] = useState<string | null>(null),
-    t = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [msg, setMsg] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
-    say = (m, ms) => {
-      setMsg(m);
-      clearTimeout(t.current);
-      t.current = setTimeout(() => setMsg(null), ms);
+    show = (text, ms) => {
+      setMsg(text);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setMsg(null), ms);
     };
   }, []);
   return (
@@ -47,29 +59,29 @@ export function Strip({
       className="grid gap-1"
       style={{ gridTemplateColumns: `repeat(${weeks.length}, minmax(26px, 1fr))` }}
     >
-      {weeks.map((w) => {
-        const c = count(w);
+      {weeks.map((week) => {
+        const n = count(week);
         return (
           <i
-            key={w}
-            title={`${w}: ${c}`}
+            key={week}
+            title={`${week}: ${n}`}
             className="grid h-6.5 place-items-center rounded-md bg-s3 font-mono text-[11px] text-ink-3 not-italic tabular-nums data-[on]:text-ink"
-            data-on={c ? "" : undefined}
+            data-on={n ? "" : undefined}
             style={
-              c
+              n
                 ? {
-                    background: `color-mix(in srgb, var(--accent) ${25 + (c / max) * 60}%, var(--s3))`,
+                    background: `color-mix(in srgb, var(--accent) ${25 + (n / max) * 60}%, var(--s3))`,
                   }
                 : undefined
             }
           >
-            {c || ""}
+            {n || ""}
           </i>
         );
       })}
-      {weeks.map((w) => (
-        <span key={w} className="text-center font-mono text-[10px] text-ink-3">
-          {w.slice(5)}
+      {weeks.map((week) => (
+        <span key={week} className="text-center font-mono text-[10px] text-ink-3">
+          {shortWeek(week)}
         </span>
       ))}
     </div>
@@ -79,6 +91,34 @@ export function Strip({
 // A small mono caption: units, sources, "measured: …".
 export const By = ({ className = "", ...p }: React.ComponentProps<"span">) => (
   <span className={`font-mono text-[11.5px] font-medium text-ink-3 ${className}`} {...p} />
+);
+
+// Shown while North, Trace and Feedback draw the fictional sample, not your data.
+export const SampleNote = ({ href, children }: { href: string; children: React.ReactNode }) => (
+  <a
+    className="block rounded-xl border border-dashed border-line-2 bg-s2 px-3.5 py-2.5 text-[13.5px] text-ink-2 no-underline"
+    href={href}
+  >
+    {children}
+  </a>
+);
+
+// The side panel's and the sheet's close button. Esc closes them too.
+export const CloseButton = ({
+  className = "",
+  onClick,
+}: {
+  className?: string;
+  onClick: () => void;
+}) => (
+  <Button
+    variant="outline"
+    size="xs"
+    className={`rounded-full font-mono text-xs text-ink-2 ${className}`}
+    onClick={onClick}
+  >
+    close <kbd>esc</kbd>
+  </Button>
 );
 
 // North, Trace, Feedback and Search read one object: your kept threads, or the sample.
@@ -96,11 +136,11 @@ let north: Promise<North> | null = null;
 export const loadNorth = (fresh = false) =>
   (!fresh && north) || (north = fetch("/api/north").then((r) => r.json()));
 export function useNorth(): [North | null, () => void] {
-  const [d, setD] = useState<North | null>(null);
+  const [data, setData] = useState<North | null>(null);
   useEffect(() => {
-    loadNorth().then(setD);
+    loadNorth().then(setData);
   }, []);
-  return [d, () => loadNorth(true).then(setD)];
+  return [data, () => loadNorth(true).then(setData)];
 }
 
 export const MODES: Record<string, string> = {
@@ -121,32 +161,80 @@ export const WMS: Record<string, string> = {
   slower: "slower",
   same: "same",
 };
-export const mc = (m: string) => `var(--m-${m})`;
-export const cnt = <T,>(xs: T[], f: (x: T) => string) =>
+export const mc = (mode: string) => `var(--m-${mode})`;
+export const cnt = <T,>(xs: T[], keyOf: (x: T) => string) =>
   xs.reduce(
-    (o, x) => {
-      const k = f(x);
-      o[k] = (o[k] ?? 0) + 1;
-      return o;
+    (counts, x) => {
+      const k = keyOf(x);
+      counts[k] = (counts[k] ?? 0) + 1;
+      return counts;
     },
     {} as Record<string, number>,
   );
+export const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+export const mean = (xs: number[]) => sum(xs) / xs.length;
+// A whole-number share; nothing of nothing is 0%.
+export const percent = (part: number, whole: number) =>
+  whole ? Math.round((part / whole) * 100) : 0;
+export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+// "2026-W43" → "W43".
+export const shortWeek = (week: string) => week.slice(5);
+export const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+// "Tue 09:05", in this browser's time zone.
+export const fmtWhen = (t: number) => {
+  const date = new Date(t);
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${DOW[(date.getDay() + 6) % 7]} ${hh}:${mm}`;
+};
+
 // The goals a thread serves. The sample names one goal per project instead.
-export const goalsOf = (d: North, it: any): string[] =>
-  it.g ?? (d.PROJECTS[it.s]?.goal ? [d.PROJECTS[it.s].goal] : []);
+export const goalsOf = (north: North, item: any): string[] =>
+  item.g ?? (north.PROJECTS[item.s]?.goal ? [north.PROJECTS[item.s].goal] : []);
 // The ISO year of week index w: a window across New Year starts in the old year.
-export const yearOf = (d: North, w: number) =>
-  +d.PERIOD.slice(0, 4) + (+d.WEEKS[w]!.slice(1) < +d.WEEKS[0]!.slice(1) ? 1 : 0);
+export const yearOf = (north: North, w: number) =>
+  +north.PERIOD.slice(0, 4) + (+north.WEEKS[w]!.slice(1) < +north.WEEKS[0]!.slice(1) ? 1 : 0);
+// Where you change a thread's answers.
+export const reviewHref = (north: North, item: any) =>
+  `#/review?week=${yearOf(north, item.w)}-${north.WEEKS[item.w]}&key=${encodeURIComponent(item.id)}`;
+
 // Count axis: a step of 1, 2 or 5 times a power of ten, at most 5 gridlines above zero.
 export const axis = (max: number) => {
-  const r = Math.max(1, max) / 5,
-    p = 10 ** Math.floor(Math.log10(r)),
-    f = r / p;
-  const st = Math.max(1, (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p),
-    top = Math.ceil(Math.max(1, max) / st) * st;
-  return { top, ticks: Array.from({ length: top / st + 1 }, (_, i) => i * st) };
+  const rough = Math.max(1, max) / 5;
+  const power = 10 ** Math.floor(Math.log10(rough));
+  const fraction = rough / power;
+  const nice = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
+  const step = Math.max(1, nice * power);
+  const top = Math.ceil(Math.max(1, max) / step) * step;
+  return { top, ticks: Array.from({ length: top / step + 1 }, (_, i) => i * step) };
 };
+
 export const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+// Run a gsap animation scoped to `scope`, undone on unmount. Reduced motion: nothing moves.
+export function useMotion(
+  scope: React.RefObject<HTMLElement | null>,
+  animate: () => void,
+  deps: React.DependencyList,
+) {
+  useLayoutEffect(() => {
+    if (reduced() || !scope.current) return;
+    const ctx = gsap.context(animate, scope);
+    return () => ctx.revert();
+  }, deps);
+}
+// A big number counts up from 0 to `end`.
+export const countUp = (el: HTMLElement, end: number, duration: number) => {
+  const tween = { v: 0 };
+  gsap.to(tween, {
+    v: end,
+    duration,
+    ease: "power3.out",
+    onUpdate: () => {
+      el.textContent = String(Math.round(tween.v));
+    },
+  });
+};
 
 // Overlays any view can open: one thread's sheet, the Wrapped story, search.
 export const openItem = (id: string) => dispatchEvent(new CustomEvent("open-item", { detail: id }));
@@ -154,8 +242,8 @@ export const openStory = () => dispatchEvent(new Event("open-story"));
 export const openSearch = () => dispatchEvent(new Event("open-search"));
 export function useEvent<T = unknown>(name: string, on: (detail: T) => void) {
   useEffect(() => {
-    const h = (e: Event) => on((e as CustomEvent).detail);
-    addEventListener(name, h);
-    return () => removeEventListener(name, h);
+    const handler = (e: Event) => on((e as CustomEvent).detail);
+    addEventListener(name, handler);
+    return () => removeEventListener(name, handler);
   });
 }
