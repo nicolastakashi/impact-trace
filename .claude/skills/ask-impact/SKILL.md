@@ -13,6 +13,9 @@ bun jobs/facts.ts            # totals and every week
 bun jobs/facts.ts 2026-W42   # one week, with its threads, links and praise
 ```
 
+The keys: `totals`, `weeks`, `goals`, `praise`, `asks` (who asks you for things),
+`wouldnt_happen_without_you` and `feedback`. One week adds `threads` and `praise_this_week`.
+
 If it fails, the app is down: tell the user to run `docker compose up -d`. Do not read the
 database to work around it.
 
@@ -27,7 +30,7 @@ database to work around it.
   everything collected (Slack, GitHub, calendar).
 - `labels_by: claude` means the user never confirmed that label. Say so when the answer
   depends on it.
-- Objectives: an aspirational key result at 0.7 is on track; a committed one needs 1.0.
+- Goals: an aspirational key result at 0.7 is on track; a committed one needs 1.0.
   `confidence` is the user's own weekly guess, 1 to 10: never infer it from progress.
 - Point to the thread links so the user can check.
 - A pattern is not a cause. Two numbers moving together are a question for the user, not a

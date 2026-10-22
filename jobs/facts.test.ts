@@ -91,7 +91,7 @@ test("facts count what North shows, in your time zone", () => {
     result.weeks.map((week: any) => [
       week.week,
       week.give_vs_take,
-      week.outside_hours_pct,
+      week.outside_hours_percent,
       week.praise,
     ]),
   ).toEqual([
@@ -113,11 +113,11 @@ test("facts count what North shows, in your time zone", () => {
     [3, 5],
     [null, null],
   ]);
-  expect(result.recognition).toEqual([
+  expect(result.praise).toEqual([
     { week: "2026-W42", who: "Ana", where: "#eng", about: null, quote: "thanks", url: null },
   ]);
   expect(
-    result.objectives[0].key_results.map((keyResult: any) => [
+    result.goals[0].key_results.map((keyResult: any) => [
       keyResult.measured_by,
       keyResult.now,
       keyResult.progress,
@@ -126,7 +126,7 @@ test("facts count what North shows, in your time zone", () => {
     ["lead_time_h", 25, 0.5],
     ["you", 1, 0.5],
   ]);
-  expect(result.objectives[0].confidence).toEqual([{ week: "2026-W42", value: 6 }]);
+  expect(result.goals[0].confidence).toEqual([{ week: "2026-W42", value: 6 }]);
   expect(result.threads).toBeUndefined();
 });
 
@@ -135,7 +135,7 @@ test("one week adds its threads, with who set each label", () => {
   expect(result.threads.map((thread: any) => [thread.title, thread.labels_by.mode])).toEqual([
     ["B", "claude"],
   ]);
-  expect(result.praise).toEqual([
+  expect(result.praise_this_week).toEqual([
     { who: "Ana", where: "#eng", when: "2026-10-14", text: "thanks" },
   ]);
   expect(() => facts(APP_FACTS, "Europe/Lisbon", "2026-W30")).toThrow("not in");

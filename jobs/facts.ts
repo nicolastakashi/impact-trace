@@ -64,13 +64,13 @@ function weekRows(data: any, timeZone: string) {
       give_vs_take: numbers.opened[weekIndex]
         ? +(data.reviewsGiven[weekIndex] / numbers.opened[weekIndex]).toFixed(2)
         : null,
-      lead_time_h: numbers.leadTimeHours[weekIndex],
+      lead_time_hours: numbers.leadTimeHours[weekIndex],
       slack_messages: numbers.slackMessages[weekIndex],
       slack_channels: numbers.slackChannels[weekIndex],
-      outside_hours_pct: slackTimes.length
+      outside_hours_percent: slackTimes.length
         ? Math.round((slackTimes.filter(late).length / slackTimes.length) * 100)
         : null,
-      meeting_h: numbers.meetingHours[weekIndex],
+      meeting_hours: numbers.meetingHours[weekIndex],
       people_mentioning: numbers.reach[weekIndex],
       praise: data.praise.filter((praise: any) => praise.weekIndex === weekIndex).length,
     };
@@ -170,9 +170,9 @@ export function facts(data: any, timeZone: string, week?: string) {
     rules: RULES,
     totals: totals(data),
     weeks,
-    objectives: goals(data),
+    goals: goals(data),
     // Praise Claude found and code checked (the quote is in the message), and who asks you for things.
-    recognition: data.praise.map((praise: any) => ({
+    praise: data.praise.map((praise: any) => ({
       week: weeks[praise.weekIndex]?.week,
       who: praise.who,
       where: praise.where,
@@ -180,9 +180,9 @@ export function facts(data: any, timeZone: string, week?: string) {
       quote: praise.quote ?? praise.text,
       url: praise.url ?? null,
     })),
-    who_comes_to_you: (data.asks ?? []).map((ask: any) => ({
+    asks: (data.asks ?? []).map((ask: any) => ({
       who: ask.who,
-      asks: ask.count,
+      count: ask.count,
       per_week: ask.perWeek,
       about: ask.about,
     })),
@@ -197,7 +197,7 @@ export function facts(data: any, timeZone: string, week?: string) {
     out.threads = data.threads
       .filter((thread: any) => thread.weekIndex === weekIndex)
       .map(threadOfWeek);
-    out.praise = data.praise
+    out.praise_this_week = data.praise
       .filter((praise: any) => praise.weekIndex === weekIndex)
       .map((praise: any) => ({
         who: praise.who,
