@@ -13,7 +13,7 @@ import {
   NoGoalsLink,
   send,
   smallSelectClass,
-  Src,
+  SourceDiamond,
   threads,
   toggled,
   toReviewClass,
@@ -80,7 +80,7 @@ function MergeIn({
         aria-label="Project to merge in"
         className="h-8 w-auto px-2 font-mono text-xs"
         value={pick}
-        onChange={(e) => setPick(e.target.value)}
+        onChange={(event) => setPick(event.target.value)}
       >
         <option value="">Pick a project to merge in…</option>
         <ProjectOptions projects={others} />
@@ -112,7 +112,7 @@ function Sources({ data, act, children }: { data: Data; act: Act; children: Reac
       {data.sources.map((source: Data, index: number) => (
         <li key={source.id} className="flex flex-wrap items-center gap-2 text-sm">
           <span>
-            <Src kind={source.kind} />
+            <SourceDiamond kind={source.kind} />
             {source.name}
           </span>
           <span className="lbl">{source.kind === "topic" ? "topic" : "Linear"}</span>
@@ -278,7 +278,7 @@ function ThreadEvents({ thread, sources }: { thread: Data; sources: Map<string, 
             </span>
             {source ? (
               <By className="inline-flex items-center whitespace-nowrap text-[11px]">
-                <Src kind={source.kind} />
+                <SourceDiamond kind={source.kind} />
                 {source.name}
               </By>
             ) : (
@@ -334,8 +334,8 @@ function ThreadItem({
               className={smallSelectClass}
               value=""
               aria-label="Move this thread"
-              onChange={(e) => {
-                const target = others.find((project: Data) => project.id === e.target.value);
+              onChange={(event) => {
+                const target = others.find((project: Data) => project.id === event.target.value);
                 if (target)
                   act(
                     "/api/group",
@@ -354,8 +354,8 @@ function ThreadItem({
   );
 }
 
-function Project({ pid }: { pid: string }) {
-  const [id, setId] = useState(pid);
+function Project({ projectId }: { projectId: string }) {
+  const [id, setId] = useState(projectId);
   const [data, setData] = useState<Data>(null);
   const [allGroups, setAllGroups] = useState<Data[]>([]);
   const [missing, setMissing] = useState(false);
@@ -365,9 +365,9 @@ function Project({ pid }: { pid: string }) {
   const [pick, setPick] = useState("");
   const [deleting, setDeleting] = useState(false);
   async function load(at: string) {
-    const r = await fetch(`/api/project?id=${encodeURIComponent(at)}`);
-    if (!r.ok) return setMissing(true);
-    const loaded = await r.json();
+    const response = await fetch(`/api/project?id=${encodeURIComponent(at)}`);
+    if (!response.ok) return setMissing(true);
+    const loaded = await response.json();
     // A merged project lives inside another one now: go there.
     if (loaded.into) {
       history.replaceState(null, "", `#/project?id=${encodeURIComponent(loaded.into)}`);
@@ -378,15 +378,15 @@ function Project({ pid }: { pid: string }) {
     setData(loaded);
   }
   useEffect(() => {
-    setId(pid);
+    setId(projectId);
     setData(null);
     setMissing(false);
     setOpenThreads(new Set());
     setShowDiscarded(false);
     setMerging(false);
     setDeleting(false);
-    load(pid);
-  }, [pid]);
+    load(projectId);
+  }, [projectId]);
   async function act(url: string, body: unknown, done: string) {
     if (!(await send(url, body))) return;
     toast(done);
@@ -430,7 +430,7 @@ function Project({ pid }: { pid: string }) {
     );
 
   const merged = data.sources.length > 1;
-  const sources = merged ? new Map(data.sources.map((s: Data) => [s.id, s])) : null;
+  const sources = merged ? new Map(data.sources.map((source: Data) => [source.id, source])) : null;
   const live = data.threads.filter((thread: Data) => !thread.discarded);
   const discardedCount = data.threads.length - live.length;
   const shown = showDiscarded ? data.threads : live;
@@ -522,10 +522,10 @@ function Project({ pid }: { pid: string }) {
   );
 }
 
-export const View = ({ p }: { p: URLSearchParams }) => (
+export const View = ({ p: params }: { p: URLSearchParams }) => (
   <section className="view" id="v-project">
     <div className="grid gap-5">
-      <Project pid={p.get("id") ?? ""} />
+      <Project projectId={params.get("id") ?? ""} />
     </div>
   </section>
 );

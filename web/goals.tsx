@@ -1,6 +1,6 @@
 // GOALS: what your work serves. You write them; projects and single threads link to them.
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, ChevronRight, ChevronUp, Plus, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, ChevronUp, Plus, XIcon } from "lucide-react";
 import { By, post, Strip, toast } from "./lib";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -28,13 +28,16 @@ function quarterChoices() {
 const onTrackAt = (type: string) => (type === "committed" ? 1 : 0.7);
 // The objective's score: the mean of its key results that have numbers.
 const goalScore = (goal: Data) => {
-  const scores = goal.krs.map((kr: Data) => kr.progress).filter((p: Data) => p != null);
+  const scores = goal.krs
+    .map((keyResult: Data) => keyResult.progress)
+    .filter((progress: Data) => progress != null);
   if (!scores.length) return null;
-  return scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
+  return scores.reduce((sum: number, progress: number) => sum + progress, 0) / scores.length;
 };
-const metricOf = (data: Data, key: string) => data.metrics.find((m: Data) => m.key === key);
+const metricOf = (data: Data, key: string) =>
+  data.metrics.find((metric: Data) => metric.key === key);
 const milestoneOf = (data: Data, key: string) =>
-  data.milestones.find((m: Data) => `milestone:${m.id}` === key);
+  data.milestones.find((milestone: Data) => `milestone:${milestone.id}` === key);
 const titleClass = "m-0 font-num font-extrabold uppercase text-balance";
 const hintClass = "text-[12.5px] font-normal text-ink-3";
 const shortWeek = (data: Data) => data.week.slice(5);
@@ -49,9 +52,9 @@ export function Goals({ focus }: { focus: string | null }) {
   const [draftIndex, setDraftIndex] = useState(0);
   // One goal is open on its own, and stays open when a second one comes.
   const load = async () => {
-    const r = await fetch("/api/goals");
-    if (!r.ok) return setFailed(true);
-    const loaded = await r.json();
+    const response = await fetch("/api/goals");
+    if (!response.ok) return setFailed(true);
+    const loaded = await response.json();
     if (loaded.goals.length === 1) setOpenGoal(loaded.goals[0].id);
     setData(loaded);
   };
@@ -98,8 +101,8 @@ export function Goals({ focus }: { focus: string | null }) {
       act("/api/goal", { id: goal.id, delete: true }, "Goal deleted");
     },
     toggleThreads: () => setThreadsOpen((set) => toggled(set, goal.id)),
-    confidence: (n: number) =>
-      act("/api/checkin", { goal_id: goal.id, confidence: n }, `Confidence ${n} saved`),
+    confidence: (confidence: number) =>
+      act("/api/checkin", { goal_id: goal.id, confidence }, `Confidence ${confidence} saved`),
     link: (project: Data, on: boolean) =>
       act(
         "/api/goal-link",
@@ -298,10 +301,22 @@ function Choice({
   );
 }
 
-type KrFields = { text: string; metric: string; start: string; target: string; current: string };
-const emptyKr: KrFields = { text: "", metric: "", start: "", target: "", current: "" };
+type KeyResultFields = {
+  text: string;
+  metric: string;
+  start: string;
+  target: string;
+  current: string;
+};
+const emptyKeyResult: KeyResultFields = {
+  text: "",
+  metric: "",
+  start: "",
+  target: "",
+  current: "",
+};
 
-function KrNumber({
+function KeyResultNumber({
   label,
   value,
   disabled,
@@ -319,23 +334,23 @@ function KrNumber({
         inputMode="decimal"
         value={value}
         disabled={disabled}
-        onChange={(e) => set(e.target.value)}
+        onChange={(event) => set(event.target.value)}
       />
     </Label>
   );
 }
 
-function KrRow({
+function KeyResultRow({
   data,
-  kr,
+  keyResult,
   index,
   change,
   remove,
 }: {
   data: Data;
-  kr: KrFields;
+  keyResult: KeyResultFields;
   index: number;
-  change: (fields: Partial<KrFields>) => void;
+  change: (fields: Partial<KeyResultFields>) => void;
   remove: () => void;
 }) {
   return (
@@ -348,26 +363,30 @@ function KrRow({
         aria-label={`Key result ${index + 1}`}
         maxLength={200}
         placeholder={index ? "Another number that proves it" : "3 teams use exports in production"}
-        value={kr.text}
-        onChange={(e) => change({ text: e.target.value })}
+        value={keyResult.text}
+        onChange={(event) => change({ text: event.target.value })}
       />
       {/* An auto measure fills "now" for you; switching to manual leaves it for you to type. */}
       <NativeSelect
         className="col-span-3 lg:col-span-1"
         aria-label="How it is measured"
-        value={kr.metric}
-        onChange={(e) =>
-          change(e.target.value ? { metric: e.target.value, current: "" } : { metric: "" })
+        value={keyResult.metric}
+        onChange={(event) =>
+          change(event.target.value ? { metric: event.target.value, current: "" } : { metric: "" })
         }
       >
         <MeasureOptions data={data} />
       </NativeSelect>
-      <KrNumber label="from" value={kr.start} set={(start) => change({ start })} />
-      <KrNumber label="target" value={kr.target} set={(target) => change({ target })} />
-      <KrNumber
+      <KeyResultNumber label="from" value={keyResult.start} set={(start) => change({ start })} />
+      <KeyResultNumber
+        label="target"
+        value={keyResult.target}
+        set={(target) => change({ target })}
+      />
+      <KeyResultNumber
         label="now"
-        value={kr.current}
-        disabled={!!kr.metric}
+        value={keyResult.current}
+        disabled={!!keyResult.metric}
         set={(current) => change({ current })}
       />
       <Button
@@ -378,7 +397,7 @@ function KrRow({
         aria-label={`Remove key result ${index + 1}`}
         onClick={remove}
       >
-        <X />
+        <XIcon />
       </Button>
     </div>
   );
@@ -391,12 +410,12 @@ const formFields = (goal: Data) => ({
   type: goal.type ?? "aspirational",
   quarter: goal.quarter ?? "",
   krs: (goal.krs?.length ? goal.krs : [{}]).map(
-    (kr: Data): KrFields => ({
-      text: kr.text ?? "",
-      metric: kr.metric ?? "",
-      start: asText(kr.start),
-      target: asText(kr.target),
-      current: asText(kr.metric ? kr.value : kr.current),
+    (keyResult: Data): KeyResultFields => ({
+      text: keyResult.text ?? "",
+      metric: keyResult.metric ?? "",
+      start: asText(keyResult.start),
+      target: asText(keyResult.target),
+      current: asText(keyResult.metric ? keyResult.value : keyResult.current),
     }),
   ),
 });
@@ -428,29 +447,31 @@ function GoalForm({
     (document.querySelector(selector) as HTMLElement)?.focus();
   }, [moved, fields.krs.length]);
   const setField = (patch: Partial<typeof fields>) => setFields({ ...fields, ...patch });
-  const changeKr = (index: number, patch: Partial<KrFields>) =>
+  const changeKeyResult = (index: number, patch: Partial<KeyResultFields>) =>
     setField({
-      krs: fields.krs.map((kr: KrFields, i: number) => (i === index ? { ...kr, ...patch } : kr)),
+      krs: fields.krs.map((keyResult: KeyResultFields, position: number) =>
+        position === index ? { ...keyResult, ...patch } : keyResult,
+      ),
     });
-  const setKrs = (krs: KrFields[], how: "add" | "del") => {
-    setField({ krs });
+  const setKeyResults = (keyResults: KeyResultFields[], how: "add" | "del") => {
+    setField({ krs: keyResults });
     setError("");
     setMoved(how);
   };
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
     const body = {
       id: goal.id ?? null,
       draft_id: goal.draft_id ?? null,
       ...fields,
       quarter: fields.quarter || null,
       krs: fields.krs
-        .map((kr: KrFields) => ({ ...kr, metric: kr.metric || null }))
-        .filter((kr) => kr.text.trim() || kr.start || kr.target),
+        .map((keyResult: KeyResultFields) => ({ ...keyResult, metric: keyResult.metric || null }))
+        .filter((keyResult) => keyResult.text.trim() || keyResult.start || keyResult.target),
     };
-    const r = await post("/api/goal", body);
+    const response = await post("/api/goal", body);
     // Say what is wrong without clearing what you typed.
-    if (!r.ok) return setError(await r.text());
+    if (!response.ok) return setError(await response.text());
     saved(goal.id ?? null);
   }
   return (
@@ -464,7 +485,7 @@ function GoalForm({
             maxLength={120}
             required
             value={fields.title}
-            onChange={(e) => setField({ title: e.target.value })}
+            onChange={(event) => setField({ title: event.target.value })}
             placeholder="Customers manage datasets as code"
             autoComplete="off"
           />
@@ -478,7 +499,7 @@ function GoalForm({
             rows={3}
             placeholder="Why this matters now, and what done looks like"
             value={fields.description}
-            onChange={(e) => setField({ description: e.target.value })}
+            onChange={(event) => setField({ description: event.target.value })}
           />
         </Label>
         <div className="flex flex-wrap items-end gap-3">
@@ -507,7 +528,7 @@ function GoalForm({
               name="quarter"
               className="min-w-35"
               value={fields.quarter}
-              onChange={(e) => setField({ quarter: e.target.value })}
+              onChange={(event) => setField({ quarter: event.target.value })}
             >
               <option value="">No end</option>
               {quarters.map((quarter) => (
@@ -523,16 +544,16 @@ function GoalForm({
               2 to 4. Each is a number with a start and a target, so you can tell when it is done.
             </span>
           </legend>
-          {fields.krs.map((kr: KrFields, index: number) => (
-            <KrRow
+          {fields.krs.map((keyResult: KeyResultFields, index: number) => (
+            <KeyResultRow
               key={index}
               data={data}
-              kr={kr}
+              keyResult={keyResult}
               index={index}
-              change={(patch) => changeKr(index, patch)}
+              change={(patch) => changeKeyResult(index, patch)}
               remove={() =>
-                setKrs(
-                  fields.krs.filter((_: KrFields, i: number) => i !== index),
+                setKeyResults(
+                  fields.krs.filter((_: KeyResultFields, position: number) => position !== index),
                   "del",
                 )
               }
@@ -544,7 +565,7 @@ function GoalForm({
               variant="outline"
               className="justify-self-start font-mono text-[13px] tracking-wider uppercase"
               id="kr-add"
-              onClick={() => setKrs([...fields.krs, { ...emptyKr }], "add")}
+              onClick={() => setKeyResults([...fields.krs, { ...emptyKeyResult }], "add")}
             >
               <Plus />
               key result
@@ -570,13 +591,13 @@ function GoalForm({
 }
 
 // "1 → 5 teams · now 3", or what is missing.
-function krRange(kr: Data, unit: string) {
-  if (kr.start == null || kr.target == null) return "add a start and a target";
-  const now = kr.value == null ? "–" : asText(kr.value);
-  return `${asText(kr.start)} → ${asText(kr.target)} ${unit} · now ${now}`;
+function keyResultRange(keyResult: Data, unit: string) {
+  if (keyResult.start == null || keyResult.target == null) return "add a start and a target";
+  const now = keyResult.value == null ? "–" : asText(keyResult.value);
+  return `${asText(keyResult.start)} → ${asText(keyResult.target)} ${unit} · now ${now}`;
 }
 // Who measures it, and over which window.
-function krSource(name: string | undefined, isMilestone: boolean, metric: Data) {
+function keyResultSource(name: string | undefined, isMilestone: boolean, metric: Data) {
   if (!name) return "you update it";
   if (isMilestone) return `measured: ${name}`;
   const window = metric?.agg === "total" ? ", this quarter so far" : ", last 4 weeks";
@@ -584,18 +605,18 @@ function krSource(name: string | undefined, isMilestone: boolean, metric: Data) 
 }
 
 // One bar per key result: 0 at the start, 1 at the target. The tick is where this type is on track.
-function KeyResult({ data, kr, type }: { data: Data; kr: Data; type: string }) {
-  const progress = kr.progress;
+function KeyResult({ data, keyResult, type }: { data: Data; keyResult: Data; type: string }) {
+  const progress = keyResult.progress;
   const onTrack = onTrackAt(type);
   const hit = progress != null && progress >= onTrack;
-  const metric = kr.metric && metricOf(data, kr.metric);
-  const isMilestone = !!kr.metric?.startsWith("milestone:");
-  const name = kr.metric && (metric?.label ?? milestoneOf(data, kr.metric)?.name);
+  const metric = keyResult.metric && metricOf(data, keyResult.metric);
+  const isMilestone = !!keyResult.metric?.startsWith("milestone:");
+  const name = keyResult.metric && (metric?.label ?? milestoneOf(data, keyResult.metric)?.name);
   const unit = metric?.unit ?? (isMilestone ? "%" : "");
   return (
     <li className="grid gap-1.5">
       <div className="flex justify-between gap-3 text-[14.5px]">
-        <span>{kr.text}</span>
+        <span>{keyResult.text}</span>
         <b className={cn("num text-base", hit && "text-ok")}>{scoreText(progress)}</b>
       </div>
       <div
@@ -614,7 +635,7 @@ function KeyResult({ data, kr, type }: { data: Data; kr: Data; type: string }) {
           style={{ left: `${onTrack * 100}%` }}
         />
       </div>
-      <By>{`${krRange(kr, unit)} · ${krSource(name, isMilestone, metric)}`}</By>
+      <By>{`${keyResultRange(keyResult, unit)} · ${keyResultSource(name, isMilestone, metric)}`}</By>
     </li>
   );
 }
@@ -623,7 +644,7 @@ function KeyResult({ data, kr, type }: { data: Data; kr: Data; type: string }) {
 function GoalRow({ data, goal, open }: { data: Data; goal: Data; open: () => void }) {
   const score = goalScore(goal);
   const onTrack = onTrackAt(goal.type);
-  const confidence = goal.checkins.find((c: Data) => c.week === data.week)?.confidence;
+  const confidence = goal.checkins.find((checkin: Data) => checkin.week === data.week)?.confidence;
   return (
     <button
       aria-expanded="false"
@@ -641,14 +662,18 @@ function GoalRow({ data, goal, open }: { data: Data; goal: Data; open: () => voi
         className="col-span-full row-start-2 flex gap-1 sm:col-auto sm:row-auto"
         aria-label={`${goal.krs.length} key results`}
       >
-        {goal.krs.map((kr: Data, i: number) => (
-          <i key={i} title={kr.text} className="h-1.5 w-7.5 overflow-hidden rounded-full bg-s3">
+        {goal.krs.map((keyResult: Data, index: number) => (
+          <i
+            key={index}
+            title={keyResult.text}
+            className="h-1.5 w-7.5 overflow-hidden rounded-full bg-s3"
+          >
             <i
               className={cn(
                 "block h-full",
-                kr.progress != null && kr.progress >= onTrack ? "bg-ok" : "bg-ink-2",
+                keyResult.progress != null && keyResult.progress >= onTrack ? "bg-ok" : "bg-ink-2",
               )}
-              style={{ width: `${(kr.progress ?? 0) * 100}%` }}
+              style={{ width: `${(keyResult.progress ?? 0) * 100}%` }}
             />
           </i>
         ))}
@@ -684,7 +709,7 @@ type CardActions = {
   close: () => void;
   confirmDelete: () => void;
   toggleThreads: () => void;
-  confidence: (n: number) => void;
+  confidence: (confidence: number) => void;
   link: (project: Data, on: boolean) => void;
 };
 
@@ -719,30 +744,38 @@ function GoalCardHeader({ goal, actions }: { goal: Data; actions: CardActions })
 }
 
 // Confidence this week, 1 to 10, with the weeks before it.
-function Confidence({ data, goal, set }: { data: Data; goal: Data; set: (n: number) => void }) {
-  const now = goal.checkins.find((c: Data) => c.week === data.week)?.confidence;
-  const past = goal.checkins.filter((c: Data) => c.week !== data.week).slice(-7);
+function Confidence({
+  data,
+  goal,
+  set,
+}: {
+  data: Data;
+  goal: Data;
+  set: (confidence: number) => void;
+}) {
+  const now = goal.checkins.find((checkin: Data) => checkin.week === data.week)?.confidence;
+  const past = goal.checkins.filter((checkin: Data) => checkin.week !== data.week).slice(-7);
   return (
     <div className="grid gap-1.5">
       <span className="lbl">
         {now ? `Confidence ${shortWeek(data)}` : `How sure are you, ${shortWeek(data)}?`}
       </span>
       <div className="flex flex-wrap gap-1" role="group" aria-label="Confidence this week, 1 to 10">
-        {Array.from({ length: 10 }, (_, i) => (
+        {Array.from({ length: 10 }, (_, index) => (
           <Button
-            key={i}
+            key={index}
             variant="outline"
             size="icon-sm"
-            aria-pressed={now === i + 1}
-            onClick={() => set(i + 1)}
+            aria-pressed={now === index + 1}
+            onClick={() => set(index + 1)}
             className="bg-secondary font-num text-[13px] font-semibold text-ink-2 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-background"
           >
-            {i + 1}
+            {index + 1}
           </Button>
         ))}
       </div>
       {past.length > 0 && (
-        <By>{`before: ${past.map((c: Data) => `${c.week.slice(5)} ${c.confidence}`).join(" · ")}`}</By>
+        <By>{`before: ${past.map((checkin: Data) => `${checkin.week.slice(5)} ${checkin.confidence}`).join(" · ")}`}</By>
       )}
     </div>
   );
@@ -757,7 +790,7 @@ function LinkedProjects({
   goal: Data;
   link: (project: Data, on: boolean) => void;
 }) {
-  const linked = new Set(goal.projects.map((p: Data) => p.id));
+  const linked = new Set(goal.projects.map((project: Data) => project.id));
   return (
     <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-3">
       {goal.projects.length ? (
@@ -775,7 +808,7 @@ function LinkedProjects({
               aria-label={`Unlink ${project.name}`}
               onClick={() => link(project, false)}
             >
-              <X className="size-3" />
+              <XIcon className="size-3" />
             </Button>
           </Badge>
         ))
@@ -786,17 +819,19 @@ function LinkedProjects({
         aria-label={`Link a project to ${goal.title}`}
         value=""
         className={smallSelectClass}
-        onChange={(e) => {
-          const project = data.projects.find((p: Data) => p.id === e.target.value);
+        onChange={(event) => {
+          const project = data.projects.find(
+            (candidate: Data) => candidate.id === event.target.value,
+          );
           if (project) link(project, true);
         }}
       >
         <option value="">＋ link a project…</option>
         {data.projects
-          .filter((p: Data) => !linked.has(p.id))
-          .map((p: Data) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
+          .filter((project: Data) => !linked.has(project.id))
+          .map((project: Data) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
             </option>
           ))}
       </NativeSelect>
@@ -908,8 +943,8 @@ function GoalCard({
       )}
       {goal.krs.length ? (
         <ol className="m-0 grid max-w-190 list-none gap-3 p-0">
-          {goal.krs.map((kr: Data, i: number) => (
-            <KeyResult key={i} data={data} kr={kr} type={goal.type} />
+          {goal.krs.map((keyResult: Data, index: number) => (
+            <KeyResult key={index} data={data} keyResult={keyResult} type={goal.type} />
           ))}
         </ol>
       ) : (
@@ -988,8 +1023,8 @@ function FirstGoal({
   seed: (project: Data) => void;
 }) {
   const busiest = data.projects
-    .filter((p: Data) => p.threads)
-    .sort((a: Data, b: Data) => b.threads - a.threads)
+    .filter((project: Data) => project.threads)
+    .sort((left: Data, right: Data) => right.threads - left.threads)
     .slice(0, 4);
   return (
     <Card className="gap-3.5">
@@ -1052,19 +1087,19 @@ function measuredBy(data: Data, key: string) {
   return milestone ? `milestone · ${milestone.project} · ${milestone.name}` : "milestone";
 }
 
-type DraftKr = { keep: boolean; start: string; target: string };
+type DraftKeyResult = { keep: boolean; start: string; target: string };
 const bigNumberClass = "num h-9 w-16 px-2 text-right font-num text-xl font-bold";
 
-function DraftKrRow({
+function DraftKeyResultRow({
   data,
-  kr,
+  keyResult,
   choice,
   change,
 }: {
   data: Data;
-  kr: Data;
-  choice: DraftKr;
-  change: (patch: Partial<DraftKr>) => void;
+  keyResult: Data;
+  choice: DraftKeyResult;
+  change: (patch: Partial<DraftKeyResult>) => void;
 }) {
   return (
     <li
@@ -1080,16 +1115,16 @@ function DraftKrRow({
         onClick={() => change({ keep: !choice.keep })}
         className="border-ok bg-ok/15 text-ok aria-[pressed=false]:border-input aria-[pressed=false]:bg-transparent aria-[pressed=false]:text-ink-3"
       >
-        {choice.keep ? <Check /> : <X />}
+        {choice.keep ? <Check /> : <XIcon />}
       </Button>
       <div className="grid gap-0.5 text-[15px]">
-        <span className="group-data-off:line-through">{kr.text}</span>
-        <By>{measuredBy(data, kr.metric)}</By>
+        <span className="group-data-off:line-through">{keyResult.text}</span>
+        <By>{measuredBy(data, keyResult.metric)}</By>
       </div>
       <div className="col-start-2 flex items-center gap-2 sm:col-start-auto">
-        {kr.metric ? (
+        {keyResult.metric ? (
           <b className="num text-right text-xl font-bold" title="Where you are now, measured">
-            {asText(kr.start) || "–"}
+            {asText(keyResult.start) || "–"}
           </b>
         ) : (
           <Input
@@ -1098,7 +1133,7 @@ function DraftKrRow({
             aria-label="Start"
             placeholder="?"
             value={choice.start}
-            onChange={(e) => change({ start: e.target.value })}
+            onChange={(event) => change({ start: event.target.value })}
           />
         )}
         <i
@@ -1110,10 +1145,10 @@ function DraftKrRow({
           inputMode="decimal"
           aria-label="Target"
           value={choice.target}
-          onChange={(e) => change({ target: e.target.value })}
+          onChange={(event) => change({ target: event.target.value })}
         />
         <span className="max-w-[11ch] min-w-[3ch] text-[12.5px] leading-tight text-ink-3">
-          {unitOf(data, kr.metric)}
+          {unitOf(data, keyResult.metric)}
         </span>
       </div>
     </li>
@@ -1135,13 +1170,13 @@ function DraftNav({
     <header className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
       <span className="lbl">{`Claude drafted ${count} objective${count > 1 ? "s" : ""}${draft.quarter ? ` for ${draft.quarter}` : ""}`}</span>
       <span className="flex gap-1.5">
-        {drafts.map((other: Data, i: number) => (
+        {drafts.map((other: Data, position: number) => (
           <button
             key={other.id}
             type="button"
-            aria-label={`Draft ${i + 1}: ${other.title}`}
-            aria-current={i === index}
-            onClick={() => go(i)}
+            aria-label={`Draft ${position + 1}: ${other.title}`}
+            aria-current={position === index}
+            onClick={() => go(position)}
             className="h-1.5 w-5.5 cursor-pointer rounded-full bg-s3 p-0 transition-all aria-[current=true]:w-9 aria-[current=true]:bg-ink"
           />
         ))}
@@ -1171,15 +1206,17 @@ function DraftCard({
 }) {
   const draft = data.drafts[index];
   const count = data.drafts.length;
-  const [choices, setChoices] = useState<DraftKr[]>(() =>
-    draft.krs.map((kr: Data) => ({
+  const [choices, setChoices] = useState<DraftKeyResult[]>(() =>
+    draft.krs.map((keyResult: Data) => ({
       keep: true,
-      start: asText(kr.start),
-      target: asText(kr.target),
+      start: asText(keyResult.start),
+      target: asText(keyResult.target),
     })),
   );
-  const change = (at: number, patch: Partial<DraftKr>) =>
-    setChoices(choices.map((choice, i) => (i === at ? { ...choice, ...patch } : choice)));
+  const change = (at: number, patch: Partial<DraftKeyResult>) =>
+    setChoices(
+      choices.map((choice, position) => (position === at ? { ...choice, ...patch } : choice)),
+    );
   // The draft as you left it: only the key results you kept, with your numbers.
   const asGoal = () => ({
     title: draft.title,
@@ -1188,28 +1225,32 @@ function DraftCard({
     type: draft.type,
     quarter: draft.quarter,
     draft_id: draft.id,
-    krs: draft.krs.flatMap((kr: Data, i: number) => {
-      const choice = choices[i]!;
+    krs: draft.krs.flatMap((keyResult: Data, position: number) => {
+      const choice = choices[position]!;
       if (!choice.keep) return [];
-      const start = kr.metric ? kr.start : choice.start;
-      return [{ text: kr.text, metric: kr.metric, start, target: choice.target }];
+      const start = keyResult.metric ? keyResult.start : choice.start;
+      return [{ text: keyResult.text, metric: keyResult.metric, start, target: choice.target }];
     }),
   });
   // Drafts by keyboard, only while you are not typing.
   useEffect(() => {
     if (!keys) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || (e.target as HTMLElement).closest("input,select,textarea"))
+    const onKey = (event: KeyboardEvent) => {
+      if (
+        event.metaKey ||
+        event.ctrlKey ||
+        (event.target as HTMLElement).closest("input,select,textarea")
+      )
         return;
-      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-        e.preventDefault();
-        const step = e.key === "ArrowRight" ? 1 : -1;
+      if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+        event.preventDefault();
+        const step = event.key === "ArrowRight" ? 1 : -1;
         go((index + step + count) % count);
-      } else if (e.key === "a") {
-        e.preventDefault();
+      } else if (event.key === "a") {
+        event.preventDefault();
         add(asGoal());
-      } else if (e.key === "s") {
-        e.preventDefault();
+      } else if (event.key === "s") {
+        event.preventDefault();
         skip(draft.id);
       }
     };
@@ -1241,13 +1282,13 @@ function DraftCard({
           ))}
         </div>
         <ol className="m-0 mt-1 grid list-none border-t border-line p-0">
-          {draft.krs.map((kr: Data, i: number) => (
-            <DraftKrRow
-              key={i}
+          {draft.krs.map((keyResult: Data, position: number) => (
+            <DraftKeyResultRow
+              key={position}
               data={data}
-              kr={kr}
-              choice={choices[i]!}
-              change={(patch) => change(i, patch)}
+              keyResult={keyResult}
+              choice={choices[position]!}
+              change={(patch) => change(position, patch)}
             />
           ))}
         </ol>
@@ -1271,4 +1312,4 @@ function DraftCard({
   );
 }
 
-export const View = ({ p }: { p: URLSearchParams }) => <Goals focus={p.get("id")} />;
+export const View = ({ p: params }: { p: URLSearchParams }) => <Goals focus={params.get("id")} />;

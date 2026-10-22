@@ -55,7 +55,7 @@ export const NoGoalsLink = () => (
 );
 
 // The diamond that says where a project comes from: Linear or a topic you made.
-export const Src = ({ kind }: { kind: string }) => (
+export const SourceDiamond = ({ kind }: { kind: string }) => (
   <i
     aria-hidden="true"
     className={cn(

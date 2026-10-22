@@ -9,7 +9,7 @@ import {
   ConfirmButtons,
   send,
   smallSelectClass,
-  Src,
+  SourceDiamond,
   threads,
   toReviewClass,
   ViewNote,
@@ -31,12 +31,12 @@ const threadCount = (group: Data) =>
 
 function SourceLine({ group, linear }: { group: Data; linear: Data }) {
   const merged = group.merged?.length
-    ? ` · includes ${group.merged.map((m: Data) => m.name).join(", ")}`
+    ? ` · includes ${group.merged.map((mergedProject: Data) => mergedProject.name).join(", ")}`
     : "";
   if (group.kind === "topic" || !linear)
     return (
       <By className="-mt-2">
-        <Src kind="topic" />
+        <SourceDiamond kind="topic" />
         {`topic${merged}`}
       </By>
     );
@@ -44,7 +44,7 @@ function SourceLine({ group, linear }: { group: Data; linear: Data }) {
   const open = linear.open ? ` · ${linear.open} open` : "";
   return (
     <By className="-mt-2">
-      <Src kind="linear" />
+      <SourceDiamond kind="linear" />
       {`Linear${status}${open}${merged}`}
     </By>
   );
@@ -101,7 +101,9 @@ function CardActions({
         className={smallSelectClass}
         value=""
         aria-label={`Merge ${group.name} into another project`}
-        onChange={(e) => e.target.value && setAsk({ id: group.id, into: e.target.value })}
+        onChange={(event) =>
+          event.target.value && setAsk({ id: group.id, into: event.target.value })
+        }
       >
         <option value="">merge into…</option>
         {groups
@@ -172,7 +174,7 @@ function DeletedList({ deleted, run }: { deleted: Data[]; run: Run }) {
         {deleted.map((project: Data) => (
           <li key={project.id} className="flex items-center gap-2.5 text-sm text-ink-2">
             <span>
-              <Src kind={project.kind} />
+              <SourceDiamond kind={project.kind} />
               {project.name}
             </span>
             <Button
@@ -207,7 +209,9 @@ function ProjectList({
   const groups = data.groups
     .filter((group: Data) => filter === "all" || group.kind === filter)
     .map((group: Data) => ({ ...group, total: threadCount(group) }))
-    .sort((a: Data, b: Data) => b.total - a.total || a.name.localeCompare(b.name));
+    .sort(
+      (left: Data, right: Data) => right.total - left.total || left.name.localeCompare(right.name),
+    );
   const max = Math.max(
     1,
     ...groups.flatMap((group: Data) => Object.values(group.weeks).map((list: Data) => list.length)),
@@ -266,13 +270,13 @@ function Projects() {
   // Always fresh: decisions made in review change the counts here.
   const load = async () => {
     const [groups, linearProjects] = await Promise.all([
-      fetch("/api/groups").then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/groups").then((response) => (response.ok ? response.json() : null)),
       fetch("/api/projects?weeks=")
-        .then((r) => (r.ok ? r.json() : { projects: [] }))
+        .then((response) => (response.ok ? response.json() : { projects: [] }))
         .catch(() => ({ projects: [] })),
     ]);
     if (!groups) return setFailed(true);
-    setLinear(new Map(linearProjects.projects.map((p: Data) => [p.id, p])));
+    setLinear(new Map(linearProjects.projects.map((project: Data) => [project.id, project])));
     setAsk(null);
     setData(groups);
   };
@@ -315,8 +319,8 @@ function Projects() {
 }
 
 // The old address #/projects?p=<id> opens that project.
-export function View({ p }: { p: URLSearchParams }) {
-  const id = p.get("p");
+export function View({ p: params }: { p: URLSearchParams }) {
+  const id = params.get("p");
   useEffect(() => {
     if (id) location.replace(`#/project?id=${encodeURIComponent(id)}`);
   }, [id]);
