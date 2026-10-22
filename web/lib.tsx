@@ -2,6 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { Button } from "./ui/button";
+import { cn } from "./ui/cn";
 
 // One JSON POST: the server takes a write only with this exact content-type.
 export const post = (url: string, body: unknown) =>
@@ -114,7 +115,7 @@ export const CloseButton = ({
   <Button
     variant="outline"
     size="xs"
-    className={`rounded-full font-mono text-xs text-ink-2 ${className}`}
+    className={cn(className, "rounded-full font-mono text-xs text-ink-2")}
     onClick={onClick}
   >
     close <kbd>esc</kbd>
