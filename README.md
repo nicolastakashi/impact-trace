@@ -39,6 +39,7 @@ follow SBI (Situation, Behavior, Impact) and end with what to say next time.
 | Feedback on how you show up | [feedback](docs/feedback.md) |
 | The daily schedule, with no gaps | [schedule](docs/schedule.md) |
 | Ask questions about your data | [ask](docs/ask.md) |
+| The words the app uses | [glossary](docs/glossary.md) |
 | Click-through tests on fictional data | [qa](docs/qa.md) |
 | The web app: React and shadcn | [react](docs/react.md) |
 
