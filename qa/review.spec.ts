@@ -274,3 +274,21 @@ test("another week from the address and from the picker", async ({ page, view, r
     page.getByRole("combobox", { name: "Week" }).locator("option", { hasText: `${past} · done` }),
   ).toHaveCount(1);
 });
+
+test("a short run says which sources; a full run says nothing", async ({ page, view, request }) => {
+  expect((await review(request)).shortSources).toEqual([]);
+  await open(page, view);
+  await expect(page.getByRole("status").filter({ hasText: "came back short" })).toHaveCount(0);
+
+  await page.route("**/api/review*", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      json: { ...(await response.json()), shortSources: ["github", "slack_own_2"] },
+    });
+  });
+  await page.reload();
+  await expect(page.getByRole("status").filter({ hasText: "came back short" })).toContainText(
+    "github, slack_own_2",
+  );
+});

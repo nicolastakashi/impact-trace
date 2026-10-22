@@ -20,6 +20,8 @@ Claude suggests labels for each thread. You decide. Only threads you keep reach 
 - **Labels follow the thread.** A regroup or a merge can change a thread's key; labels move
   with its first event, so nothing you decided gets lost.
 - **Sources for every mode.** The References page shows who says each kind of work counts.
+- **A short run says so.** When the last run of the week came back short for a source, a
+  note above the threads names it: a thin thread may miss events from it.
 
 Labels run on Sonnet with no tools: only the threads as input.
 

@@ -370,6 +370,7 @@ export function Review({ params }: { params: URLSearchParams }) {
   return (
     <section className="view" id="v-review">
       {head}
+      <ShortRun sources={data.shortSources ?? []} />
       <div className="grid items-start gap-5 min-[821px]:grid-cols-[minmax(220px,300px)_1fr]">
         <Queue
           list={list}
@@ -481,6 +482,20 @@ function ReviewHead({
         </div>
       </div>
     </div>
+  );
+}
+
+// The last run of this week had a short count: say which sources, so a thin thread makes sense.
+function ShortRun({ sources }: { sources: string[] }) {
+  if (!sources.length) return null;
+  return (
+    <p
+      role="status"
+      className="mb-5 rounded-xl border border-line-2 bg-s2 px-4 py-3 text-[13px] text-ink-2"
+    >
+      The last run came back short for <b className="font-medium text-ink">{sources.join(", ")}</b>.
+      These threads may miss events from them. The next run collects the week again.
+    </p>
   );
 }
 

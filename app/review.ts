@@ -47,7 +47,21 @@ export function review(week: string) {
     goals: db.query("SELECT id, title, kind FROM goals ORDER BY kind = 'personal', id").all(),
     projects: liveProjects(),
     pending: pending(),
+    shortSources: shortSources(week),
   };
+}
+
+// Sources whose latest run this week came back short: the threads may miss events from them.
+function shortSources(week: string) {
+  return (
+    db
+      .query(
+        `SELECT source FROM runs latest WHERE week = ? AND status != 'ok' AND ingested_at =
+        (SELECT max(ingested_at) FROM runs WHERE week = latest.week AND source = latest.source)
+        ORDER BY source`,
+      )
+      .all(week) as { source: string }[]
+  ).map((run) => run.source);
 }
 
 // Only known fields, and for a field with choices only those.
