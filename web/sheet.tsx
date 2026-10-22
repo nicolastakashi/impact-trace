@@ -140,7 +140,7 @@ function LinkChain({
     // Not the header's tab pill: base.css styles every nav like it.
     <nav
       className="flex flex-wrap items-center gap-1.5 overflow-visible rounded-none border-0 bg-transparent p-0 font-mono text-[11.5px] text-ink-2"
-      aria-label="Item link chain"
+      aria-label="Thread link chain"
     >
       <Badge variant="dashed" className={goal ? "gap-1.5 normal-case" : "normal-case"}>
         <GoalLabel goal={goal} />
@@ -192,7 +192,7 @@ function FlameGraph({ thread, praise, quote }: { thread: any; praise: any; quote
       <span className="lbl">Evidence</span>
       <div
         className="grid grid-cols-[minmax(0,1fr)] gap-0.75"
-        aria-label="Item evidence, as a flame graph"
+        aria-label="Thread evidence, as a flame graph"
       >
         <div className="flex gap-0.75">
           <span

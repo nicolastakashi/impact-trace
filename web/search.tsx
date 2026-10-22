@@ -87,7 +87,7 @@ export function Search() {
         <DialogTitle className="sr-only">Search</DialogTitle>
         <Command shouldFilter={false} value={active} onValueChange={setSelected}>
           <CommandInput
-            placeholder="Search items, people, views…"
+            placeholder="Search threads, people, views…"
             value={query}
             onValueChange={(value) => {
               setQuery(value);

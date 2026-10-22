@@ -4,7 +4,7 @@ import { expect, test } from "./helpers";
 // Setup has no letter keys of its own, so typing in search changes nothing behind it.
 const recap = async (page: any) => {
   await page.keyboard.press("ControlOrMeta+k");
-  await page.getByPlaceholder("Search items, people, views…").fill("recap");
+  await page.getByPlaceholder("Search threads, people, views…").fill("recap");
   // The new app fetches its threads; on Setup they come after the gh checks.
   await expect(page.getByRole("option", { name: /Open recap \(Wrapped\)/ })).toBeVisible();
   await page.keyboard.press("Enter");

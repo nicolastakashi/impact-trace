@@ -1,6 +1,6 @@
 import { expect, test } from "./helpers";
 
-const box = (page: any) => page.getByPlaceholder("Search items, people, views…");
+const box = (page: any) => page.getByPlaceholder("Search threads, people, views…");
 
 test("the header button opens search; typing filters threads, views and people", async ({
   page,
