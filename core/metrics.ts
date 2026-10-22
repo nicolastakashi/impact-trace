@@ -20,38 +20,38 @@ function sumOf(db: Database, kind: string, field: string, weeks: string[]) {
   if (!weeks.length) return 0;
   const row = db
     .query(
-      `SELECT coalesce(sum(json_extract(payload, '$.' || ?)), 0) n
+      `SELECT coalesce(sum(json_extract(payload, '$.' || ?)), 0) total
   FROM events WHERE kind = ? AND week IN (${placeholders(weeks)})`,
     )
     .get(field, kind, ...weeks) as any;
-  return row.n;
+  return row.total;
 }
 function countOf(db: Database, kind: string, weeks: string[]) {
   if (!weeks.length) return 0;
   const row = db
-    .query(`SELECT count(*) n FROM events WHERE kind = ? AND week IN (${placeholders(weeks)})`)
+    .query(`SELECT count(*) total FROM events WHERE kind = ? AND week IN (${placeholders(weeks)})`)
     .get(kind, ...weeks) as any;
-  return row.n;
+  return row.total;
 }
 function praiseCount(db: Database, weeks: string[]) {
   if (!weeks.length) return 0;
   const row = db
     .query(
-      `SELECT count(*) n FROM mention_kinds k JOIN events e ON e.id = k.event_id
+      `SELECT count(*) total FROM mention_kinds k JOIN events e ON e.id = k.event_id
     WHERE COALESCE(k.human_kind, k.kind) = 'praise' AND e.week IN (${placeholders(weeks)})`,
     )
     .get(...weeks) as any;
-  return row.n;
+  return row.total;
 }
 function mergedPrs(db: Database, weeks: string[]) {
   if (!weeks.length) return [];
   const rows = db
     .query(
-      `SELECT payload p FROM events
+      `SELECT payload FROM events
     WHERE kind = 'pr_merged' AND week IN (${placeholders(weeks)})`,
     )
     .all(...weeks) as any[];
-  return rows.map((row) => JSON.parse(row.p));
+  return rows.map((row) => JSON.parse(row.payload));
 }
 const perWeek = (total: number, weeks: string[]) =>
   weeks.length ? +(total / weeks.length).toFixed(1) : null;
@@ -64,7 +64,7 @@ function giveVsTake(db: Database, weeks: string[]) {
 // Median, not mean: one PR open for a month would drag a mean. null for no values.
 export function median(values: number[]) {
   if (!values.length) return null;
-  const sorted = [...values].sort((a, b) => a - b);
+  const sorted = [...values].sort((left, right) => left - right);
   const middle = Math.floor(sorted.length / 2);
   const value = sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
   return +value.toFixed(1);
@@ -151,8 +151,8 @@ const milestoneId = (metric: string) =>
 export function measure(db: Database, metric: string, weeks: string[]) {
   const milestone = milestoneId(metric);
   if (milestone !== null) {
-    const row = db.query("SELECT progress p FROM milestones WHERE id = ?").get(milestone) as any;
-    return row?.p ?? null;
+    const row = db.query("SELECT progress FROM milestones WHERE id = ?").get(milestone) as any;
+    return row?.progress ?? null;
   }
   return METRICS[metric]?.value(db, weeks) ?? null;
 }
@@ -176,9 +176,12 @@ const collectedWeeks = (db: Database) =>
 
 // A week belongs to the quarter its Monday is in.
 function inQuarter(week: string, quarter: string) {
-  const [year, q] = quarter.split("-Q").map(Number);
+  const [year, quarterNumber] = quarter.split("-Q").map(Number);
   const monday = dayOf(week, 0);
-  return monday >= Date.UTC(year, (q - 1) * 3, 1) && monday < Date.UTC(year, q * 3, 1);
+  return (
+    monday >= Date.UTC(year, (quarterNumber - 1) * 3, 1) &&
+    monday < Date.UTC(year, quarterNumber * 3, 1)
+  );
 }
 
 // Every collected week of the quarter up to now, this one too. No quarter: every collected week.

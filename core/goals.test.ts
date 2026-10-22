@@ -27,6 +27,6 @@ test("a thread serves a goal through its project, a merged project, or a direct 
   // Deleting a goal removes its links, not the project.
   db.exec("PRAGMA foreign_keys = ON");
   db.query("DELETE FROM goals WHERE id = 1").run();
-  expect(db.query("SELECT count(*) n FROM goal_projects").get()).toEqual({ n: 0 });
-  expect(db.query("SELECT count(*) n FROM projects").get()).toEqual({ n: 3 });
+  expect(db.query("SELECT count(*) total FROM goal_projects").get()).toEqual({ total: 0 });
+  expect(db.query("SELECT count(*) total FROM projects").get()).toEqual({ total: 3 });
 });
