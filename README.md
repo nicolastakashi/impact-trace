@@ -59,6 +59,7 @@ bun app/server.ts        # first run opens the setup page: tools, who you are, f
 ./run.sh 2026-10-12      # collect and ingest the week of that Monday (default: this week)
 ./draft-goals.sh         # Claude drafts objectives from your data; you use or dismiss them
 bun test core jobs       # unit tests (qa/ holds the Playwright specs)
+bun run fmt              # format the code (Prettier)
 bun install && bun run qa  # click-through tests in your Chrome, fictional data
 ```
 

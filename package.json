@@ -3,12 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "qa": "bun qa/build.ts && bun qa/fixture.ts && playwright test -c qa"
+    "qa": "bun qa/build.ts && bun qa/fixture.ts && playwright test -c qa",
+    "fmt": "prettier --write \"{app,core,jobs,web,qa}/**/*.{ts,tsx}\""
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
     "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0"
+    "@types/react-dom": "19.3.0",
+    "prettier": "3.6.2"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "1.2.0",
