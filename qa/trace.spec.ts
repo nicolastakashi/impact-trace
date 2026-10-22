@@ -6,7 +6,11 @@ const url = (page: any) => decodeURIComponent(new URL(page.url()).hash);
 
 test("opens on this week; the address picks weeks", async ({ page, view }) => {
   await view("trace");
-  await expect(page.getByText("9 threads you kept, drawn as spans. Most are build (33%). 6 are on your critical path")).toBeVisible();
+  await expect(
+    page.getByText(
+      "9 threads you kept, drawn as spans. Most are build (33%). 6 are on your critical path",
+    ),
+  ).toBeVisible();
   await expect.poll(() => url(page)).toBe("#/trace?w=W43");
   await expect(page.getByRole("heading", { level: 2 })).toHaveText(/W43\s*0 spans · 1 trace/);
   await expect(page.getByText("No spans in W43 match the filter.")).toBeVisible();
@@ -18,9 +22,12 @@ test("opens on this week; the address picks weeks", async ({ page, view }) => {
 test("drag across weeks, shift-click adds one, Enter picks one", async ({ page, view }) => {
   await view("trace?w=W43");
   const wk = (w: string) => page.getByRole("button", { name: new RegExp(`^${w} (Sep|Oct) \\d+$`) });
-  const a = (await wk("W40").boundingBox())!, b = (await wk("W42").boundingBox())!;
-  await page.mouse.move(a.x + 5, a.y + a.height / 2); await page.mouse.down();
-  await page.mouse.move(b.x + 5, b.y + b.height / 2, { steps: 6 }); await page.mouse.up();
+  const a = (await wk("W40").boundingBox())!,
+    b = (await wk("W42").boundingBox())!;
+  await page.mouse.move(a.x + 5, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b.x + 5, b.y + b.height / 2, { steps: 6 });
+  await page.mouse.up();
   await expect.poll(() => url(page)).toBe("#/trace?w=W40,W41,W42");
   await expect(page.getByRole("heading", { level: 2 })).toHaveText(/W40–W42\s*9 spans · 3 traces/);
   // Three weeks: only the newest opens.
@@ -29,7 +36,8 @@ test("drag across weeks, shift-click adds one, Enter picks one", async ({ page, 
   await expect(page.getByRole("button", { name: /part \d \dd/ })).toHaveCount(3);
   await wk("W43").click({ modifiers: ["Shift"] });
   await expect.poll(() => url(page)).toBe("#/trace?w=W40,W41,W42,W43");
-  await wk("W41").focus(); await page.keyboard.press("Enter");
+  await wk("W41").focus();
+  await page.keyboard.press("Enter");
   await expect.poll(() => url(page)).toBe("#/trace?w=W41");
 });
 
@@ -44,7 +52,10 @@ test("a trace folds; the filters keep a mode or the critical path", async ({ pag
   await expect(page.getByRole("button", { name: "collapse all" })).toBeVisible();
   const filters = page.getByRole("group", { name: "Filter spans" });
   await filters.getByRole("button", { name: "build 3" }).click();
-  await expect(filters.getByRole("button", { name: "build 3" })).toHaveAttribute("aria-pressed", "true");
+  await expect(filters.getByRole("button", { name: "build 3" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await expect(page.getByRole("heading", { level: 2 })).toHaveText(/2 spans/);
   await expect(page.getByRole("button", { name: /^acme-eng/ })).toHaveCount(0);
   await filters.getByRole("button", { name: "build 3" }).click();
@@ -61,18 +72,30 @@ test("the summary, then one span and its events; Esc lets go", async ({ page, vi
   await page.getByRole("button", { name: /replay/ }).click();
   await side.getByRole("button", { name: `${P2} · 2d 0h` }).click();
   await expect.poll(() => url(page)).toBe("#/trace?w=W41,W42&s=2026-W41:github:acme/api#220");
-  await expect(page.getByRole("button", { name: `${P2} 2d 0h` })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: `${P2} 2d 0h` })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await expect(side.getByRole("heading", { name: P2 })).toBeVisible();
   await expect(side).toContainText("longer than 67% of your spans");
   await expect(side).toContainText("without_youwouldn't happen");
   await expect(side).toContainText("pillarexecution");
   await expect(side).toContainText("startedTue 06:00, Oct 6");
-  await expect(side.getByRole("link", { name: "Exports API ↗" })).toHaveAttribute("href", "https://linear.app/acme/project/exports");
+  await expect(side.getByRole("link", { name: "Exports API ↗" })).toHaveAttribute(
+    "href",
+    "https://linear.app/acme/project/exports",
+  );
   await expect(side).toContainText("Span events · 4");
   await expect(side.getByRole("listitem")).toHaveCount(4);
   await expect(side.getByRole("listitem").first()).toContainText("Tue 06:00issue done");
-  await expect(side.getByRole("link", { name: "feat: export step 2.1 ↗" })).toHaveAttribute("href", "https://github.com/acme/api/pull/221");
-  await expect(side.getByRole("link", { name: "change it in review →" })).toHaveAttribute("href", "#/review?week=2026-W41&key=2026-W41%3Agithub%3Aacme%2Fapi%23220");
+  await expect(side.getByRole("link", { name: "feat: export step 2.1 ↗" })).toHaveAttribute(
+    "href",
+    "https://github.com/acme/api/pull/221",
+  );
+  await expect(side.getByRole("link", { name: "change it in review →" })).toHaveAttribute(
+    "href",
+    "#/review?week=2026-W41&key=2026-W41%3Agithub%3Aacme%2Fapi%23220",
+  );
   await page.keyboard.press("Escape");
   await expect.poll(() => url(page)).toBe("#/trace?w=W41,W42");
   await expect(side).toContainText("Trace summary");
@@ -83,16 +106,23 @@ test("the summary, then one span and its events; Esc lets go", async ({ page, vi
   await expect(side).toContainText("Trace summary");
 });
 
-test("the thread sheet: title, chips, evidence; Esc closes it and keeps the span", async ({ page, view }) => {
+test("the thread sheet: title, chips, evidence; Esc closes it and keeps the span", async ({
+  page,
+  view,
+}) => {
   await view(`trace?w=W41&s=${encodeURIComponent("2026-W41:github:acme/api#220")}`);
   await page.getByRole("complementary").getByRole("button", { name: "open thread" }).click();
   const sheet = page.getByRole("dialog");
   await expect(sheet.getByRole("heading", { name: P2 })).toBeVisible();
   await expect(sheet.getByRole("button", { name: /close/ })).toBeFocused();
-  for (const c of ["build", "wouldn't happen", "execution"]) await expect(sheet.getByRole("button", { name: c, exact: true })).toBeVisible();
+  for (const c of ["build", "wouldn't happen", "execution"])
+    await expect(sheet.getByRole("button", { name: c, exact: true })).toBeVisible();
   await expect(sheet.getByText("Exports API", { exact: true }).first()).toBeVisible();
   await expect(sheet).toContainText("Evidence");
-  await expect(sheet.getByRole("link", { name: "feat: export step 2.0 ↗" })).toHaveAttribute("href", "https://github.com/acme/api/pull/220");
+  await expect(sheet.getByRole("link", { name: "feat: export step 2.0 ↗" })).toHaveAttribute(
+    "href",
+    "https://github.com/acme/api/pull/220",
+  );
   await expect(sheet.getByRole("link", { name: "change it in review →" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(sheet).toBeHidden();
@@ -109,7 +139,9 @@ test("a recognised thread shows who said it in the sheet", async ({ page, view }
   const sheet = page.getByRole("dialog");
   await expect(sheet).toContainText("★ Blair Ito");
   expect(await sheet.evaluate((e) => e.scrollWidth - e.clientWidth)).toBeLessThanOrEqual(0);
-  await expect(sheet).toContainText("“Thanks @Riley Chen, the review on exports step 3 taught me a lot”");
+  await expect(sheet).toContainText(
+    "“Thanks @Riley Chen, the review on exports step 3 taught me a lot”",
+  );
   await sheet.getByRole("button", { name: /close/ }).click();
   await expect(sheet).toBeHidden();
 });

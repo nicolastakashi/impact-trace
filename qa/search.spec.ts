@@ -2,7 +2,10 @@ import { expect, test } from "./helpers";
 
 const box = (page: any) => page.getByPlaceholder("Search items, people, views…");
 
-test("the header button opens search; typing filters threads, views and people", async ({ page, view }) => {
+test("the header button opens search; typing filters threads, views and people", async ({
+  page,
+  view,
+}) => {
   await view("goals");
   await page.getByRole("button", { name: /^Search/ }).click();
   await expect(box(page)).toBeFocused();
@@ -12,7 +15,9 @@ test("the header button opens search; typing filters threads, views and people",
   await expect(page.getByRole("option")).toHaveCount(12);
   await box(page).fill("part 2");
   await expect(page.getByRole("option")).toHaveCount(1);
-  await expect(page.getByRole("option", { name: /Retry exports on timeout, part 2/ })).toBeVisible();
+  await expect(
+    page.getByRole("option", { name: /Retry exports on timeout, part 2/ }),
+  ).toBeVisible();
   // People count: Blair praised three threads.
   await box(page).fill("blair");
   await expect(page.getByRole("option")).toHaveCount(3);
@@ -23,10 +28,19 @@ test("the header button opens search; typing filters threads, views and people",
 test("arrows move the selection; Enter goes to the view", async ({ page, view }) => {
   await view("setup");
   await page.keyboard.press("ControlOrMeta+k");
-  await expect(page.getByRole("option", { name: /Go to North/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("option", { name: /Go to North/ })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   await page.keyboard.press("ArrowDown");
-  await expect(page.getByRole("option", { name: /Go to Goals/ })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("option", { name: /Go to North/ })).toHaveAttribute("aria-selected", "false");
+  await expect(page.getByRole("option", { name: /Go to Goals/ })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByRole("option", { name: /Go to North/ })).toHaveAttribute(
+    "aria-selected",
+    "false",
+  );
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/#\/goals$/);
   await expect(box(page)).toBeHidden();

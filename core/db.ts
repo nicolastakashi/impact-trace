@@ -11,7 +11,10 @@ export const CONFIG = join(DATA, "config.json");
 // Who you are, from the setup page. Git-ignored, like the rest of data/.
 export type Config = { name: string; github: string; orgs: string[]; level: string };
 export function config(): Config {
-  if (!existsSync(CONFIG)) throw new Error("No data/config.json yet: run bun app/server.ts and open http://127.0.0.1:4317/#/setup");
+  if (!existsSync(CONFIG))
+    throw new Error(
+      "No data/config.json yet: run bun app/server.ts and open http://127.0.0.1:4317/#/setup",
+    );
   return JSON.parse(readFileSync(CONFIG, "utf8"));
 }
 export function open(path = join(DATA, "impact.db")) {
@@ -25,7 +28,9 @@ export function open(path = join(DATA, "impact.db")) {
 
 export function migrate(db: Database) {
   const dir = join(ROOT, "db/migrations");
-  const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+  const files = readdirSync(dir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
   const { user_version } = db.query("PRAGMA user_version").get() as { user_version: number };
   files.slice(user_version).forEach((f, i) =>
     db.transaction(() => {
@@ -36,12 +41,20 @@ export function migrate(db: Database) {
 }
 
 // Slack markup to what a person reads: <@U1|Ana> → @Ana, <url|label> → label, bare links dropped.
-export const plain = (t: string) => t.replace(/<@[A-Z0-9]+\|([^>]+)>/g, "@$1").replace(/<@[A-Z0-9]+>/g, "@someone").replace(/<#[A-Z0-9]+\|([^>]*)>/g, "#$1")
-  .replace(/<(?:https?|mailto):[^|>]+\|([^>]+)>/g, "$1").replace(/<(?:https?|mailto):[^>]+>/g, "").replace(/\s+/g, " ").trim();
+export const plain = (t: string) =>
+  t
+    .replace(/<@[A-Z0-9]+\|([^>]+)>/g, "@$1")
+    .replace(/<@[A-Z0-9]+>/g, "@someone")
+    .replace(/<#[A-Z0-9]+\|([^>]*)>/g, "#$1")
+    .replace(/<(?:https?|mailto):[^|>]+\|([^>]+)>/g, "$1")
+    .replace(/<(?:https?|mailto):[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
 // Midnight UTC of a day in an ISO week: 0 is Monday.
 export function dayOf(week: string, i: number) {
-  const [y, w] = week.split("-W").map(Number), jan4 = Date.UTC(y, 0, 4);
+  const [y, w] = week.split("-W").map(Number),
+    jan4 = Date.UTC(y, 0, 4);
   return jan4 - ((new Date(jan4).getUTCDay() + 6) % 7) * 864e5 + ((w - 1) * 7 + i) * 864e5;
 }
 

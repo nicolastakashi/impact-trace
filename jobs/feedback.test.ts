@@ -6,17 +6,58 @@ import { CATEGORIES, isoWeek, pendingMondays, verify } from "./feedback";
 test("feedback keeps only quotes found in your messages and counts markers itself", () => {
   const db = new Database(":memory:", { strict: true });
   migrate(db);
-  const ev = db.query("INSERT INTO events (id, source, kind, week, occurred_at, title, payload, run_id) VALUES (?, 'slack', 'slack_message', ?, ?, '#dev', ?, 'r')");
-  ev.run("slack:C/1", "2026-W41", "2026-10-06T10:00:00Z", JSON.stringify({ text: "I'm shipping it Friday, any objection?" }));
-  ev.run("slack:C/2", "2026-W42", "2026-10-13T10:00:00Z", JSON.stringify({ text: "Moving the gate today,  any objection?" }));
-  ev.run("slack:C/3", "2026-W42", "2026-10-14T10:00:00Z", JSON.stringify({ text: "wdyt? Also, this is unobjectionable" }));
+  const ev = db.query(
+    "INSERT INTO events (id, source, kind, week, occurred_at, title, payload, run_id) VALUES (?, 'slack', 'slack_message', ?, ?, '#dev', ?, 'r')",
+  );
+  ev.run(
+    "slack:C/1",
+    "2026-W41",
+    "2026-10-06T10:00:00Z",
+    JSON.stringify({ text: "I'm shipping it Friday, any objection?" }),
+  );
+  ev.run(
+    "slack:C/2",
+    "2026-W42",
+    "2026-10-13T10:00:00Z",
+    JSON.stringify({ text: "Moving the gate today,  any objection?" }),
+  );
+  ev.run(
+    "slack:C/3",
+    "2026-W42",
+    "2026-10-14T10:00:00Z",
+    JSON.stringify({ text: "wdyt? Also, this is unobjectionable" }),
+  );
   const v = verify(db, "2026-W42", {
     patterns: [
-      { category: "permission", why: "", markers: ["Any objection", "wdyt"], evidence: [{ quote: "Moving the gate today, any objection?", instead: "" }, { quote: "shipping it Friday", instead: "" }] },
+      {
+        category: "permission",
+        why: "",
+        markers: ["Any objection", "wdyt"],
+        evidence: [
+          { quote: "Moving the gate today, any objection?", instead: "" },
+          { quote: "shipping it Friday", instead: "" },
+        ],
+      },
       // A made-up quote is dropped, and a pattern left with one quote goes with it.
       // A category outside the catalog is dropped, even with real quotes.
-      { category: "smaller-asks", why: "", markers: ["any objection"], evidence: [{ quote: "Moving the gate today, any objection?", instead: "" }, { quote: "shipping it Friday", instead: "" }] },
-      { category: "fact-hedge", why: "", markers: ["sorry"], evidence: [{ quote: "sorry to bother you all", instead: "" }, { quote: "wdyt? Also", instead: "" }] },
+      {
+        category: "smaller-asks",
+        why: "",
+        markers: ["any objection"],
+        evidence: [
+          { quote: "Moving the gate today, any objection?", instead: "" },
+          { quote: "shipping it Friday", instead: "" },
+        ],
+      },
+      {
+        category: "fact-hedge",
+        why: "",
+        markers: ["sorry"],
+        evidence: [
+          { quote: "sorry to bother you all", instead: "" },
+          { quote: "wdyt? Also", instead: "" },
+        ],
+      },
     ],
     strength: { category: "intent", why: "", evidence: [{ quote: "never said this at all" }] },
     experiment: { pattern: "permission", do: "Say what you will do." },
@@ -27,7 +68,9 @@ test("feedback keeps only quotes found in your messages and counts markers itsel
   expect(v.patterns[0].evidence.map((e: any) => e.week)).toEqual(["2026-W42", "2026-W41"]);
   expect(v.patterns[0].trend).toEqual([1, 2]);
   // The one counted message without a quote is listed, so 3 counted = 2 quotes + 1 match.
-  expect(v.patterns[0].matches.map((m: any) => m.text)).toEqual(["wdyt? Also, this is unobjectionable"]);
+  expect(v.patterns[0].matches.map((m: any) => m.text)).toEqual([
+    "wdyt? Also, this is unobjectionable",
+  ]);
   expect(v.experiment?.trend).toEqual([1, 2]);
   expect(v.strength).toBeNull();
   expect(v.dropped).toBe(4);
@@ -56,6 +99,10 @@ test("every category has a source to show", () => {
   for (const c of CATEGORIES) {
     expect(["pattern", "strength"]).toContain(c.kind);
     expect(c.refs.length).toBeGreaterThan(0);
-    for (const r of c.refs) { expect(r.url).toMatch(/^https:\/\//); expect(r.q ?? r.says).toBeTruthy(); expect(r.who).toBeTruthy(); }
+    for (const r of c.refs) {
+      expect(r.url).toMatch(/^https:\/\//);
+      expect(r.q ?? r.says).toBeTruthy();
+      expect(r.who).toBeTruthy();
+    }
   }
 });

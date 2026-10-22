@@ -12,8 +12,10 @@ export const buttonVariants = cva(
         outline: "border bg-card hover:bg-accent hover:text-accent-foreground",
         secondary: "bg-secondary text-secondary-foreground hover:bg-accent",
         ghost: "hover:bg-accent hover:text-accent-foreground",
-        dashed: "border border-dashed font-mono text-xs font-medium text-ink-2 hover:border-ink-2 hover:text-ink",
-        "dashed-destructive": "border border-dashed border-brand/50 font-mono text-xs font-medium text-brand hover:bg-brand/10",
+        dashed:
+          "border border-dashed font-mono text-xs font-medium text-ink-2 hover:border-ink-2 hover:text-ink",
+        "dashed-destructive":
+          "border border-dashed border-brand/50 font-mono text-xs font-medium text-brand hover:bg-brand/10",
         link: "text-ink-2 underline-offset-4 hover:text-ink hover:underline",
       },
       size: {
@@ -29,7 +31,19 @@ export const buttonVariants = cva(
   },
 );
 
-export function Button({ className, variant, size, asChild = false, ...props }: React.ComponentProps<"button"> & VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
+export function Button({
+  className,
+  variant,
+  size,
+  asChild = false,
+  ...props
+}: React.ComponentProps<"button"> & VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
   const Comp = asChild ? Slot : "button";
-  return <Comp data-slot="button" className={cn(buttonVariants({ variant, size, className }))} {...props} />;
+  return (
+    <Comp
+      data-slot="button"
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    />
+  );
 }

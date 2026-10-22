@@ -13,12 +13,26 @@ import page from "../web/index.html";
 // Fictional example data for North, Trace and Feedback, before you keep a thread.
 import SAMPLE_DATA from "./sample.json";
 
-const mention = (b: any) => typeof b?.id === "string" && correct(db, b.id, b.kind ?? null) ? Response.json({ ok: true }) : new Response("Unknown mention or kind", { status: 400 });
+const mention = (b: any) =>
+  typeof b?.id === "string" && correct(db, b.id, b.kind ?? null)
+    ? Response.json({ ok: true })
+    : new Response("Unknown mention or kind", { status: 400 });
 // Writes take a JSON body. Each handler checks its own fields.
 const POST: Record<string, (b: any) => Response> = {
-  "/api/setup": saveSetup, "/api/mention": mention, "/api/labels": decide, "/api/unassign": unassign,
-  "/api/group": group, "/api/merge": merge, "/api/delete": del, "/api/restore": restore, "/api/unmerge": unmerge,
-  "/api/feedback": verdict, "/api/goal": saveGoal, "/api/draft-dismiss": dismissDraft, "/api/checkin": checkin, "/api/goal-link": linkGoal,
+  "/api/setup": saveSetup,
+  "/api/mention": mention,
+  "/api/labels": decide,
+  "/api/unassign": unassign,
+  "/api/group": group,
+  "/api/merge": merge,
+  "/api/delete": del,
+  "/api/restore": restore,
+  "/api/unmerge": unmerge,
+  "/api/feedback": verdict,
+  "/api/goal": saveGoal,
+  "/api/draft-dismiss": dismissDraft,
+  "/api/checkin": checkin,
+  "/api/goal-link": linkGoal,
 };
 const GET: Record<string, (q: URLSearchParams) => Response> = {
   "/api/setup": (q) => setup(q.has("guess")),
@@ -27,16 +41,25 @@ const GET: Record<string, (q: URLSearchParams) => Response> = {
   "/api/project": (q) => project(q.get("id") ?? ""),
   "/api/review": (q) => {
     const left = Object.entries(pending()).find(([, n]) => n > 0);
-    const week = q.get("week") ?? left?.[0] ?? (db.query("SELECT max(week) w FROM labels").get() as any).w;
-    return WEEK.test(week ?? "") ? Response.json(review(week)) : Response.json({ week: null, weeks: [], threads: [] });
+    const week =
+      q.get("week") ?? left?.[0] ?? (db.query("SELECT max(week) w FROM labels").get() as any).w;
+    return WEEK.test(week ?? "")
+      ? Response.json(review(week))
+      : Response.json({ week: null, weeks: [], threads: [] });
   },
   // Same data as North, as JSON, for jobs/facts.ts. No sample: facts are only ever yours.
-  "/api/facts": () => { const d = north(); return d ? Response.json({ ...d, OBJECTIVES: goalList().goals }) : new Response("No kept threads yet", { status: 404 }); },
+  "/api/facts": () => {
+    const d = north();
+    return d
+      ? Response.json({ ...d, OBJECTIVES: goalList().goals })
+      : new Response("No kept threads yet", { status: 404 });
+  },
   // North, Trace, Feedback and Search: your kept threads, or the sample with SAMPLE: true.
   // The feedback categories and their sources come with the data, the example too.
   "/api/north": () => Response.json({ FB_CATS: CATEGORIES, ...(north() ?? SAMPLE_DATA) }),
   "/api/goals": () => Response.json(goalList()),
-  "/api/projects": (q) => Response.json(projects((q.get("weeks") ?? "").split(",").filter((w) => WEEK.test(w)))),
+  "/api/projects": (q) =>
+    Response.json(projects((q.get("weeks") ?? "").split(",").filter((w) => WEEK.test(w)))),
 };
 
 const server = Bun.serve({
@@ -50,13 +73,23 @@ const server = Bun.serve({
   // /next/ was the app while it moved to React: old links land on the app.
   routes: { "/": page, "/next/": Response.redirect("/", 301) },
   async fetch(req) {
-    const url = new URL(req.url), path = url.pathname;
+    const url = new URL(req.url),
+      path = url.pathname;
     reopen();
     // Old addresses: review and groups now live inside the one page.
-    if (path === "/review" || path === "/groups") return new Response(null, { status: 302, headers: { location: `/#${path === "/groups" ? "/projects" : path}${url.search}` } });
+    if (path === "/review" || path === "/groups")
+      return new Response(null, {
+        status: 302,
+        headers: { location: `/#${path === "/groups" ? "/projects" : path}${url.search}` },
+      });
     if (req.method === "GET" && GET[path]) return GET[path](url.searchParams);
     // A JSON content type forces a CORS preflight, so other sites cannot post here.
-    if (req.method === "POST" && req.headers.get("content-type") === "application/json" && POST[path]) return POST[path](await req.json().catch(() => null));
+    if (
+      req.method === "POST" &&
+      req.headers.get("content-type") === "application/json" &&
+      POST[path]
+    )
+      return POST[path](await req.json().catch(() => null));
     return new Response("Not found", { status: 404 });
   },
 });

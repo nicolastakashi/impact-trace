@@ -10,7 +10,8 @@ const recap = async (page: any) => {
   await page.keyboard.press("Enter");
 };
 // Only the recap's text: the view behind it may say the same words.
-const see = (page: any, t: string | RegExp, exact?: boolean) => page.getByText(t, { exact }).filter({ visible: true });
+const see = (page: any, t: string | RegExp, exact?: boolean) =>
+  page.getByText(t, { exact }).filter({ visible: true });
 
 test("the recap starts with the period and steps with keys and taps", async ({ page, view }) => {
   await view("setup");
@@ -33,7 +34,9 @@ test("the recap starts with the period and steps with keys and taps", async ({ p
   await expect(see(page, "3 threads kept")).toBeVisible();
   await expect(see(page, "Retry exports on timeout, part 1")).toBeVisible();
   await page.getByRole("button", { name: "next" }).click();
-  await expect(see(page, "“Thanks @Riley Chen, the review on exports step 3 taught me a lot”")).toBeVisible();
+  await expect(
+    see(page, "“Thanks @Riley Chen, the review on exports step 3 taught me a lot”"),
+  ).toBeVisible();
   await expect(see(page, "Blair Ito")).toBeVisible();
 });
 
