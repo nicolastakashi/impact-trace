@@ -49,8 +49,13 @@ PLIST
       echo "━━ this week so far" >> "$log"
       ./run.sh "$(date -v-$(( $(date +%u) - 1 ))d +%F)" >> "$log" 2>&1 || failed=1
     fi
-    # A failure retries on its own, but a broken login would fail every day in silence: say so.
-    [ "$failed" = 0 ] || osascript -e "display notification \"A run failed. See $log\" with title \"impact-trace\"" 2>/dev/null || true
+    # A failure retries on its own, but a broken login would fail every day in silence: say so,
+    # and name the sources whose count was short, so you know what to check.
+    if [ "$failed" != 0 ]; then
+      short=$(sed -n 's/^✗ \([a-z_0-9]*\) [0-9]\{4\}-W[0-9]\{2\}: .*/\1/p' "$log" | sort -u | paste -sd, - | sed 's/,/, /g')
+      message=${short:+"Short count: $short. Tomorrow retries. See $log"}
+      osascript -e "display notification \"${message:-A run failed. See $log}\" with title \"impact-trace\"" 2>/dev/null || true
+    fi
     exit $failed
     ;;
   *) echo "usage: ./schedule.sh install | remove | run" >&2; exit 2 ;;

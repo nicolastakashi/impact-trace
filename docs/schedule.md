@@ -5,7 +5,7 @@ launchd runs `./schedule.sh run` on weekdays at 18:00. Install with `./schedule.
 ```
 18:00 ━▶ 📅 close ended weeks with no feedback, oldest first
        ━▶ 📥 collect this week so far (not on Monday)
-       ━▶ 🔔 macOS notification if any run failed
+       ━▶ 🔔 macOS notification if any run failed, naming short sources
 ```
 
 ## Why it works this way
@@ -13,6 +13,8 @@ launchd runs `./schedule.sh run` on weekdays at 18:00. Install with `./schedule.
 - **No gaps.** A Monday the Mac slept through, a failed run or a week off all leave a week
   with no feedback. The next run finds those weeks (up to 8 back) and closes them first.
 - **One failure does not stop the rest.** Each week is logged and the run moves on.
+- **A short count still labels the week.** The threads you review get titles and summaries.
+  The week stays flagged: no feedback, so the next run collects it again.
 - **Loud on errors.** If the list of pending weeks cannot be read, the run stops instead of
   reading it as "nothing to do".
 - **Collection runs on your Mac,** not in Docker. It needs your Claude Code login and claude.ai
