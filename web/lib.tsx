@@ -123,15 +123,15 @@ export const CloseButton = ({
 );
 
 // North, Trace, Feedback and Search read one object: your kept threads, or the sample.
-// Same shape as app/sample.json; SAMPLE is true only for the sample.
+// Same shape as app/sample.json; sample is true only for the sample.
 export type North = Record<string, any> & {
-  WEEKS: string[];
-  ITEMS: any[];
-  GOALS: any[];
-  PROJECTS: Record<string, any>;
-  REC: any[];
-  FEEDBACK: any[];
-  SAMPLE?: boolean;
+  weeks: string[];
+  threads: any[];
+  goals: any[];
+  projects: Record<string, any>;
+  praise: any[];
+  feedback: any[];
+  sample?: boolean;
 };
 let north: Promise<North> | null = null;
 export const loadNorth = (fresh = false) =>
@@ -157,13 +157,13 @@ export const PILLAR: Record<string, string> = {
   exec: "execution",
   level: "leveling-up",
 };
-export const WMS: Record<string, string> = {
+export const WITHOUT_ME_LABELS: Record<string, string> = {
   wouldnt: "wouldn't happen",
   slower: "slower",
   same: "same",
 };
-export const mc = (mode: string) => `var(--m-${mode})`;
-export const cnt = <T,>(values: T[], keyOf: (value: T) => string) =>
+export const modeColor = (mode: string) => `var(--m-${mode})`;
+export const countBy = <T,>(values: T[], keyOf: (value: T) => string) =>
   values.reduce(
     (counts, value) => {
       const key = keyOf(value);
@@ -181,24 +181,25 @@ export const plural = (count: number, word: string) => `${count} ${word}${count 
 
 // "2026-W43" → "W43".
 export const shortWeek = (week: string) => week.slice(5);
-export const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 // "Tue 09:05", in this browser's time zone.
-export const fmtWhen = (time: number) => {
+export const formatWhen = (time: number) => {
   const date = new Date(time);
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${DOW[(date.getDay() + 6) % 7]} ${hours}:${minutes}`;
+  return `${WEEKDAYS[(date.getDay() + 6) % 7]} ${hours}:${minutes}`;
 };
 
 // The goals a thread serves. The sample names one goal per project instead.
 export const goalsOf = (north: North, thread: any): string[] =>
-  thread.g ?? (north.PROJECTS[thread.s]?.goal ? [north.PROJECTS[thread.s].goal] : []);
+  thread.goalIds ??
+  (north.projects[thread.projectId]?.goalId ? [north.projects[thread.projectId].goalId] : []);
 // The ISO year of a week index: a window across New Year starts in the old year.
 export const yearOf = (north: North, week: number) =>
-  +north.PERIOD.slice(0, 4) + (+north.WEEKS[week]!.slice(1) < +north.WEEKS[0]!.slice(1) ? 1 : 0);
+  +north.period.slice(0, 4) + (+north.weeks[week]!.slice(1) < +north.weeks[0]!.slice(1) ? 1 : 0);
 // Where you change a thread's answers.
 export const reviewHref = (north: North, thread: any) =>
-  `#/review?week=${yearOf(north, thread.w)}-${north.WEEKS[thread.w]}&key=${encodeURIComponent(thread.id)}`;
+  `#/review?week=${yearOf(north, thread.weekIndex)}-${north.weeks[thread.weekIndex]}&key=${encodeURIComponent(thread.id)}`;
 
 // Count axis: a step of 1, 2 or 5 times a power of ten, at most 5 gridlines above zero.
 export const axis = (max: number) => {
@@ -238,7 +239,8 @@ export const countUp = (element: HTMLElement, end: number, duration: number) => 
 };
 
 // Overlays any view can open: one thread's sheet, the Wrapped story, search.
-export const openItem = (id: string) => dispatchEvent(new CustomEvent("open-item", { detail: id }));
+export const openThread = (id: string) =>
+  dispatchEvent(new CustomEvent("open-thread", { detail: id }));
 export const openStory = () => dispatchEvent(new Event("open-story"));
 export const openSearch = () => dispatchEvent(new Event("open-search"));
 export function useEvent<T = unknown>(name: string, on: (detail: T) => void) {

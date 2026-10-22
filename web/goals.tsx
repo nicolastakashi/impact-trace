@@ -28,7 +28,7 @@ function quarterChoices() {
 const onTrackAt = (type: string) => (type === "committed" ? 1 : 0.7);
 // The objective's score: the mean of its key results that have numbers.
 const goalScore = (goal: Data) => {
-  const scores = goal.krs
+  const scores = goal.keyResults
     .map((keyResult: Data) => keyResult.progress)
     .filter((progress: Data) => progress != null);
   if (!scores.length) return null;
@@ -81,7 +81,7 @@ export function Goals({ focus }: { focus: string | null }) {
     await load();
   }
   async function addDraft(goal: Data) {
-    if (!goal.krs.length) return toast("Keep at least one key result");
+    if (!goal.keyResults.length) return toast("Keep at least one key result");
     await act("/api/goal", goal, `Added: ${goal.title}`);
   }
   const skipDraft = (id: number) => act("/api/draft-dismiss", { id }, "Skipped. The draft is gone");
@@ -409,7 +409,7 @@ const formFields = (goal: Data) => ({
   kind: goal.kind ?? "team",
   type: goal.type ?? "aspirational",
   quarter: goal.quarter ?? "",
-  krs: (goal.krs?.length ? goal.krs : [{}]).map(
+  keyResults: (goal.keyResults?.length ? goal.keyResults : [{}]).map(
     (keyResult: Data): KeyResultFields => ({
       text: keyResult.text ?? "",
       metric: keyResult.metric ?? "",
@@ -445,16 +445,16 @@ function GoalForm({
     const selector =
       moved === "add" ? "#go-form [data-kr]:last-of-type input" : "#kr-add, #go-title";
     (document.querySelector(selector) as HTMLElement)?.focus();
-  }, [moved, fields.krs.length]);
+  }, [moved, fields.keyResults.length]);
   const setField = (patch: Partial<typeof fields>) => setFields({ ...fields, ...patch });
   const changeKeyResult = (index: number, patch: Partial<KeyResultFields>) =>
     setField({
-      krs: fields.krs.map((keyResult: KeyResultFields, position: number) =>
+      keyResults: fields.keyResults.map((keyResult: KeyResultFields, position: number) =>
         position === index ? { ...keyResult, ...patch } : keyResult,
       ),
     });
   const setKeyResults = (keyResults: KeyResultFields[], how: "add" | "del") => {
-    setField({ krs: keyResults });
+    setField({ keyResults });
     setError("");
     setMoved(how);
   };
@@ -465,7 +465,7 @@ function GoalForm({
       draft_id: goal.draft_id ?? null,
       ...fields,
       quarter: fields.quarter || null,
-      krs: fields.krs
+      keyResults: fields.keyResults
         .map((keyResult: KeyResultFields) => ({ ...keyResult, metric: keyResult.metric || null }))
         .filter((keyResult) => keyResult.text.trim() || keyResult.start || keyResult.target),
     };
@@ -544,7 +544,7 @@ function GoalForm({
               2 to 4. Each is a number with a start and a target, so you can tell when it is done.
             </span>
           </legend>
-          {fields.krs.map((keyResult: KeyResultFields, index: number) => (
+          {fields.keyResults.map((keyResult: KeyResultFields, index: number) => (
             <KeyResultRow
               key={index}
               data={data}
@@ -553,19 +553,21 @@ function GoalForm({
               change={(patch) => changeKeyResult(index, patch)}
               remove={() =>
                 setKeyResults(
-                  fields.krs.filter((_: KeyResultFields, position: number) => position !== index),
+                  fields.keyResults.filter(
+                    (_: KeyResultFields, position: number) => position !== index,
+                  ),
                   "del",
                 )
               }
             />
           ))}
-          {fields.krs.length < 5 ? (
+          {fields.keyResults.length < 5 ? (
             <Button
               type="button"
               variant="outline"
               className="justify-self-start font-mono text-[13px] tracking-wider uppercase"
               id="kr-add"
-              onClick={() => setKeyResults([...fields.krs, { ...emptyKeyResult }], "add")}
+              onClick={() => setKeyResults([...fields.keyResults, { ...emptyKeyResult }], "add")}
             >
               <Plus />
               key result
@@ -600,7 +602,7 @@ function keyResultRange(keyResult: Data, unit: string) {
 function keyResultSource(name: string | undefined, isMilestone: boolean, metric: Data) {
   if (!name) return "you update it";
   if (isMilestone) return `measured: ${name}`;
-  const window = metric?.agg === "total" ? ", this quarter so far" : ", last 4 weeks";
+  const window = metric?.aggregation === "total" ? ", this quarter so far" : ", last 4 weeks";
   return `measured: ${name}${window}`;
 }
 
@@ -660,9 +662,9 @@ function GoalRow({ data, goal, open }: { data: Data; goal: Data; open: () => voi
       </span>
       <span
         className="col-span-full row-start-2 flex gap-1 sm:col-auto sm:row-auto"
-        aria-label={`${goal.krs.length} key results`}
+        aria-label={`${goal.keyResults.length} key results`}
       >
-        {goal.krs.map((keyResult: Data, index: number) => (
+        {goal.keyResults.map((keyResult: Data, index: number) => (
           <i
             key={index}
             title={keyResult.text}
@@ -941,9 +943,9 @@ function GoalCard({
           {goal.description}
         </p>
       )}
-      {goal.krs.length ? (
+      {goal.keyResults.length ? (
         <ol className="m-0 grid max-w-190 list-none gap-3 p-0">
-          {goal.krs.map((keyResult: Data, index: number) => (
+          {goal.keyResults.map((keyResult: Data, index: number) => (
             <KeyResult key={index} data={data} keyResult={keyResult} type={goal.type} />
           ))}
         </ol>
@@ -1076,7 +1078,7 @@ function unitOf(data: Data, key: string) {
   if (key.startsWith("milestone:")) return "%";
   const metric = metricOf(data, key);
   if (!metric) return "";
-  return metric.unit + (metric.agg === "total" ? " this quarter" : "");
+  return metric.unit + (metric.aggregation === "total" ? " this quarter" : "");
 }
 // What measures a draft's key result.
 function measuredBy(data: Data, key: string) {
@@ -1207,7 +1209,7 @@ function DraftCard({
   const draft = data.drafts[index];
   const count = data.drafts.length;
   const [choices, setChoices] = useState<DraftKeyResult[]>(() =>
-    draft.krs.map((keyResult: Data) => ({
+    draft.keyResults.map((keyResult: Data) => ({
       keep: true,
       start: asText(keyResult.start),
       target: asText(keyResult.target),
@@ -1225,7 +1227,7 @@ function DraftCard({
     type: draft.type,
     quarter: draft.quarter,
     draft_id: draft.id,
-    krs: draft.krs.flatMap((keyResult: Data, position: number) => {
+    keyResults: draft.keyResults.flatMap((keyResult: Data, position: number) => {
       const choice = choices[position]!;
       if (!choice.keep) return [];
       const start = keyResult.metric ? keyResult.start : choice.start;
@@ -1282,7 +1284,7 @@ function DraftCard({
           ))}
         </div>
         <ol className="m-0 mt-1 grid list-none border-t border-line p-0">
-          {draft.krs.map((keyResult: Data, position: number) => (
+          {draft.keyResults.map((keyResult: Data, position: number) => (
             <DraftKeyResultRow
               key={position}
               data={data}
@@ -1312,4 +1314,4 @@ function DraftCard({
   );
 }
 
-export const View = ({ p: params }: { p: URLSearchParams }) => <Goals focus={params.get("id")} />;
+export const View = ({ params }: { params: URLSearchParams }) => <Goals focus={params.get("id")} />;

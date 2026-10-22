@@ -33,7 +33,7 @@ const POST: Record<string, (body: any) => Response> = {
   "/api/mention": mention,
   "/api/labels": decide,
   "/api/unassign": unassign,
-  "/api/group": assignThread,
+  "/api/thread-project": assignThread,
   "/api/merge": merge,
   "/api/delete": deleteProject,
   "/api/restore": restore,
@@ -46,7 +46,7 @@ const POST: Record<string, (body: any) => Response> = {
 };
 const GET: Record<string, (params: URLSearchParams) => Response> = {
   "/api/setup": (params) => setup(params.has("guess")),
-  "/api/groups": () => Response.json(projectThreads()),
+  "/api/project-threads": () => Response.json(projectThreads()),
   "/api/pending": () => Response.json(pending()),
   "/api/project": (params) => project(params.get("id") ?? ""),
   "/api/review": (params) => {
@@ -64,12 +64,13 @@ const GET: Record<string, (params: URLSearchParams) => Response> = {
   "/api/facts": () => {
     const data = north();
     return data
-      ? Response.json({ ...data, OBJECTIVES: goalList().goals })
+      ? Response.json({ ...data, goalDetails: goalList().goals })
       : new Response("No kept threads yet", { status: 404 });
   },
-  // North, Trace, Feedback and Search: your kept threads, or the sample with SAMPLE: true.
+  // North, Trace, Feedback and Search: your kept threads, or the sample with sample: true.
   // The feedback categories and their sources come with the data, the example too.
-  "/api/north": () => Response.json({ FB_CATS: CATEGORIES, ...(north() ?? SAMPLE_DATA) }),
+  "/api/north": () =>
+    Response.json({ feedbackCategories: CATEGORIES, ...(north() ?? SAMPLE_DATA) }),
   "/api/goals": () => Response.json(goalList()),
   "/api/projects": (params) =>
     Response.json(

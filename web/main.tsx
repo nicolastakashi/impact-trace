@@ -15,7 +15,7 @@ import * as refs from "./refs";
 import * as story from "./story";
 import * as search from "./search";
 
-type ViewModule = { View: (props: { p: URLSearchParams }) => React.ReactNode };
+type ViewModule = { View: (props: { params: URLSearchParams }) => React.ReactNode };
 const VIEWS: Record<string, ViewModule> = {
   home,
   goals,
@@ -72,7 +72,7 @@ function useIsSample() {
   const [sample, setSample] = useState(false);
   useEffect(() => {
     loadNorth()
-      .then((north) => setSample(!!north.SAMPLE))
+      .then((north) => setSample(!!north.sample))
       .catch(() => {});
   }, []);
   return sample;
@@ -182,11 +182,11 @@ function App() {
     <>
       <div className="wrap">
         <Header current={route.view} />
-        <Current key={route.view} p={route.params} />
+        <Current key={route.view} params={route.params} />
       </div>
       <ThreadSheet />
-      <story.View p={route.params} />
-      <search.View p={route.params} />
+      <story.View params={route.params} />
+      <search.View params={route.params} />
       <Toast />
     </>
   );

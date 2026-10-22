@@ -2,7 +2,7 @@
 import { useEffect, useReducer, useRef } from "react";
 import { ArrowLeft, ArrowRight, ChevronDown, ChevronUp, XIcon } from "lucide-react";
 import gsap from "gsap";
-import { cnt as countBy, MODES, mc as modeColor, PILLAR, reduced, toast } from "./lib";
+import { countBy, MODES, modeColor, PILLAR, reduced, toast } from "./lib";
 import { Button } from "./ui/button";
 import { cn } from "./ui/cn";
 import { Input, NativeSelect, Textarea } from "./ui/input";
@@ -215,9 +215,9 @@ export function Review({ params }: { params: URLSearchParams }) {
   const query = state.query.trim();
   const lowerQuery = query.toLowerCase();
   const results: PickerRow[] = data
-    ? data.groups.filter((project: Data) => project.name.toLowerCase().includes(lowerQuery))
+    ? data.projects.filter((project: Data) => project.name.toLowerCase().includes(lowerQuery))
     : [];
-  if (query && !data.groups.some((project: Data) => project.name.toLowerCase() === lowerQuery))
+  if (query && !data.projects.some((project: Data) => project.name.toLowerCase() === lowerQuery))
     results.push({ create: query });
   const selected = Math.min(state.selected, Math.max(results.length - 1, 0));
   const openPicker = () => {
@@ -237,9 +237,9 @@ export function Review({ params }: { params: URLSearchParams }) {
     const body = {
       week: data.week,
       key: target.key,
-      ...(row.create ? { name: row.create } : { group_id: row.id }),
+      ...(row.create ? { name: row.create } : { projectId: row.id }),
     };
-    if (!(await send("/api/group", body, "Not moved: "))) return;
+    if (!(await send("/api/thread-project", body, "Not moved: "))) return;
     state.pickerOpen = false;
     await reloadAt(target.events[0].id);
     toast(row.create ? `Created ${row.create}` : `Moved to ${row.name}`);
@@ -366,7 +366,7 @@ export function Review({ params }: { params: URLSearchParams }) {
 
   const draft = draftOf(thread);
   const evidence = new Set<string>(JSON.parse(thread.claude.evidence ?? "[]"));
-  const back = from && data.groups.find((project: Data) => project.id === from);
+  const back = from && data.projects.find((project: Data) => project.id === from);
   return (
     <section className="view" id="v-review">
       {head}
@@ -1024,4 +1024,4 @@ function Segments({
 }
 
 // The router passes the address parameters as `p`.
-export const View = ({ p: params }: { p: URLSearchParams }) => <Review params={params} />;
+export const View = ({ params }: { params: URLSearchParams }) => <Review params={params} />;

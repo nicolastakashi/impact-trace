@@ -44,85 +44,87 @@ function outsideHours(timeZone: string) {
 
 function weekRows(data: any, timeZone: string) {
   const late = outsideHours(timeZone);
-  const numbers = data.NUMS;
-  const year = data.PERIOD.slice(0, 4);
+  const numbers = data.numbers;
+  const year = data.period.slice(0, 4);
   // ponytail: an 8-week window across New Year labels the old weeks with the new year; fine until January.
-  return data.WEEKS.map((weekName: string, weekIndex: number) => {
-    const kept = data.ITEMS.filter((thread: any) => thread.w === weekIndex);
+  return data.weeks.map((weekName: string, weekIndex: number) => {
+    const kept = data.threads.filter((thread: any) => thread.weekIndex === weekIndex);
     const slackTimes = numbers.slackAt[weekIndex];
     return {
       week: `${year}-${weekName}`,
       kept: kept.length,
       mode: tally(kept.map((thread: any) => thread.mode)),
       pillar: tally(kept.map((thread: any) => thread.pillar)),
-      without_me: tally(kept.map((thread: any) => thread.wm)),
-      prs_reviewed: data.REVIEWS[weekIndex],
+      without_me: tally(kept.map((thread: any) => thread.withoutMe)),
+      prs_reviewed: data.reviewsGiven[weekIndex],
       prs_opened: numbers.opened[weekIndex],
       prs_merged: numbers.merged[weekIndex],
-      review_requests_direct: numbers.asked_direct?.[weekIndex] ?? null,
-      review_requests_team: numbers.asked_team?.[weekIndex] ?? null,
+      review_requests_direct: numbers.reviewRequestsDirect?.[weekIndex] ?? null,
+      review_requests_team: numbers.reviewRequestsTeam?.[weekIndex] ?? null,
       give_vs_take: numbers.opened[weekIndex]
-        ? +(data.REVIEWS[weekIndex] / numbers.opened[weekIndex]).toFixed(2)
+        ? +(data.reviewsGiven[weekIndex] / numbers.opened[weekIndex]).toFixed(2)
         : null,
-      lead_time_h: numbers.lead[weekIndex],
-      slack_messages: numbers.slack[weekIndex],
-      slack_channels: numbers.channels[weekIndex],
-      outside_hours_pct: slackTimes.length
+      lead_time_hours: numbers.leadTimeHours[weekIndex],
+      slack_messages: numbers.slackMessages[weekIndex],
+      slack_channels: numbers.slackChannels[weekIndex],
+      outside_hours_percent: slackTimes.length
         ? Math.round((slackTimes.filter(late).length / slackTimes.length) * 100)
         : null,
-      meeting_h: numbers.meetings[weekIndex],
+      meeting_hours: numbers.meetingHours[weekIndex],
       people_mentioning: numbers.reach[weekIndex],
-      praise: data.REC.filter((praise: any) => praise.w === weekIndex).length,
+      praise: data.praise.filter((praise: any) => praise.weekIndex === weekIndex).length,
     };
   });
 }
 
 function totals(data: any) {
-  const threads = data.ITEMS;
+  const threads = data.threads;
   return {
     kept: threads.length,
     mode: tally(threads.map((thread: any) => thread.mode)),
     pillar: tally(threads.map((thread: any) => thread.pillar)),
-    without_me: tally(threads.map((thread: any) => thread.wm)),
+    without_me: tally(threads.map((thread: any) => thread.withoutMe)),
     goals: Object.fromEntries(
-      data.GOALS.map((goal: any) => [
+      data.goals.map((goal: any) => [
         goal.title,
-        threads.filter((thread: any) => thread.g.includes(goal.id)).length,
+        threads.filter((thread: any) => thread.goalIds.includes(goal.id)).length,
       ]),
     ),
-    no_goal: threads.filter((thread: any) => !thread.g.length).length,
-    project: tally(threads.map((thread: any) => data.PROJECTS[thread.s]?.name ?? thread.s)),
+    no_goal: threads.filter((thread: any) => !thread.goalIds.length).length,
+    project: tally(
+      threads.map((thread: any) => data.projects[thread.projectId]?.name ?? thread.projectId),
+    ),
   };
 }
 
 // One thread in full, as Trace shows it.
 function threadOf(data: any, weeks: any[]) {
-  const goalTitle = Object.fromEntries(data.GOALS.map((goal: any) => [goal.id, goal.title]));
+  const goalTitle = Object.fromEntries(data.goals.map((goal: any) => [goal.id, goal.title]));
   return (thread: any) => ({
     id: thread.id,
-    week: weeks[thread.w].week,
+    week: weeks[thread.weekIndex].week,
     title: thread.title,
     summary: thread.summary,
     mode: thread.mode,
     pillar: thread.pillar,
-    without_me: thread.wm,
-    labels_by: thread.by,
-    events: tally(thread.ev.map((event: any) => event[0])),
-    project: data.PROJECTS[thread.s]?.name ?? thread.s,
-    goals: thread.g.map((goalId: string) => goalTitle[goalId] ?? goalId),
+    without_me: thread.withoutMe,
+    labels_by: thread.labelsBy,
+    events: tally(thread.events.map((event: any) => event[0])),
+    project: data.projects[thread.projectId]?.name ?? thread.projectId,
+    goals: thread.goalIds.map((goalId: string) => goalTitle[goalId] ?? goalId),
     links: thread.links.map(([source, title, url]: string[]) => ({ source, title, url })),
   });
 }
 
 // Your goals with their key results. "now" is code's: a rate over the last 4 closed weeks, or what you typed.
 const goals = (data: any) =>
-  (data.OBJECTIVES ?? []).map((goal: any) => ({
+  (data.goalDetails ?? []).map((goal: any) => ({
     title: goal.title,
     description: goal.description ?? null,
     kind: goal.kind,
     type: goal.type,
     quarter: goal.quarter,
-    key_results: goal.krs.map((keyResult: any) => ({
+    key_results: goal.keyResults.map((keyResult: any) => ({
       text: keyResult.text,
       measured_by: keyResult.metric ?? "you",
       start: keyResult.start,
@@ -138,7 +140,7 @@ const goals = (data: any) =>
 
 // Feedback has its own 8 weeks (it ends with the last closed week): per_week follows `weeks`.
 function feedback(data: any) {
-  const latest = data.FEEDBACK[0];
+  const latest = data.feedback[0];
   if (!latest) return null;
   return {
     week: latest.week,
@@ -146,7 +148,7 @@ function feedback(data: any) {
     patterns: latest.patterns.map((pattern: any) => ({
       name: pattern.name,
       per_week: pattern.trend,
-      your_verdict: latest.verdicts?.[`pattern:${pattern.name}`]?.v ?? null,
+      your_verdict: latest.verdicts?.[`pattern:${pattern.name}`]?.verdict ?? null,
       examples: pattern.evidence.map((example: any) => ({
         week: example.week,
         quote: example.quote,
@@ -154,7 +156,7 @@ function feedback(data: any) {
       })),
     })),
     strength: latest.strength
-      ? { name: latest.strength.name, your_verdict: latest.verdicts?.strength?.v ?? null }
+      ? { name: latest.strength.name, your_verdict: latest.verdicts?.strength?.verdict ?? null }
       : null,
   };
 }
@@ -163,42 +165,46 @@ export function facts(data: any, timeZone: string, week?: string) {
   const weeks = weekRows(data, timeZone);
   const threadOfWeek = threadOf(data, weeks);
   const out: any = {
-    period: data.PERIOD,
+    period: data.period,
     time_zone: timeZone,
     rules: RULES,
     totals: totals(data),
     weeks,
-    objectives: goals(data),
+    goals: goals(data),
     // Praise Claude found and code checked (the quote is in the message), and who asks you for things.
-    recognition: data.REC.map((praise: any) => ({
-      week: weeks[praise.w]?.week,
+    praise: data.praise.map((praise: any) => ({
+      week: weeks[praise.weekIndex]?.week,
       who: praise.who,
       where: praise.where,
       about: praise.about ?? null,
-      quote: praise.q ?? praise.t,
+      quote: praise.quote ?? praise.text,
       url: praise.url ?? null,
     })),
-    who_comes_to_you: (data.ASKS ?? []).map((ask: any) => ({
+    asks: (data.asks ?? []).map((ask: any) => ({
       who: ask.who,
-      asks: ask.n,
-      per_week: ask.per,
+      count: ask.count,
+      per_week: ask.perWeek,
       about: ask.about,
     })),
-    wouldnt_happen_without_you: data.ITEMS.filter((thread: any) => thread.wm === "wouldnt").map(
-      threadOfWeek,
-    ),
+    wouldnt_happen_without_you: data.threads
+      .filter((thread: any) => thread.withoutMe === "wouldnt")
+      .map(threadOfWeek),
     feedback: feedback(data),
   };
   if (week) {
     const weekIndex = weeks.findIndex((row: any) => row.week === week);
-    if (weekIndex < 0) throw new Error(`${week} is not in ${data.PERIOD}`);
-    out.threads = data.ITEMS.filter((thread: any) => thread.w === weekIndex).map(threadOfWeek);
-    out.praise = data.REC.filter((praise: any) => praise.w === weekIndex).map((praise: any) => ({
-      who: praise.who,
-      where: praise.where,
-      when: praise.when,
-      text: praise.t,
-    }));
+    if (weekIndex < 0) throw new Error(`${week} is not in ${data.period}`);
+    out.threads = data.threads
+      .filter((thread: any) => thread.weekIndex === weekIndex)
+      .map(threadOfWeek);
+    out.praise_this_week = data.praise
+      .filter((praise: any) => praise.weekIndex === weekIndex)
+      .map((praise: any) => ({
+        who: praise.who,
+        where: praise.where,
+        when: praise.when,
+        text: praise.text,
+      }));
   }
   return out;
 }

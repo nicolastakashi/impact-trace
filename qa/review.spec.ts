@@ -193,7 +193,11 @@ test("P moves the thread: a new topic, then an existing project", async ({
 
 test("a thread serves a goal: link and unlink it", async ({ page, view, request }) => {
   await request.post("/api/goal", {
-    data: { title: "Ship exports", kind: "team", krs: [{ text: "A number", start: 0, target: 2 }] },
+    data: {
+      title: "Ship exports",
+      kind: "team",
+      keyResults: [{ text: "A number", start: 0, target: 2 }],
+    },
   });
   await open(page, view);
   const chip = page

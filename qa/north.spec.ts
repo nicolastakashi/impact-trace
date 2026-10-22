@@ -10,10 +10,10 @@ const stay = (page: Page) =>
   );
 
 test("the header counts what you kept", async ({ page, view, request }) => {
-  const { WEEKS } = await north(request);
+  const { weeks } = await north(request);
   await view("home");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    `${WEEKS[0]}–${WEEKS.at(-1)} · 4 weeks`,
+    `${weeks[0]}–${weeks.at(-1)} · 4 weeks`,
   );
   await expect(
     page.getByText(
@@ -28,7 +28,7 @@ test("where the work goes: a row per project, each opens its weeks in Trace", as
   view,
   request,
 }) => {
-  const { WEEKS } = await north(request);
+  const { weeks } = await north(request);
   await stay(page);
   await view("home");
   await expect(page.getByText("33% serve a top project")).toBeVisible();
@@ -43,7 +43,7 @@ test("where the work goes: a row per project, each opens its weeks in Trace", as
   await expect(page.getByRole("row", { name: "Exports API 3 33% 3" })).toBeVisible();
   await expect(page.getByRole("row", { name: "Everything else 6 67% 3" })).toBeVisible();
   await page.getByRole("button", { name: "Exports API" }).click();
-  await expect(page).toHaveURL(new RegExp(`#/trace\\?w=${WEEKS.slice(0, 3).join(",")}$`));
+  await expect(page).toHaveURL(new RegExp(`#/trace\\?w=${weeks.slice(0, 3).join(",")}$`));
 });
 
 test("how you delivered: modes, without you, reviews", async ({ page, view }) => {
@@ -78,16 +78,16 @@ test("your weeks in numbers, in this browser's time zone", async ({ page, view }
 });
 
 test("praise: page through the weeks, open the thread", async ({ page, view, request }) => {
-  const { WEEKS } = await north(request);
+  const { weeks } = await north(request);
   await view("home");
   await expect(page.getByText("4 in 4 weeks")).toBeVisible();
-  await expect(page.getByRole("button", { name: `Blair Ito, ${WEEKS[3]}, shown` })).toBeVisible();
+  await expect(page.getByRole("button", { name: `Blair Ito, ${weeks[3]}, shown` })).toBeVisible();
   await expect(page.getByRole("link", { name: "Slack ↗" })).toHaveAttribute(
     "href",
     /^https:\/\/acme\.slack\.com\//,
   );
-  await page.getByRole("button", { name: `Blair Ito, ${WEEKS[1]}` }).click();
-  await expect(page.getByRole("button", { name: `Blair Ito, ${WEEKS[1]}, shown` })).toBeVisible();
+  await page.getByRole("button", { name: `Blair Ito, ${weeks[1]}` }).click();
+  await expect(page.getByRole("button", { name: `Blair Ito, ${weeks[1]}, shown` })).toBeVisible();
   await expect(
     page.getByText("Thanks @Riley Chen, the review on exports step 2 taught me a lot"),
   ).toBeVisible();
@@ -100,11 +100,11 @@ test("not praise: removed, and undo brings it back", async ({ page, view, reques
   await page.getByRole("button", { name: "Not recognition" }).click();
   await expect(page.getByText('Removed: Blair Ito, "the review on exports".')).toBeVisible();
   await expect(page.getByText("3 in 4 weeks")).toBeVisible();
-  expect((await north(request)).REC).toHaveLength(3);
+  expect((await north(request)).praise).toHaveLength(3);
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(page.getByText("4 in 4 weeks")).toBeVisible();
   await expect(page.getByText(/^Removed:/)).toHaveCount(0);
-  expect((await north(request)).REC).toHaveLength(4);
+  expect((await north(request)).praise).toHaveLength(4);
 });
 
 test("who comes to you", async ({ page, view }) => {
@@ -116,13 +116,13 @@ test("who comes to you", async ({ page, view }) => {
 });
 
 test("the experiment opens Feedback", async ({ page, view, request }) => {
-  const { FEEDBACK } = await north(request);
+  const { feedback } = await north(request);
   await stay(page);
   await view("home");
   const feedbackCard = page.getByRole("button", { name: /^Try this week/ });
   await expect(feedbackCard).toContainText("from the pattern “Asking permission on what you own”");
   await expect(feedbackCard).toContainText(
-    new RegExp(`2\\s*times in ${FEEDBACK[0].week.slice(5)}`),
+    new RegExp(`2\\s*times in ${feedback[0].week.slice(5)}`),
   );
   await feedbackCard.click();
   await expect(page).toHaveURL(/#\/feedback$/);

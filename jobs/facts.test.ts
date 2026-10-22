@@ -2,60 +2,60 @@ import { expect, test } from "bun:test";
 import { facts } from "./facts";
 
 const APP_FACTS = {
-  PERIOD: "2026-W41 – 2026-W42",
-  WEEKS: ["W41", "W42"],
-  REVIEWS: [4, 1],
-  GOALS: [{ id: "g1", title: "Exports GA" }],
-  PROJECTS: { none: { name: "No project" }, p1: { name: "Exports" } },
-  NUMS: {
+  period: "2026-W41 – 2026-W42",
+  weeks: ["W41", "W42"],
+  reviewsGiven: [4, 1],
+  goals: [{ id: "g1", title: "Exports GA" }],
+  projects: { none: { name: "No project" }, p1: { name: "Exports" } },
+  numbers: {
     opened: [2, 0],
-    asked_direct: [3, null],
-    asked_team: [5, null],
+    reviewRequestsDirect: [3, null],
+    reviewRequestsTeam: [5, null],
     merged: [2, 3],
-    lead: [5, 7],
-    slack: [2, 1],
-    channels: [1, 1],
-    meetings: [1, 2],
+    leadTimeHours: [5, 7],
+    slackMessages: [2, 1],
+    slackChannels: [1, 1],
+    meetingHours: [1, 2],
     reach: [3, 4],
     // Monday 10:00 and 21:00 Lisbon; Saturday noon.
     slackAt: [["2026-10-05T09:00:00Z", "2026-10-05T20:00:00Z"], ["2026-10-17T11:00:00Z"]],
   },
-  ITEMS: [
+  threads: [
     {
       id: "a",
-      w: 0,
-      s: "p1",
+      weekIndex: 0,
+      projectId: "p1",
       title: "A",
       mode: "build",
       pillar: "exec",
-      wm: "wouldnt",
-      g: ["g1"],
-      by: { mode: "you" },
+      withoutMe: "wouldnt",
+      goalIds: ["g1"],
+      labelsBy: { mode: "you" },
       links: [["GitHub", "PR", "https://x/1"]],
-      ev: [["pr_merged"], ["pr_merged"], ["slack_mention"]],
+      events: [["pr_merged"], ["pr_merged"], ["slack_mention"]],
     },
     {
       id: "b",
-      w: 1,
-      s: "none",
+      weekIndex: 1,
+      projectId: "none",
       title: "B",
       mode: "elevate",
       pillar: "level",
-      wm: "slower",
-      g: [],
-      by: { mode: "claude" },
+      withoutMe: "slower",
+      goalIds: [],
+      labelsBy: { mode: "claude" },
       links: [],
-      ev: [],
+      events: [],
     },
   ],
-  OBJECTIVES: [
+  goalDetails: [
     {
       title: "Exports GA",
       kind: "team",
       type: "committed",
       quarter: "2026-Q4",
       checkins: [{ week: "2026-W42", confidence: 6 }],
-      krs: [
+      keyResults: [
         {
           text: "Lead time under a day",
           metric: "lead_time_h",
@@ -68,13 +68,13 @@ const APP_FACTS = {
       ],
     },
   ],
-  REC: [{ w: 1, who: "Ana", where: "#eng", when: "2026-10-14", t: "thanks" }],
-  FEEDBACK: [
+  praise: [{ weekIndex: 1, who: "Ana", where: "#eng", when: "2026-10-14", text: "thanks" }],
+  feedback: [
     {
       week: "2026-W42",
       weeks: ["2026-W35"],
       patterns: [{ name: "Leaving a decision open", trend: [1], evidence: [] }],
-      verdicts: { "pattern:Leaving a decision open": { v: "accept" } },
+      verdicts: { "pattern:Leaving a decision open": { verdict: "accept" } },
     },
   ],
 };
@@ -91,7 +91,7 @@ test("facts count what North shows, in your time zone", () => {
     result.weeks.map((week: any) => [
       week.week,
       week.give_vs_take,
-      week.outside_hours_pct,
+      week.outside_hours_percent,
       week.praise,
     ]),
   ).toEqual([
@@ -113,11 +113,11 @@ test("facts count what North shows, in your time zone", () => {
     [3, 5],
     [null, null],
   ]);
-  expect(result.recognition).toEqual([
+  expect(result.praise).toEqual([
     { week: "2026-W42", who: "Ana", where: "#eng", about: null, quote: "thanks", url: null },
   ]);
   expect(
-    result.objectives[0].key_results.map((keyResult: any) => [
+    result.goals[0].key_results.map((keyResult: any) => [
       keyResult.measured_by,
       keyResult.now,
       keyResult.progress,
@@ -126,7 +126,7 @@ test("facts count what North shows, in your time zone", () => {
     ["lead_time_h", 25, 0.5],
     ["you", 1, 0.5],
   ]);
-  expect(result.objectives[0].confidence).toEqual([{ week: "2026-W42", value: 6 }]);
+  expect(result.goals[0].confidence).toEqual([{ week: "2026-W42", value: 6 }]);
   expect(result.threads).toBeUndefined();
 });
 
@@ -135,7 +135,7 @@ test("one week adds its threads, with who set each label", () => {
   expect(result.threads.map((thread: any) => [thread.title, thread.labels_by.mode])).toEqual([
     ["B", "claude"],
   ]);
-  expect(result.praise).toEqual([
+  expect(result.praise_this_week).toEqual([
     { who: "Ana", where: "#eng", when: "2026-10-14", text: "thanks" },
   ]);
   expect(() => facts(APP_FACTS, "Europe/Lisbon", "2026-W30")).toThrow("not in");

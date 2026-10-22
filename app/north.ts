@@ -24,25 +24,25 @@ export function north() {
   allPraise.sort((left, right) => left.when.localeCompare(right.when));
   // Each thread points at its first praise.
   for (const [index, praise] of allPraise.entries()) {
-    const thread = threads.find((candidate) => candidate.id === praise.item);
-    if (thread) thread.rec ??= index;
+    const thread = threads.find((candidate) => candidate.id === praise.threadId);
+    if (thread) thread.praiseIndex ??= index;
   }
   const { byId, used } = projectsOf(threads, weeks);
   const { goals, from } = rings(threads, used, byId);
   return {
-    WEEKS: weeks.map((week) => week.slice(5)),
-    REVIEWS: weekly(weeks, "reviews_given"),
-    PERIOD: `${weeks[0]} – ${weeks.at(-1)}`,
-    GOALS: goals.map((goal, index) => ({ ...goal, color: COLORS[index % COLORS.length] })),
-    GOALS_FROM: from,
-    NUMS: numbers(weeks),
-    PROJECTS: byId,
-    REC: allPraise,
-    ASKS: asks(weeks),
-    ITEMS: threads,
-    HIGHLIGHT: highlight(threads, weeks, allPraise),
-    FEEDBACK: feedback(),
-    PHASES: phases(weeks, threads, allPraise),
+    weeks: weeks.map((week) => week.slice(5)),
+    reviewsGiven: weekly(weeks, "reviews_given"),
+    period: `${weeks[0]} – ${weeks.at(-1)}`,
+    goals: goals.map((goal, index) => ({ ...goal, color: COLORS[index % COLORS.length] })),
+    goalsFrom: from,
+    numbers: numbers(weeks),
+    projects: byId,
+    praise: allPraise,
+    asks: asks(weeks),
+    threads,
+    highlight: highlight(threads, weeks, allPraise),
+    feedback: feedback(),
+    phases: phases(weeks, threads, allPraise),
   };
 }
 
@@ -60,16 +60,16 @@ function keptThreads(weeks: string[]) {
       const value = (field: string) => labelValue(labels, field);
       const kept: any = {
         id: thread.key,
-        w: weekIndex,
-        s: thread.projects[0]?.id ?? "none",
+        weekIndex,
+        projectId: thread.projects[0]?.id ?? "none",
         title: value("title") ?? thread.events[0].title,
         summary: value("summary"),
         mode: value("mode"),
         pillar: value("pillar"),
-        wm: value("without_me"),
-        g: goalsOf(links, thread).map((id) => `g${id}`),
+        withoutMe: value("without_me"),
+        goalIds: goalsOf(links, thread).map((id) => `g${id}`),
         // Who set each label: facts for another session must say when a value is only Claude's guess.
-        by: Object.fromEntries(
+        labelsBy: Object.fromEntries(
           ["title", "mode", "pillar", "without_me"].map((field) => [
             field,
             setByYou(labels, field) ? "you" : "claude",
@@ -83,7 +83,7 @@ function keptThreads(weeks: string[]) {
             event.url,
           ]),
         // Span events for Trace: [kind, when or null, title, url]. Review comments and open issues have no time.
-        ev: thread.events.map((event) => [
+        events: thread.events.map((event) => [
           event.kind,
           (detailsOf.get(event.id) as any)?.occurred_at || null,
           event.title ?? "",
@@ -98,12 +98,12 @@ function keptThreads(weeks: string[]) {
         const text = JSON.parse(details.payload).body ?? "";
         if (/^praise\b/i.test(text.trim()))
           reviewPraise.push({
-            w: weekIndex,
+            weekIndex,
             who: details.author ?? "",
             where: "PR review",
-            t: plain(text).slice(0, 280),
+            text: plain(text).slice(0, 280),
             when: (details.occurred_at ?? "").slice(0, 10),
-            item: thread.key,
+            threadId: thread.key,
           });
       }
       threads.push(kept);
@@ -126,15 +126,15 @@ function mentionPraise(weeks: string[], threadOfEvent: Map<string, string>) {
     const payload = JSON.parse(mention.payload);
     return {
       id: mention.id,
-      w: weeks.indexOf(mention.week),
+      weekIndex: weeks.indexOf(mention.week),
       who: mention.author ?? "",
       where: mention.title,
-      t: plain(payload.text ?? "").slice(0, 280),
-      q: mention.quote,
+      text: plain(payload.text ?? "").slice(0, 280),
+      quote: mention.quote,
       about: mention.about,
       url: payload.permalink ?? null,
       when: (mention.occurred_at ?? "").slice(0, 10),
-      item: threadOfEvent.get(mention.id),
+      threadId: threadOfEvent.get(mention.id),
     };
   });
 }
@@ -145,17 +145,17 @@ function asks(weeks: string[]) {
   for (const mention of mentionsOfKind("ask", weeks)) {
     const ask = byAuthor.get(mention.author) ?? {
       who: mention.author,
-      n: 0,
-      per: weeks.map(() => 0),
+      count: 0,
+      perWeek: weeks.map(() => 0),
       about: [],
     };
-    ask.n++;
-    ask.per[weeks.indexOf(mention.week)]++;
+    ask.count++;
+    ask.perWeek[weeks.indexOf(mention.week)]++;
     ask.about.unshift(mention.about);
     byAuthor.set(mention.author, ask);
   }
   return [...byAuthor.values()]
-    .sort((left, right) => right.n - left.n)
+    .sort((left, right) => right.count - left.count)
     .slice(0, 6)
     .map((ask) => ({ ...ask, about: [...new Set(ask.about)].slice(0, 3) }));
 }
@@ -163,10 +163,12 @@ function asks(weeks: string[]) {
 // The projects your kept threads are in, by id. "none" holds the threads without one.
 function projectsOf(threads: any[], weeks: string[]) {
   const all = projects(weeks).projects as any[];
-  const used = [...new Set(threads.map((thread) => thread.s as string))].filter(
+  const used = [...new Set(threads.map((thread) => thread.projectId as string))].filter(
     (id) => id !== "none",
   );
-  const byId: any = { none: { name: "No project", url: null, lead: null, status: "—", ms: [] } };
+  const byId: any = {
+    none: { name: "No project", url: null, lead: null, status: "—", milestones: [] },
+  };
   for (const id of used) {
     const project = all.find((candidate) => candidate.id === id);
     byId[id] = {
@@ -174,7 +176,7 @@ function projectsOf(threads: any[], weeks: string[]) {
       url: project?.url ?? null,
       lead: project?.lead ?? null,
       status: project?.status ?? "",
-      ms: project?.ms ?? [],
+      milestones: project?.milestones ?? [],
     };
   }
   return { byId, used };
@@ -183,8 +185,9 @@ function projectsOf(threads: any[], weeks: string[]) {
 // The rings are your goals, most served first. Before you write any, the three projects with
 // the most threads stand in, and North says so.
 function rings(threads: any[], used: string[], projectsById: any) {
-  const threadsIn = (project: string) => threads.filter((thread) => thread.s === project).length;
-  const served = (id: string) => threads.filter((thread) => thread.g.includes(id)).length;
+  const threadsIn = (project: string) =>
+    threads.filter((thread) => thread.projectId === project).length;
+  const served = (id: string) => threads.filter((thread) => thread.goalIds.includes(id)).length;
   let goals = (db.query("SELECT id, title, kind FROM goals").all() as any[]).map((goal) => ({
     id: `g${goal.id}`,
     short: goal.title,
@@ -203,7 +206,7 @@ function rings(threads: any[], used: string[], projectsById: any) {
         kind: "team",
       }));
     for (const thread of threads)
-      thread.g = goals.some((goal) => goal.id === thread.s) ? [thread.s] : [];
+      thread.goalIds = goals.some((goal) => goal.id === thread.projectId) ? [thread.projectId] : [];
   }
   goals.sort((left, right) => served(right.id) - served(left.id));
   return { goals, from };
@@ -245,33 +248,38 @@ function numbers(weeks: string[]) {
   const merged = eventsPerWeek(weeks, "pr_merged");
   const meetings = eventsPerWeek(weeks, "meeting");
   return {
-    slack: messages.map((week) => week.length),
-    channels: messages.map((week) => new Set(week.map((message) => message.channel_name)).size),
+    slackMessages: messages.map((week) => week.length),
+    slackChannels: messages.map(
+      (week) => new Set(week.map((message) => message.channel_name)).size,
+    ),
     slackAt: messages.map((week) => week.map((message) => message.occurredAt)),
-    meetings: meetings.map(
+    meetingHours: meetings.map(
       (week) => +week.reduce((total, meeting) => total + meetingHours(meeting), 0).toFixed(1),
     ),
     reach: mentions.map((week) => new Set(week.map((mention) => mention.author_name)).size),
     merged: merged.map((week) => week.length),
     opened: weekly(weeks, "prs_opened"),
-    asked_direct: weekly(weeks, "review_requests", "direct"),
-    asked_team: weekly(weeks, "review_requests", "team"),
+    reviewRequestsDirect: weekly(weeks, "review_requests", "direct"),
+    reviewRequestsTeam: weekly(weeks, "review_requests", "team"),
     // Lead time: median hours from opened to merged, 0 for a week without merges.
-    lead: merged.map((week) => median(leadTimeHours(week)) ?? 0),
+    leadTimeHours: merged.map((week) => median(leadTimeHours(week)) ?? 0),
   };
 }
 
 // The thread North opens on, from the last week: a "wouldnt" (without you) with praise,
 // else one with praise, else any. No thread last week: the newest kept.
 function highlight(threads: any[], weeks: string[], allPraise: any[]) {
-  const lastWeek = threads.filter((thread) => thread.w === weeks.length - 1);
+  const lastWeek = threads.filter((thread) => thread.weekIndex === weeks.length - 1);
   const best = [
-    ...lastWeek.filter((thread) => thread.wm === "wouldnt" && thread.rec != null),
-    ...lastWeek.filter((thread) => thread.rec != null),
+    ...lastWeek.filter((thread) => thread.withoutMe === "wouldnt" && thread.praiseIndex != null),
+    ...lastWeek.filter((thread) => thread.praiseIndex != null),
     ...lastWeek,
     ...threads.slice().reverse(),
   ][0];
-  return { item: best.id, when: best.rec != null ? allPraise[best.rec].when : "" };
+  return {
+    threadId: best.id,
+    when: best.praiseIndex != null ? allPraise[best.praiseIndex].when : "",
+  };
 }
 
 // Feedback, newest week first: what the code verified, never the raw Claude output.
@@ -283,7 +291,7 @@ function feedback() {
     verdicts: Object.fromEntries(
       (verdictsOf.all(row.week) as any[]).map((saved) => [
         saved.item,
-        { v: saved.verdict, why: saved.why },
+        { verdict: saved.verdict, why: saved.why },
       ]),
     ),
   }));
@@ -292,14 +300,14 @@ function feedback() {
 // One story screen per week: its threads, then its first praise.
 function phases(weeks: string[], threads: any[], allPraise: any[]) {
   return weeks.flatMap((week, weekIndex) => {
-    const kept = threads.filter((thread) => thread.w === weekIndex).length;
+    const kept = threads.filter((thread) => thread.weekIndex === weekIndex).length;
     if (!kept) return [];
     const label = week.slice(5);
-    const firstPraise = allPraise.findIndex((praise) => praise.w === weekIndex);
+    const firstPraise = allPraise.findIndex((praise) => praise.weekIndex === weekIndex);
     const screens: any[] = [
-      { k: label, h: `${kept} threads kept`, from: weekIndex, to: weekIndex },
+      { label, headline: `${kept} threads kept`, from: weekIndex, to: weekIndex },
     ];
-    if (firstPraise >= 0) screens.push({ k: label, rec: firstPraise });
+    if (firstPraise >= 0) screens.push({ label, praiseIndex: firstPraise });
     return screens;
   });
 }
@@ -319,7 +327,7 @@ export function verdict(body: any) {
     .query("SELECT output FROM feedback WHERE week = ?")
     .get(String(body?.week ?? "")) as any;
   if (!row) return badRequest("No feedback for that week");
-  const piece = String(body?.item ?? "");
+  const piece = String(body?.piece ?? "");
   if (!feedbackPieces(JSON.parse(row.output)).includes(piece))
     return badRequest("Unknown feedback item");
   if (body.verdict === null) {

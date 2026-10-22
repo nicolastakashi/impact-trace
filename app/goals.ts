@@ -43,7 +43,7 @@ function goalsById() {
         goal.id,
         {
           ...goal,
-          krs: measured,
+          keyResults: measured,
           checkins: checkins.all(goal.id),
           projects: projects.all(goal.id),
           weeks: {} as Record<string, any[]>,
@@ -87,7 +87,7 @@ export function goalList() {
       label: metric.label,
       unit: metric.unit,
       better: metric.better,
-      agg: metric.agg,
+      aggregation: metric.aggregation,
     })),
     milestones,
     // Claude's drafts wait here until you use or dismiss them. A metric start is code's (jobs/drafts.ts).
@@ -97,10 +97,10 @@ export function goalList() {
           "SELECT id, title, kind, type, quarter, why, based_on, krs FROM goal_drafts ORDER BY id",
         )
         .all() as any[]
-    ).map((draft) => ({
+    ).map(({ krs: keyResults, ...draft }) => ({
       ...draft,
       based_on: JSON.parse(draft.based_on),
-      krs: JSON.parse(draft.krs),
+      keyResults: JSON.parse(keyResults),
     })),
     weeks,
     goals: [...goals.values()],
@@ -159,7 +159,7 @@ export function saveGoal(body: any) {
   if (!["committed", "aspirational"].includes(type))
     return badRequest("Pick committed or aspirational");
   // Key results arrive whole: the list you see replaces the stored one.
-  const keyResults = readKeyResults(Array.isArray(body?.krs) ? body.krs : []);
+  const keyResults = readKeyResults(Array.isArray(body?.keyResults) ? body.keyResults : []);
   if ("error" in keyResults) return badRequest(keyResults.error);
 
   const at = new Date().toISOString();

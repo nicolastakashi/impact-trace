@@ -1,8 +1,8 @@
 // REFERENCES: why each mode counts, with sources. One topic in focus, the others one click away.
 import { useEffect, useState } from "react";
 import { ArrowUpRight, TriangleAlert } from "lucide-react";
-import { MODES, mc as modeColor } from "./lib";
-import { REFS, type Reference } from "./refs-data";
+import { MODES, modeColor } from "./lib";
+import { REFERENCES, type Reference } from "./refs-data";
 import { Badge } from "./ui/badge";
 import { Card } from "./ui/card";
 
@@ -11,19 +11,19 @@ const Dot = ({ color, className = "size-2.25" }: { color: string; className?: st
 );
 // A mode's name, else the topic's title.
 const topicName = (id: string) =>
-  MODES[id] ? MODES[id][0]!.toUpperCase() + MODES[id].slice(1) : REFS[id]!.title;
+  MODES[id] ? MODES[id][0]!.toUpperCase() + MODES[id].slice(1) : REFERENCES[id]!.title;
 const topicColor = (id: string, fallback: string) => (MODES[id] ? modeColor(id) : fallback);
 
 export function Refs({ topic: asked }: { topic: string | null }) {
   // The address says which topic; a tab rewrites it in place, with no history step.
   const [topic, setTopic] = useState(asked);
   useEffect(() => setTopic(asked), [asked]);
-  const id = topic && REFS[topic] ? topic : "clarify";
+  const id = topic && REFERENCES[topic] ? topic : "clarify";
   const pickTopic = (next: string) => {
     history.replaceState(null, "", `#/refs?k=${next}`);
     setTopic(next);
   };
-  const all = Object.keys(REFS);
+  const all = Object.keys(REFERENCES);
   return (
     <section className="view" id="v-refs">
       <div className="vhead">
@@ -82,7 +82,7 @@ function TopicGroup({
           {MODES[id] && <Dot color={modeColor(id)} />}
           {topicName(id)}
           <span className="ml-auto font-mono text-[11px] font-medium text-ink-3 max-[760px]:hidden">
-            {REFS[id]!.items.length}
+            {REFERENCES[id]!.items.length}
           </span>
         </button>
       ))}
@@ -91,7 +91,7 @@ function TopicGroup({
 }
 
 function TopicCard({ id }: { id: string }) {
-  const topic = REFS[id]!;
+  const topic = REFERENCES[id]!;
   const color = topicColor(id, "var(--ink-3)");
   return (
     <Card className="animate-in gap-6" style={{ "--c": color } as React.CSSProperties}>
@@ -114,7 +114,10 @@ function TopicCard({ id }: { id: string }) {
       </div>
       <ul className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-3.5 p-0">
         {topic.items.map((reference) => (
-          <SourceCard key={reference.url + (reference.q ?? reference.says)} reference={reference} />
+          <SourceCard
+            key={reference.url + (reference.quote ?? reference.says)}
+            reference={reference}
+          />
         ))}
       </ul>
     </Card>
@@ -123,7 +126,7 @@ function TopicCard({ id }: { id: string }) {
 
 // A quote, or the idea in our words when there is no quote to give.
 function SourceCard({ reference }: { reference: Reference }) {
-  const quote = reference.q;
+  const quote = reference.quote;
   return (
     <li className="grid grid-rows-[auto_1fr_auto] gap-2.5 rounded-xl border border-line bg-s2 px-5 py-4.5">
       {quote && (
@@ -171,4 +174,4 @@ function SourceCard({ reference }: { reference: Reference }) {
 }
 
 // The router passes the address parameters as `p`; `k` is the topic.
-export const View = ({ p: params }: { p: URLSearchParams }) => <Refs topic={params.get("k")} />;
+export const View = ({ params }: { params: URLSearchParams }) => <Refs topic={params.get("k")} />;
