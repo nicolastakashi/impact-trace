@@ -15,7 +15,10 @@ const OPEN = new Set(["started", "unstarted", "backlog", "triage"]);
 const DOC = /^application\/vnd\.google-apps\.(document|spreadsheet|presentation)$/;
 
 // slack_own and slack_mention are the old one-call-per-week files; older weeks still have them.
-const SLACK_DAYS = [1, 2, 3, 4, 5, 6, 7].flatMap((d) => [`slack_own_${d}`, `slack_mention_${d}`]);
+const SLACK_DAYS = [1, 2, 3, 4, 5, 6, 7].flatMap((day) => [
+  `slack_own_${day}`,
+  `slack_mention_${day}`,
+]);
 const SOURCES = [
   "linear",
   "github",
@@ -46,13 +49,13 @@ type EventRow = {
 // What each source's ingest needs: the week, its run, and the two inserts.
 type Step = {
   db: Database;
-  dir: string;
+  directory: string;
   week: string;
   runId: string;
   now: string;
   me: Config;
   event: (row: EventRow) => void;
-  link: (from: string, to: string, rel: string) => void;
+  link: (from: string, to: string, relation: string) => void;
 };
 
 const completedIn = (issue: any, week: string) =>
@@ -62,7 +65,7 @@ const prKey = (row: { repo: string; number: number }) => `${row.repo}#${row.numb
 const isBot = (author: string) => author.endsWith("[bot]");
 
 // One id per PR, issue or doc, whichever source mentions it. Anything else stays a URL.
-export function refOf(url: string) {
+export function referenceOf(url: string) {
   const pr = url.match(/^https:\/\/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/);
   if (pr) return `github:${pr[1]}#${pr[2]}`;
   const issue = url.match(/^https:\/\/linear\.app\/[^/]+\/issue\/([A-Z]+-\d+)/);
@@ -76,25 +79,25 @@ export function refOf(url: string) {
 
 // References in free text: URLs, plus bare issue ids like ABC-12 for team keys seen in Linear.
 // Only known keys count, so "UTF-8" is not an issue.
-export function refsIn(text: string, issueKeys: Set<string>) {
-  const refs = new Set((text.match(/https?:\/\/[^\s<>|)"']+/g) ?? []).map(refOf));
+export function referencesIn(text: string, issueKeys: Set<string>) {
+  const references = new Set((text.match(/https?:\/\/[^\s<>|)"']+/g) ?? []).map(referenceOf));
   for (const [, key, number] of text.matchAll(/\b([A-Z]{2,6})-(\d+)\b/g))
-    if (issueKeys.has(key)) refs.add(`linear:${key}-${number}`);
-  return [...refs];
+    if (issueKeys.has(key)) references.add(`linear:${key}-${number}`);
+  return [...references];
 }
 
-function check(cond: unknown, msg: string): asserts cond {
-  if (!cond) throw new Error(msg);
+function check(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(message);
 }
 
 const readText = (file: string) => (existsSync(file) ? readFileSync(file, "utf8").trim() : null);
 
-function readExpected(dir: string, name: string) {
-  const text = readText(join(dir, `${name}.expected`));
+function readExpected(directory: string, name: string) {
+  const text = readText(join(directory, `${name}.expected`));
   return text === null ? null : Number(text);
 }
 
-export function ingestWeek(db: Database, dir: string, week: string, me: Config = config()) {
+export function ingestWeek(db: Database, directory: string, week: string, me: Config = config()) {
   const result: Record<string, Status> = {};
   const now = new Date().toISOString();
   const insertEvent =
@@ -108,23 +111,23 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
   );
 
   for (const source of SOURCES) {
-    const file = join(dir, `${source}.run.json`);
+    const file = join(directory, `${source}.run.json`);
     if (!existsSync(file)) continue;
     const run = readJson(file);
     const runId = `${week}:${source}:${run.session_id ?? "unknown"}`;
     const out = run.structured_output;
-    let count: Count = { expected: readExpected(dir, source), got: null };
+    let count: Count = { expected: readExpected(directory, source), got: null };
     let status: Status = "error";
     if (!run.is_error && out) {
       checkWindow(source, out, week);
-      count = countRows(source, out, dir, week, me, count.expected);
+      count = countRows(source, out, directory, week, me, count.expected);
       status = statusOf(source, out, count);
     }
     result[source] = status;
 
     const step: Step = {
       db,
-      dir,
+      directory,
       week,
       runId,
       now,
@@ -144,7 +147,7 @@ export function ingestWeek(db: Database, dir: string, week: string, me: Config =
           JSON.stringify(row.payload),
           runId,
         ),
-      link: (from, to, rel) => insertLink.run(from, to, rel),
+      link: (from, to, relation) => insertLink.run(from, to, relation),
     };
     db.transaction(() => {
       saveRun(db, run, runId, week, source, count, status, now);
@@ -170,13 +173,13 @@ function checkWindow(source: string, out: any, week: string) {
 function countRows(
   source: string,
   out: any,
-  dir: string,
+  directory: string,
   week: string,
   me: Config,
   expected: number | null,
 ): Count {
   if (source === "linear") return countLinear(out, week);
-  if (source === "github") return { expected, got: countGithub(out, dir, week) };
+  if (source === "github") return { expected, got: countGithub(out, directory, week) };
   // Every PR from the search has one of your reviews: PRs missing from the rows were not read.
   if (source === "reviews") return { expected, got: prsByOthers(out.reviews, me) };
   if (source === "requests") return { expected, got: prsByOthers(out.prs, me) };
@@ -201,9 +204,9 @@ function countLinear(out: any, week: string): Count {
 }
 
 // PRs opened have their own count: a short list flags the run like a short merged list.
-function countGithub(out: any, dir: string, week: string) {
+function countGithub(out: any, directory: string, week: string) {
   const opened = out.prs_opened ? new Set(out.prs_opened.map((pr: any) => pr.url)).size : null;
-  const searched = readText(join(dir, "github_opened.expected"));
+  const searched = readText(join(directory, "github_opened.expected"));
   if (opened != null && searched !== null && Number(searched) !== opened) {
     console.warn(`github ${week}: ${opened} PRs opened, search says ${searched}`);
     out.short = true;
@@ -217,11 +220,14 @@ function countGithub(out: any, dir: string, week: string) {
 // Rows more than a day off (time zones) are dropped and the run is flagged.
 function countSlack(source: string, out: any, week: string): Count {
   const day = Number(source.match(/_(\d)$/)?.[1]);
-  const msFromNoon = (m: any) => Math.abs(Number(m.ts) * 1000 - dayOf(week, day - 1) - 12 * 36e5);
-  const offDay = day ? out.messages.filter((m: any) => msFromNoon(m) > 36 * 36e5) : [];
+  const millisecondsFromNoon = (message: any) =>
+    Math.abs(Number(message.ts) * 1000 - dayOf(week, day - 1) - 12 * 36e5);
+  const offDay = day
+    ? out.messages.filter((message: any) => millisecondsFromNoon(message) > 36 * 36e5)
+    : [];
   if (offDay.length) {
     console.warn(`${source} ${week}: dropped ${offDay.length} rows from other days`);
-    out.messages = out.messages.filter((m: any) => !offDay.includes(m));
+    out.messages = out.messages.filter((message: any) => !offDay.includes(message));
     out.dropped = offDay.length;
   }
   const got = out.messages.length;
@@ -333,14 +339,14 @@ function ingestLinear(step: Step, out: any) {
     const done = completedIn(issue, week);
     if (seen.has(issue.id) || !(done || (current && OPEN.has(issue.status_type)))) continue;
     seen.add(issue.id);
-    const pid = issue.project_name ? (projectId.get(issue.project_name) ?? null) : null;
-    if (issue.project_name && !pid)
+    const issueProjectId = issue.project_name ? (projectId.get(issue.project_name) ?? null) : null;
+    if (issue.project_name && !issueProjectId)
       console.warn(
         `linear: ${issue.id} names project "${issue.project_name}", which was not collected`,
       );
-    const mid =
-      pid && issue.milestone_name
-        ? (milestoneId.get(`${pid}/${issue.milestone_name}`) ?? null)
+    const issueMilestoneId =
+      issueProjectId && issue.milestone_name
+        ? (milestoneId.get(`${issueProjectId}/${issue.milestone_name}`) ?? null)
         : null;
     const id = `linear:${issue.id}`;
     step.event({
@@ -351,11 +357,11 @@ function ingestLinear(step: Step, out: any) {
       at: issue.completed_at,
       title: issue.title,
       url: issue.url,
-      projectId: pid,
-      milestoneId: mid,
+      projectId: issueProjectId,
+      milestoneId: issueMilestoneId,
       payload: issue,
     });
-    for (const url of urls.get(issue.id) ?? []) step.link(id, refOf(url), "attachment");
+    for (const url of urls.get(issue.id) ?? []) step.link(id, referenceOf(url), "attachment");
   }
 }
 
@@ -370,11 +376,11 @@ function issueKeys(db: Database) {
 }
 
 // A meeting is a regular event with someone else in it that you did not decline.
-const isMeeting = (e: any) =>
-  e.event_type === "DEFAULT" &&
-  e.status !== "cancelled" &&
-  e.my_response !== "declined" &&
-  e.attendees.length > 1;
+const isMeeting = (calendarEvent: any) =>
+  calendarEvent.event_type === "DEFAULT" &&
+  calendarEvent.status !== "cancelled" &&
+  calendarEvent.my_response !== "declined" &&
+  calendarEvent.attendees.length > 1;
 
 function ingestCalendar(step: Step, out: any) {
   for (const calendarEvent of out.events) {
@@ -394,7 +400,7 @@ function ingestCalendar(step: Step, out: any) {
     });
     // Only typed refs: agendas also carry board and huddle links that would join unrelated threads.
     for (const url of calendarEvent.urls)
-      if (refOf(url) !== url) step.link(id, refOf(url), "agenda");
+      if (referenceOf(url) !== url) step.link(id, referenceOf(url), "agenda");
   }
 }
 
@@ -415,7 +421,7 @@ function ingestDrive(step: Step, out: any) {
       url: file.url,
       payload: file,
     });
-    step.link(id, refOf(file.url), "is");
+    step.link(id, referenceOf(file.url), "is");
   }
 }
 
@@ -444,7 +450,7 @@ function ingestSlack(step: Step, out: any) {
       payload: message,
     });
     channelTopic(step.db, message.channel_name);
-    for (const ref of refsIn(message.text, keys)) step.link(id, ref, "mentions");
+    for (const reference of referencesIn(message.text, keys)) step.link(id, reference, "mentions");
   }
 }
 
@@ -468,7 +474,7 @@ function ingestReviews(step: Step, out: any) {
 // Bot PRs are left out, as in reviews given. ponytail: a request removed before the run
 // (someone else reviewed for the team, the author took you off) is missed when the PR left both searches.
 function ingestRequests(step: Step, out: any) {
-  const teamsFile = join(step.dir, "teams.txt");
+  const teamsFile = join(step.directory, "teams.txt");
   const teams = existsSync(teamsFile)
     ? new Set(readFileSync(teamsFile, "utf8").split("\n").filter(Boolean))
     : null;
@@ -511,8 +517,8 @@ function ingestGithub(step: Step, out: any) {
       });
       // Re-ingest replaces the links, so a fixed filter also removes old wrong ones.
       dropMentions.run(id);
-      for (const ref of pr.linear_refs)
-        if (keys.has(ref.split("-")[0])) step.link(id, `linear:${ref}`, "mentions");
+      for (const reference of pr.linear_refs)
+        if (keys.has(reference.split("-")[0])) step.link(id, `linear:${reference}`, "mentions");
     }
   }
   // Older runs have no PRs opened: the North tile shows 0 for them.

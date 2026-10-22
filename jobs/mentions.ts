@@ -94,10 +94,10 @@ export function correct(db: Database, id: string, kind: string | null) {
 }
 
 if (import.meta.main) {
-  const [cmd, week, file] = process.argv.slice(2);
+  const [command, week, file] = process.argv.slice(2);
   const db = open();
-  if (cmd === "emit") console.log(JSON.stringify(mentions(db, week)));
-  else if (cmd === "save") {
+  if (command === "emit") console.log(JSON.stringify(mentions(db, week)));
+  else if (command === "save") {
     const version = promptVersion("classify-mentions");
     console.log(saveMentions(db, week, readJson(file), version));
   } else throw new Error("usage: bun jobs/mentions.ts emit|save <week> [file]");

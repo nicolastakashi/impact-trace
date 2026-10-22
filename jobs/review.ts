@@ -65,9 +65,9 @@ export function saveSuggestions(db: Database, week: string, run: any, promptVers
 }
 
 if (import.meta.main) {
-  const [cmd, week, file] = process.argv.slice(2);
+  const [command, week, file] = process.argv.slice(2);
   const db = open();
-  if (cmd === "emit")
+  if (command === "emit")
     console.log(
       JSON.stringify({
         level: config().level,
@@ -75,7 +75,7 @@ if (import.meta.main) {
         threads: reviewThreads(db, week),
       }),
     );
-  else if (cmd === "save") {
+  else if (command === "save") {
     const version = promptVersion("suggest-labels");
     console.log(saveSuggestions(db, week, readJson(file), version));
   } else throw new Error("usage: bun jobs/review.ts emit|save <week> [file]");

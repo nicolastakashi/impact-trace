@@ -6,16 +6,16 @@ import { correct, mentions, saveMentions } from "./mentions";
 test("praise is kept only with its words in the message", () => {
   const db = new Database(":memory:", { strict: true });
   migrate(db);
-  const ev =
+  const insertMention =
     db.query(`INSERT INTO events (id, source, kind, week, occurred_at, title, url, author, project_id, milestone_id, payload, run_id)
     VALUES (?, 'slack', 'slack_mention', '2026-W42', '2026-10-14T09:00:00Z', '#eng', null, ?, null, null, ?, 'r')`);
-  ev.run(
+  insertMention.run(
     "slack:1",
     "Ana",
     JSON.stringify({ text: "Huge thanks <@U1|Riley Chen> for\nthe exports fix!" }),
   );
-  ev.run("slack:2", "Bo", JSON.stringify({ text: "<@U1|Riley Chen> can you review?" }));
-  ev.run("slack:3", "Cy", JSON.stringify({ text: "nice work @Riley" }));
+  insertMention.run("slack:2", "Bo", JSON.stringify({ text: "<@U1|Riley Chen> can you review?" }));
+  insertMention.run("slack:3", "Cy", JSON.stringify({ text: "nice work @Riley" }));
   expect(mentions(db, "2026-W42").mentions[0].text).toBe(
     "Huge thanks @Riley Chen for the exports fix!",
   );
