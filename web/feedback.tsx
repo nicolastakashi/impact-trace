@@ -30,14 +30,17 @@ type Message = any;
 type Verdict = "accept" | "reject";
 type SaveVerdict = (key: string, verdict: string | null, why?: string) => void;
 
-const nextWeek = (w: string) => `W${String(+w.slice(6) + 1).padStart(2, "0")}`; // ponytail: W53 and New Year are not handled
-const whereSaid = (m: Message) =>
-  `${m.channel} · ${shortWeek(m.week)}${m.at ? ` · ${fmtWhen(Date.parse(m.at))}` : ""}`;
+const nextWeek = (week: string) => `W${String(+week.slice(6) + 1).padStart(2, "0")}`; // ponytail: W53 and New Year are not handled
+const whereSaid = (message: Message) =>
+  `${message.channel} · ${shortWeek(message.week)}${message.at ? ` · ${fmtWhen(Date.parse(message.at))}` : ""}`;
 const markerPattern = (markers: string[], flags: string) =>
-  new RegExp(markers.map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), flags);
+  new RegExp(
+    markers.map((marker) => marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"),
+    flags,
+  );
 // The tabs: each pattern, then the strength to keep.
 const patternsOf = (week: FeedbackWeek): Pattern[] => [
-  ...week.patterns.map((p: Pattern) => ({ ...p, key: `pattern:${p.name}` })),
+  ...week.patterns.map((pattern: Pattern) => ({ ...pattern, key: `pattern:${pattern.name}` })),
   ...(week.strength ? [{ ...week.strength, keep: true, key: "strength" }] : []),
 ];
 const verdictOf = (week: FeedbackWeek, key: string) =>
@@ -59,7 +62,7 @@ const NOTE: Record<string, Record<string, string>> = {
       "Passed. Next week Claude proposes a different experiment, and nothing is measured for this one.",
   },
 };
-const say = (msg: string) => toast(msg, 2200);
+const say = (message: string) => toast(message, 2200);
 function savedMessage(verdict: string | null, why?: string) {
   if (why != null) return "Reason saved. Claude reads it next week.";
   if (!verdict) return "Taken back";
@@ -98,12 +101,12 @@ function Marked({ text, markers }: { text: string; markers?: string[] }) {
 }
 const Markers = ({ markers }: { markers: string[] }) => (
   <span className="inline-flex flex-wrap gap-1.25">
-    {markers.map((m) => (
+    {markers.map((marker) => (
       <code
-        key={m}
+        key={marker}
         className="rounded-md bg-[color-mix(in_srgb,var(--accent)_12%,var(--s3))] px-1.75 py-0.75 font-mono text-[11.5px] font-medium text-ink"
       >
-        {m}
+        {marker}
       </code>
     ))}
   </span>
@@ -148,24 +151,26 @@ function Bars({
   height: number;
 }) {
   const max = Math.max(1, ...trend);
-  const cols = { gridTemplateColumns: `repeat(${trend.length + (next ? 1 : 0)}, minmax(0, 1fr))` };
+  const columns = {
+    gridTemplateColumns: `repeat(${trend.length + (next ? 1 : 0)}, minmax(0, 1fr))`,
+  };
   return (
     <div className="grid gap-2" aria-hidden="true">
-      <div className="grid items-end gap-1.5" style={{ ...cols, height: height + 28 }}>
-        {trend.map((n, k) => (
-          <div key={k} className="flex h-full flex-col items-center justify-end gap-1.25">
+      <div className="grid items-end gap-1.5" style={{ ...columns, height: height + 28 }}>
+        {trend.map((count, index) => (
+          <div key={index} className="flex h-full flex-col items-center justify-end gap-1.25">
             <em className="font-num text-xs font-semibold text-ink-3 not-italic tabular-nums">
-              {n}
+              {count}
             </em>
             <i
               data-bar
               className={cn(
                 "block w-full origin-bottom rounded-t-sm rounded-b-xs",
-                k === trend.length - 1
+                index === trend.length - 1
                   ? "bg-brand shadow-[0_0_18px_-4px_var(--accent)]"
                   : "bg-[color-mix(in_srgb,var(--accent)_45%,var(--s3))]",
               )}
-              style={{ height: (n / max) * height + 3 }}
+              style={{ height: (count / max) * height + 3 }}
             />
           </div>
         ))}
@@ -184,10 +189,10 @@ function Bars({
       </div>
       <div
         className="grid gap-1.5 text-center font-mono text-[10.5px] font-medium text-ink-3"
-        style={cols}
+        style={columns}
       >
-        {weeks.map((w) => (
-          <span key={w}>{shortWeek(w)}</span>
+        {weeks.map((week) => (
+          <span key={week}>{shortWeek(week)}</span>
         ))}
         {next && <span className="text-ink">{next}</span>}
       </div>
@@ -207,7 +212,7 @@ function VerdictButtons({
   keys = true,
 }: {
   verdict?: string;
-  set: (v: Verdict) => void;
+  set: (verdict: Verdict) => void;
   yes?: string;
   no?: string;
   keys?: boolean;
@@ -257,9 +262,9 @@ function WhyForm({ why, save }: { why?: string | null; save: (why: string) => vo
   return (
     <form
       className="flex flex-wrap gap-2"
-      onSubmit={(e) => {
-        e.preventDefault();
-        save(String(new FormData(e.currentTarget).get("why")));
+      onSubmit={(event) => {
+        event.preventDefault();
+        save(String(new FormData(event.currentTarget).get("why")));
       }}
     >
       <Input
@@ -280,9 +285,11 @@ function WhyForm({ why, save }: { why?: string | null; save: (why: string) => vo
 }
 
 // Why a pattern counts: its first source, the rest on the References page.
-function Source({ cats, pattern }: { cats: any[]; pattern: Pattern }) {
+function Source({ categories, pattern }: { categories: any[]; pattern: Pattern }) {
   const kind = pattern.keep ? "strength" : "pattern";
-  const source = cats.find((c) => c.id === pattern.category && c.kind === kind)?.refs[0];
+  const source = categories.find(
+    (category) => category.id === pattern.category && category.kind === kind,
+  )?.refs[0];
   if (!source) return null;
   return (
     <Fold
@@ -353,13 +360,13 @@ function animateFocus() {
     stagger: 0.04,
     clearProps: "all",
   });
-  gsap.utils.toArray<HTMLElement>("article").forEach((card, k) => {
+  gsap.utils.toArray<HTMLElement>("article").forEach((card, index) => {
     gsap.from(card, {
       opacity: 0,
       y: 12,
       duration: 0.45,
       ease: "power3.out",
-      delay: 0.12 + k * 0.1,
+      delay: 0.12 + index * 0.1,
       clearProps: "all",
     });
     const rewrite = card.querySelector("[data-now]");
@@ -370,7 +377,7 @@ function animateFocus() {
         filter: "blur(4px)",
         duration: 0.5,
         ease: "power3.out",
-        delay: 0.75 + k * 0.1,
+        delay: 0.75 + index * 0.1,
         clearProps: "all",
       });
   });
@@ -384,10 +391,10 @@ function useMarksOn(ref: React.RefObject<HTMLElement | null>) {
       setOn(true);
       return;
     }
-    const ctx = gsap.context(animateFocus, ref);
+    const context = gsap.context(animateFocus, ref);
     const timer = setTimeout(() => setOn(true), 320);
     return () => {
-      ctx.revert();
+      context.revert();
       clearTimeout(timer);
     };
   }, []);
@@ -397,13 +404,13 @@ function useMarksOn(ref: React.RefObject<HTMLElement | null>) {
 function Focus({
   week,
   pattern,
-  cats,
+  categories,
   note,
   set,
 }: {
   week: FeedbackWeek;
   pattern: Pattern;
-  cats: any[];
+  categories: any[];
   note: boolean;
   set: SaveVerdict;
 }) {
@@ -434,7 +441,10 @@ function Focus({
         <h2 className="m-0 font-num text-[clamp(24px,2.6vw,34px)] leading-[1.02] font-extrabold text-balance uppercase">
           {pattern.name}
         </h2>
-        <VerdictButtons verdict={verdict} set={(x) => set(pattern.key, verdict === x ? null : x)} />
+        <VerdictButtons
+          verdict={verdict}
+          set={(choice) => set(pattern.key, verdict === choice ? null : choice)}
+        />
       </div>
       {note && verdict && <Note>{NOTE[pattern.keep ? "strength" : "pattern"]![verdict]!}</Note>}
       {verdict === "reject" && (
@@ -444,7 +454,7 @@ function Focus({
         />
       )}
       <p className="fb-a m-0 max-w-[62ch] text-[15px] leading-relaxed text-ink-2">{pattern.why}</p>
-      <Source cats={cats} pattern={pattern} />
+      <Source categories={categories} pattern={pattern} />
       <div className="fb-q grid gap-2.5 transition-opacity">
         {first && <Quote message={first} pattern={pattern} on={on} />}
       </div>
@@ -456,8 +466,8 @@ function Focus({
             {!pattern.keep && <PatternCount week={week} pattern={pattern} more={more.length} />}
             {rest.length > 0 && (
               <div className="fb-q grid gap-2.5 transition-opacity">
-                {rest.map((x, k) => (
-                  <Quote key={k} message={x} pattern={pattern} on />
+                {rest.map((message, index) => (
+                  <Quote key={index} message={message} pattern={pattern} on />
                 ))}
               </div>
             )}
@@ -482,8 +492,8 @@ function PatternCount({
   const hasMarker = markerPattern(pattern.markers, "i");
   const quoted = new Set(
     pattern.evidence
-      .filter((x: Message) => hasMarker.test(x.quote))
-      .map((x: Message) => x.at + x.channel),
+      .filter((message: Message) => hasMarker.test(message.quote))
+      .map((message: Message) => message.at + message.channel),
   ).size;
   const unmarked = pattern.evidence.length - quoted;
   return (
@@ -500,18 +510,18 @@ function PatternCount({
 
 const MoreMessages = ({ messages, markers }: { messages: Message[]; markers: string[] }) => (
   <ol className="m-0 grid list-none gap-2 p-0">
-    {messages.map((m, k) => (
+    {messages.map((message, index) => (
       <li
-        key={k}
+        key={index}
         data-on
         className="group grid gap-1 rounded-xl border border-dashed border-input px-3.5 py-3"
       >
         <div className="flex flex-wrap items-baseline gap-x-2.5 font-mono text-[11.5px] font-medium text-ink-3">
-          <span>{whereSaid(m)}</span>
-          <SlackLink url={m.url} />
+          <span>{whereSaid(message)}</span>
+          <SlackLink url={message.url} />
         </div>
         <p className="m-0 text-sm leading-normal text-ink-2">
-          <Marked text={m.text} markers={markers} />
+          <Marked text={message.text} markers={markers} />
         </p>
       </li>
     ))}
@@ -530,7 +540,7 @@ function Experiment({
   experiment: any;
   verdict?: string;
   note: boolean;
-  set: (v: string | null, why?: string) => void;
+  set: (verdict: string | null, why?: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const trend: number[] | undefined = experiment.trend;
@@ -579,7 +589,7 @@ function Experiment({
         <div className="mt-4.5 grid gap-3">
           <VerdictButtons
             verdict={verdict}
-            set={(x) => set(verdict === x ? null : x)}
+            set={(choice) => set(verdict === choice ? null : choice)}
             yes="I'll try it"
             no="Not this one"
             keys={false}
@@ -614,20 +624,20 @@ function WeekPicker({
 }: {
   weeks: FeedbackWeek[];
   current: number;
-  pick: (k: number) => void;
+  pick: (index: number) => void;
 }) {
   return (
     <div className="flex flex-wrap gap-1.5" role="group" aria-label="Feedback week">
-      {weeks.map((x, k) => (
+      {weeks.map((feedbackWeek, index) => (
         <Button
-          key={x.week}
+          key={feedbackWeek.week}
           variant="outline"
           size="xs"
-          aria-pressed={k === current}
-          onClick={() => pick(k)}
+          aria-pressed={index === current}
+          onClick={() => pick(index)}
           className="rounded-full px-3 font-num text-xs font-semibold tracking-[.08em] text-ink-3 aria-pressed:border-ink-3 aria-pressed:text-ink"
         >
-          {shortWeek(x.week)}
+          {shortWeek(feedbackWeek.week)}
         </Button>
       ))}
     </div>
@@ -674,7 +684,7 @@ function PatternTabs({
   week: FeedbackWeek;
   patterns: Pattern[];
   current: number;
-  pick: (k: number) => void;
+  pick: (index: number) => void;
 }) {
   return (
     <div
@@ -682,32 +692,34 @@ function PatternTabs({
       role="tablist"
       aria-label="What Claude saw"
     >
-      {patterns.map((x, k) => {
-        const verdict = verdictOf(week, x.key);
+      {patterns.map((tabPattern, index) => {
+        const verdict = verdictOf(week, tabPattern.key);
         return (
           <button
-            key={x.key}
+            key={tabPattern.key}
             role="tab"
-            aria-selected={k === current}
-            onClick={() => pick(k)}
+            aria-selected={index === current}
+            onClick={() => pick(index)}
             className={cn(
               "grid max-w-65 flex-none cursor-pointer gap-0.75 rounded-t-lg border-b-2 border-transparent px-4 pt-2.75 pb-3 text-left text-ink-2 hover:bg-[color-mix(in_srgb,var(--ink)_4%,transparent)] aria-selected:bg-s1",
-              x.keep ? "aria-selected:border-b-(--m-build)" : "aria-selected:border-b-brand",
+              tabPattern.keep
+                ? "aria-selected:border-b-(--m-build)"
+                : "aria-selected:border-b-brand",
             )}
           >
             <b
               className={cn(
                 "flex items-center gap-1 text-sm leading-tight font-semibold",
-                k === current ? "text-ink" : "text-ink-2",
+                index === current ? "text-ink" : "text-ink-2",
                 verdict === "reject" && "line-through decoration-ink-3",
               )}
             >
-              {x.keep && <Check className="size-3.5 shrink-0" aria-hidden="true" />}
-              {x.name}
+              {tabPattern.keep && <Check className="size-3.5 shrink-0" aria-hidden="true" />}
+              {tabPattern.name}
             </b>
             <small className="font-mono text-[11.5px] font-medium text-ink-3">
               <VerdictTag verdict={verdict} />
-              {x.keep ? "keep doing" : `${sum(x.trend)} messages`}
+              {tabPattern.keep ? "keep doing" : `${sum(tabPattern.trend)} messages`}
             </small>
           </button>
         );
@@ -719,11 +731,17 @@ function PatternTabs({
 // A and R judge the pattern in focus, the way Review takes keys.
 function useVerdictKeys(judge: (verdict: Verdict) => void) {
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const typing = (e.target as HTMLElement).closest?.("input, textarea, select");
-      if (e.metaKey || e.ctrlKey || e.altKey || typing || document.querySelector("[role=dialog]"))
+    const onKey = (event: KeyboardEvent) => {
+      const typing = (event.target as HTMLElement).closest?.("input, textarea, select");
+      if (
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        typing ||
+        document.querySelector("[role=dialog]")
+      )
         return;
-      const key = e.key.toLowerCase();
+      const key = event.key.toLowerCase();
       if (key === "a") judge("accept");
       if (key === "r") judge("reject");
     };
@@ -737,11 +755,11 @@ const leadOf = (week: FeedbackWeek | undefined) =>
     ? `${sum(week.messages)} of your Slack messages · ${shortWeek(week.weeks[0])}–${shortWeek(week.weeks.at(-1))}`
     : "";
 
-export function Feedback({ p }: { p: URLSearchParams }) {
+export function Feedback({ params }: { params: URLSearchParams }) {
   const [north, refresh] = useNorth();
   const [weeks, setWeeks] = useState<FeedbackWeek[] | null>(null);
   const [weekAt, setWeekAt] = useState(0);
-  const [tab, setTab] = useState(+(p.get("p") ?? 0) || 0);
+  const [tab, setTab] = useState(+(params.get("p") ?? 0) || 0);
   const [justJudged, setJustJudged] = useState<string | null>(null);
   const [askWhy, setAskWhy] = useState(0);
   // The server's copy wins each time it comes back; in between, a verdict shows at once.
@@ -752,7 +770,9 @@ export function Feedback({ p }: { p: URLSearchParams }) {
       setWeekAt(
         Math.max(
           0,
-          all.findIndex((x: FeedbackWeek) => shortWeek(x.week) === p.get("w")),
+          all.findIndex(
+            (feedbackWeek: FeedbackWeek) => shortWeek(feedbackWeek.week) === params.get("w"),
+          ),
         ),
       );
     setWeeks(all);
@@ -772,26 +792,29 @@ export function Feedback({ p }: { p: URLSearchParams }) {
     const old = week.verdicts?.[key];
     const put = (value: any) =>
       setWeeks((all) =>
-        all!.map((x, k) => {
-          if (k !== weekAt) return x;
-          const verdicts = { ...x.verdicts };
+        all!.map((feedbackWeek, index) => {
+          if (index !== weekAt) return feedbackWeek;
+          const verdicts = { ...feedbackWeek.verdicts };
           if (value) verdicts[key] = value;
           else delete verdicts[key];
-          return { ...x, verdicts };
+          return { ...feedbackWeek, verdicts };
         }),
       );
     setJustJudged(key);
     put(verdict && { v: verdict, why: why ?? null });
     if (north!.SAMPLE) return say(sampleMessage(verdict));
-    const r = await post("/api/feedback", { week: week.week, item: key, verdict, why }).catch(
-      () => null,
-    );
-    if (!r?.ok) {
+    const response = await post("/api/feedback", {
+      week: week.week,
+      item: key,
+      verdict,
+      why,
+    }).catch(() => null);
+    if (!response?.ok) {
       put(old);
-      return say(`Not saved: ${r ? await r.text() : "server not reachable"}`);
+      return say(`Not saved: ${response ? await response.text() : "server not reachable"}`);
     }
     say(savedMessage(verdict, why));
-    if (verdict === "reject" && why == null) setAskWhy((n) => n + 1);
+    if (verdict === "reject" && why == null) setAskWhy((count) => count + 1);
     refresh();
   }
   useVerdictKeys((verdict) => {
@@ -827,8 +850,8 @@ export function Feedback({ p }: { p: URLSearchParams }) {
               <WeekPicker
                 weeks={weeks}
                 current={weekAt}
-                pick={(k) => {
-                  setWeekAt(k);
+                pick={(index) => {
+                  setWeekAt(index);
                   setTab(0);
                   setJustJudged(null);
                 }}
@@ -841,8 +864,8 @@ export function Feedback({ p }: { p: URLSearchParams }) {
                 patterns={patterns}
                 current={current}
                 justJudged={justJudged}
-                pickTab={(k) => {
-                  setTab(k);
+                pickTab={(index) => {
+                  setTab(index);
                   setJustJudged(null);
                 }}
                 save={saveVerdict}
@@ -871,7 +894,7 @@ function WeekFeedback({
   patterns: Pattern[];
   current: number;
   justJudged: string | null;
-  pickTab: (k: number) => void;
+  pickTab: (index: number) => void;
   save: SaveVerdict;
 }) {
   const pattern = patterns[current];
@@ -885,7 +908,7 @@ function WeekFeedback({
           experiment={week.experiment}
           verdict={verdictOf(week, "experiment")}
           note={justJudged === "experiment"}
-          set={(x, why) => save("experiment", x, why)}
+          set={(choice, why) => save("experiment", choice, why)}
         />
       )}
       <div className="overflow-hidden rounded-2xl border border-line bg-card shadow-card">
@@ -894,7 +917,7 @@ function WeekFeedback({
           key={`${week.week}:${current}`}
           week={week}
           pattern={pattern}
-          cats={north.FB_CATS ?? []}
+          categories={north.FB_CATS ?? []}
           note={justJudged === pattern?.key}
           set={save}
         />
@@ -903,4 +926,4 @@ function WeekFeedback({
   );
 }
 
-export const View = ({ p }: { p: URLSearchParams }) => <Feedback p={p} />;
+export const View = ({ p: params }: { p: URLSearchParams }) => <Feedback params={params} />;
