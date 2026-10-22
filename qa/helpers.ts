@@ -18,8 +18,6 @@ export const test = base.extend<{ view: (v: string) => Promise<void> }>({
     page.on("response", (r) => { const p = new URL(r.url()).pathname; if (r.status() >= 400 && !p.startsWith("/api/")) errors.push(`${r.status()} ${p}`); });
     await use(async (v) => { await page.goto(`${baseURL}#/${v}`); });
     expect(errors, "console errors").toEqual([]);
-    // A view the new app does not have sends you to the old one: then the spec tested the wrong app.
-    expect(new URL(page.url()).pathname, "stayed on its app").toBe(new URL(baseURL!).pathname);
   },
 });
 export { expect };

@@ -1,19 +1,17 @@
 // Serve the app and its data. Usage: bun app/server.ts  →  http://localhost:4317
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { CONFIG, isoWeek, LIVE, open, PLACED, plain } from "../ingest/ingest";
 import { current, known, METRICS, progress } from "../ingest/metrics";
 import { labelsOf, reviewThreads } from "../ingest/review";
 import { CATEGORIES } from "../ingest/feedback";
 import { correct } from "../ingest/mentions";
 import { direct, goalsOf, links, viaProject } from "../ingest/goals";
-// The React app, view by view (web/). Bun bundles it from the HTML.
-import next from "../web/index.html";
+// The app (web/). Bun bundles it from the HTML.
+import page from "../web/index.html";
+// Fictional example data for North, Trace and Feedback, before you keep a thread.
+import SAMPLE_DATA from "./sample.json";
 
 let db = open();
-const page = join(import.meta.dir, "index.html");
-// North and Trace read /data.js: built from your decisions, or the fictional sample before you have any.
-const sample = join(import.meta.dir, "sample-data.js");
 
 function projects(weeks: string[]) {
   const ix = new Map(weeks.map((w, i) => [w, i]));
@@ -281,7 +279,7 @@ function project(id: string) {
     open: (db.query("SELECT count(*) n FROM events WHERE kind = 'issue_open' AND project_id = ?").get(id) as any).n });
 }
 
-// North and Trace: the threads you kept in review, the last 8 weeks. Same shape as sample-data.js.
+// North and Trace: the threads you kept in review, the last 8 weeks. Same shape as sample.json.
 const SRC: Record<string, string> = { github: "GitHub", linear: "Linear", slack: "Slack", calendar: "Calendar", drive: "Docs" };
 const COLORS = ["var(--g1)", "var(--g2)", "var(--g3)", "var(--g4)", "var(--g5)"];
 function north() {
@@ -416,17 +414,10 @@ const server = Bun.serve({
   hostname: process.env.HOST ?? "127.0.0.1",
   // Bundled once, without the dev reloader: the app runs the same in Docker and in QA.
   development: false,
-  routes: { "/next/": next },
+  // /next/ was the app while it moved to React: old links land on the app.
+  routes: { "/": page, "/next/": Response.redirect("/", 301) },
   async fetch(req) {
     const url = new URL(req.url);
-    // No cache: after an update or a new review, the next load shows it.
-    if (url.pathname === "/") return new Response(Bun.file(page), { headers: { "cache-control": "no-cache" } });
-    // The page's styles and scripts, one file per view. The pattern allows no other path.
-    // Before the database: a page load asks for 21 of these, and none reads data.
-    if (/^\/(css\/[a-z]+\.css|js\/[a-z]+\.js)$/.test(url.pathname)) {
-      const f = Bun.file(join(import.meta.dir, url.pathname));
-      return (await f.exists()) ? new Response(f, { headers: { "cache-control": "no-cache" } }) : new Response("Not found", { status: 404 });
-    }
     // Collection writes from the host. Over Docker's file share an open connection can keep reading
     // old pages, so each request reads with a fresh one.
     db.close(); db = open();
@@ -462,7 +453,8 @@ const server = Bun.serve({
     // The feedback categories and their sources come with the data, the example too.
     // Same data as North, as JSON, for ingest/facts.ts. No sample: facts are only ever yours.
     if (url.pathname === "/api/facts") { const d = north(); return d ? Response.json({ ...d, OBJECTIVES: goalList().goals }) : new Response("No kept threads yet", { status: 404 }); }
-    if (url.pathname === "/data.js") { const n = north(), d = n ? Object.entries(n).map(([k, v]) => `const ${k} = ${JSON.stringify(v)};`).join("\n") : await Bun.file(sample).text(); return new Response(`const FB_CATS = ${JSON.stringify(CATEGORIES)};\n${d}`, { headers: { "content-type": "text/javascript", "cache-control": "no-cache" } }); }
+    // North, Trace, Feedback and Search: your kept threads, or the sample with SAMPLE: true.
+    if (url.pathname === "/api/north") return Response.json({ FB_CATS: CATEGORIES, ...(north() ?? SAMPLE_DATA) });
     if (url.pathname === "/api/goals") return Response.json(goalList());
     if (url.pathname === "/api/projects") {
       const weeks = (url.searchParams.get("weeks") ?? "").split(",").filter((w) => /^\d{4}-W\d{2}$/.test(w));

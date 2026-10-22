@@ -55,4 +55,4 @@ What your work serves. You write each objective and its key results, or start fr
 
 Delete a goal and only its links go; projects and threads stay.
 
-Code: `ingest/goals.ts`, `ingest/metrics.ts`, `app/server.ts` (`goalList`, `saveGoal`, `checkin`, `linkGoal`), `app/js/goals.js`, `app/css/goals.css`.
+Code: `ingest/goals.ts`, `ingest/metrics.ts`, `app/server.ts` (`goalList`, `saveGoal`, `checkin`, `linkGoal`), `web/goals.tsx`.

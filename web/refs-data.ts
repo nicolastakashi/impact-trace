@@ -1,10 +1,7 @@
-const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const G = (!RM && window.gsap) ? window.gsap : null;
-
-const MODES = {clarify:"clarify", prevent:"prevent", solve:"solve", build:"build", elevate:"elevate", external:"external"};
-const PILLAR = {big:"big-picture", exec:"execution", level:"leveling-up"};
-
-const REFS = {
+// The sources behind each mode and idea: References lists them, the thread sheet quotes one.
+// Quotes checked on 2026-10-18. `warn` marks a secondary source.
+export type Ref = { q?: string; says?: string; who: string; url: string; warn?: string };
+export const REFS: Record<string, { title: string; d: string; ex: string[]; items: Ref[] }> = {
   clarify:{title:"Clarify", d:"Made a fuzzy problem clear.", ex:["Proposals", "Decision docs", "Framing", "Scoping"], items:[
     {q:"The highest-leverage work I do is to provide technical clarity to the organization", who:"Sean Goedecke, Staff Engineer at GitHub", url:"https://www.seangoedecke.com/clarity/"},
     {q:"Illuminate and clarify", who:"Amazon, Principal Engineering Tenets", url:"https://www.amazon.jobs/content/en/teams/principal-engineering/tenets"},
@@ -43,48 +40,3 @@ const REFS = {
     {q:"Engineers who know all their work have an easier way of saying no to new work", who:"Gergely Orosz, Work log", url:"https://blog.pragmaticengineer.com/work-log-template-for-software-engineers/"},
     {q:"can take on massive ambiguous cross-org projects and make them succeed despite the difficulty.", who:"Tanya Reilly, The Staff Engineer's Path", url:"https://noidea.dog/staff"}]},
 };
-
-/* WEEKS, REVIEWS, PERIOD, GOALS, PROJECTS, REC, ITEMS, HIGHLIGHT and PHASES come from /data.js:
-   built by the server from the threads you kept in review, or the fictional sample before that. */
-const WMS = {wouldnt:"wouldn't happen", slower:"slower", same:"same"};
-const LAST = WEEKS.length - 1;
-const modeOf = it => it.mode;
-// The goals a thread serves. The example data names one goal per project instead.
-const goalsOf = it => it.g ?? (PROJECTS[it.s]?.goal ? [PROJECTS[it.s].goal] : []);
-const byGoals = typeof GOALS_FROM === "undefined" || GOALS_FROM === "goals";
-const mc = m => `var(--m-${m})`;
-const esc = s => String(s).replace(/[&<>"]/g, ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
-const $ = s => document.querySelector(s);
-// Count axis: a step of 1, 2 or 5 times a power of ten, at most 5 gridlines above zero.
-const axis = max => { const r = Math.max(1, max) / 5, p = 10 ** Math.floor(Math.log10(r)), f = r / p;
-  const st = Math.max(1, (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p), top = Math.ceil(Math.max(1, max) / st) * st;
-  return {top, ticks: Array.from({length: top/st + 1}, (_,i) => i*st)}; };
-const cnt = (arr, f) => arr.reduce((o,x)=>{const k=f(x); o[k]=(o[k]||0)+1; return o},{});
-let sel = new Set(), cur = 0, recI = Math.max(0, REC.length-1);
-
-function countUp(root){
-  if(!G) return;
-  root.querySelectorAll("[data-count]").forEach(el=>{
-    const end = +el.dataset.count, o = {v:0};
-    G.to(o,{v:end,duration:1.1,ease:"power3.out",onUpdate:()=>el.textContent=Math.round(o.v)});
-  });
-}
-
-// Shared by the views: escaping that prints nothing for null, week strips, project sources.
-const escP = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-function strip(weeks, count, max){
-  return `<div class="strip" style="--n:${weeks.length}">${weeks.map(w => { const c = count(w);
-    return `<i class="${c ? "on" : ""}" style="--v:${c / max}" title="${w}: ${c}">${c || ""}</i>`; }).join("")}${weeks.map(w => `<span>${w.slice(5)}</span>`).join("")}</div>`;
-}
-function sourceLine(g, L){
-  const merged = g.merged?.length ? ` · includes ${g.merged.map(m => escP(m.name)).join(", ")}` : "";
-  if(g.kind === "topic" || !L) return `<span class="facts"><i class="src topic"></i>topic${merged}</span>`;
-  return `<span class="facts"><i class="src linear"></i>Linear${L.status ? ` · ${escP(L.status)}` : ""}${L.open ? ` · ${L.open} open` : ""}${merged}</span>`;
-}
-// One JSON POST: the server takes a write only with this exact content-type.
-const post = (url, body) => fetch(url, {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)});
-function toast(msg, ms = 1800){ const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, ms); }
-// Event kinds as people say them, in review and on a project page.
-const KIND = {pr_merged:"PR merged", pr_open:"PR open", issue_completed:"issue done", issue_open:"issue open",
-  review_comment:"review received", reviews_given:"reviews given", slack_message:"Slack", slack_mention:"mention",
-  meeting:"meeting", doc_created:"doc created", doc_edited:"doc edited"};
