@@ -1,23 +1,23 @@
 // One thread, all of it: where it sits (goal ▸ project ▸ week), its labels, its evidence as a
-// flame graph, and why the mode counts. Opens from North, Trace and Search with openItem(id).
+// flame graph, and why the mode counts. Opens from North, Trace and Search with openThread(id).
 import { useState } from "react";
 import { ChevronRight, ExternalLink } from "lucide-react";
 import {
   By,
   CloseButton,
-  cnt,
+  countBy,
   go,
   goalsOf,
   MODES,
-  mc,
+  modeColor,
   type North,
   PILLAR,
   reviewHref,
   useEvent,
   useNorth,
-  WMS,
+  WITHOUT_ME_LABELS,
 } from "./lib";
-import { REFS } from "./refs-data";
+import { REFERENCES } from "./refs-data";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
@@ -45,7 +45,7 @@ const blockClass =
 export function ThreadSheet() {
   const [north] = useNorth();
   const [id, setId] = useState<string | null>(null);
-  useEvent<string>("open-item", setId);
+  useEvent<string>("open-thread", setId);
   const thread = north && id ? north.threads.find((thread) => thread.id === id) : null;
   const close = () => setId(null);
   const openReference = (key: string) => {
@@ -58,7 +58,7 @@ export function ThreadSheet() {
   const praise = thread.praiseIndex != null ? north.praise[thread.praiseIndex] : null;
   const quote =
     thread.quote || (praise && { text: praise.text, who: `${praise.who} · ${praise.where}` });
-  const why = REFS[mode]?.items[0];
+  const why = REFERENCES[mode]?.items[0];
   return (
     <Dialog open onOpenChange={(open) => !open && close()}>
       {/* One track that may shrink: long evidence rows truncate instead of widening the sheet past a phone. */}
@@ -69,7 +69,7 @@ export function ThreadSheet() {
         </DialogTitle>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className={chipClass} onClick={() => openReference(mode)}>
-            <Dot color={mc(mode)} />
+            <Dot color={modeColor(mode)} />
             {MODES[mode]}
           </Button>
           {thread.withoutMe && (
@@ -78,7 +78,7 @@ export function ThreadSheet() {
               className={chipClass}
               onClick={() => openReference("counterfactual")}
             >
-              {WMS[thread.withoutMe]}
+              {WITHOUT_ME_LABELS[thread.withoutMe]}
             </Button>
           )}
           <Button variant="outline" className={chipClass} onClick={() => openReference("tracking")}>
@@ -102,7 +102,7 @@ export function ThreadSheet() {
           <div className="grid content-start gap-2.5">
             <span className="lbl">Without you, would it have happened?</span>
             <p className="m-0 text-xl">
-              {thread.withoutMe ? WMS[thread.withoutMe] : "not answered"}
+              {thread.withoutMe ? WITHOUT_ME_LABELS[thread.withoutMe] : "not answered"}
             </p>
             {!north.sample && (
               <a className="ref" href={reviewHref(north, thread)} onClick={close}>
@@ -171,12 +171,12 @@ function LinkChain({
 function FlameGraph({ thread, praise, quote }: { thread: any; praise: any; quote: any }) {
   const mode = thread.mode;
   const links = thread.links as string[][];
-  const sources = cnt(links, (link) => link[0]!);
+  const sources = countBy(links, (link) => link[0]!);
   const quoteSource = praise ? "Recognition" : "Slack";
   if (quote) sources[quoteSource] = (sources[quoteSource] ?? 0) + 1;
   const names = Object.keys(sources);
   const tint = (share: number) => ({
-    background: `color-mix(in srgb, ${mc(mode)} ${share}%, var(--s3))`,
+    background: `color-mix(in srgb, ${modeColor(mode)} ${share}%, var(--s3))`,
   });
   // The quote is a block of its own, under its source.
   const quoteBlock = (source: string) =>
@@ -197,7 +197,7 @@ function FlameGraph({ thread, praise, quote }: { thread: any; praise: any; quote
         <div className="flex gap-0.75">
           <span
             className={`${blockClass} text-[#0b0b0b]`}
-            style={{ background: mc(mode) }}
+            style={{ background: modeColor(mode) }}
           >{`${thread.id} · ${MODES[mode]}`}</span>
         </div>
         {names.length > 0 && (
@@ -247,7 +247,7 @@ const WhyThisCounts = ({
 }) => (
   <div className="grid content-start gap-2 rounded-xl border border-brand/35 bg-brand/5 p-4">
     <span className="lbl">{`Why this counts · ${MODES[mode]}`}</span>
-    <DialogDescription className="m-0 text-[14.5px]">{`“${why.q ?? why.says}”`}</DialogDescription>
+    <DialogDescription className="m-0 text-[14.5px]">{`“${why.quote ?? why.says}”`}</DialogDescription>
     <a className="ref" href={why.url} target="_blank" rel="noopener">{`${why.who} ↗`}</a>
     <Button
       variant="link"

@@ -1,7 +1,7 @@
 // STORY: the Wrapped recap. Full-screen slides: the period, the totals, each phase, the modes, the open question.
 import { useRef, useState } from "react";
 import gsap from "gsap";
-import { cnt, countUp, go, MODES, useEvent, useMotion, useNorth, type North } from "./lib";
+import { countBy, countUp, go, MODES, useEvent, useMotion, useNorth, type North } from "./lib";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 
 const PHASE_BACKGROUND = [
@@ -67,7 +67,7 @@ function PhaseSlide({ north, phase }: { north: North; phase: any }) {
 }
 
 function ModesSlide({ north }: { north: North }) {
-  const byMode = cnt(north.threads, (thread) => thread.mode);
+  const byMode = countBy(north.threads, (thread) => thread.mode);
   const longest = Math.max(1, ...Object.values(byMode));
   return (
     <>
@@ -273,4 +273,4 @@ export function Story() {
   );
 }
 
-export const View = (_: { p: URLSearchParams }) => <Story />;
+export const View = (_: { params: URLSearchParams }) => <Story />;

@@ -1,26 +1,26 @@
 // The sources behind each mode and idea: References lists them, the thread sheet quotes one.
 // Quotes checked on 2026-10-18. `warn` marks a secondary source.
-// `q` is the quote; the thread sheet reads it too.
-export type Reference = { q?: string; says?: string; who: string; url: string; warn?: string };
+// The thread sheet reads `quote` too.
+export type Reference = { quote?: string; says?: string; who: string; url: string; warn?: string };
 export type Topic = { title: string; description: string; examples: string[]; items: Reference[] };
-export const REFS: Record<string, Topic> = {
+export const REFERENCES: Record<string, Topic> = {
   clarify: {
     title: "Clarify",
     description: "Made a fuzzy problem clear.",
     examples: ["Proposals", "Decision docs", "Framing", "Scoping"],
     items: [
       {
-        q: "The highest-leverage work I do is to provide technical clarity to the organization",
+        quote: "The highest-leverage work I do is to provide technical clarity to the organization",
         who: "Sean Goedecke, Staff Engineer at GitHub",
         url: "https://www.seangoedecke.com/clarity/",
       },
       {
-        q: "Illuminate and clarify",
+        quote: "Illuminate and clarify",
         who: "Amazon, Principal Engineering Tenets",
         url: "https://www.amazon.jobs/content/en/teams/principal-engineering/tenets",
       },
       {
-        q: "Where a Product Manager focuses on the 'What', the Tech Lead focuses on the 'How.'",
+        quote: "Where a Product Manager focuses on the 'What', the Tech Lead focuses on the 'How.'",
         who: "Pat Kua",
         url: "https://www.patkua.com/blog/the-definition-of-a-tech-lead/",
       },
@@ -32,12 +32,12 @@ export const REFS: Record<string, Topic> = {
     examples: ["A risk caught in review", "A guard", 'A "let\'s not build this"'],
     items: [
       {
-        q: "Often the most impactful things I do is convince someone not to write a new thing.",
+        quote: "Often the most impactful things I do is convince someone not to write a new thing.",
         who: "Silvia Botros, Senior Principal at Twilio",
         url: "https://staffeng.com/stories/silvia-botros/",
       },
       {
-        q: "A surprising number of projects are one small change away from succeeding",
+        quote: "A surprising number of projects are one small change away from succeeding",
         who: "Will Larson, Work on what matters",
         url: "https://staffeng.com/guides/work-on-what-matters/",
       },
@@ -49,12 +49,14 @@ export const REFS: Record<string, Topic> = {
     examples: ["An incident", "A bug", "An unblock"],
     items: [
       {
-        q: "The Solver digs deep into arbitrarily complex problems and finds an appropriate path forward.",
+        quote:
+          "The Solver digs deep into arbitrarily complex problems and finds an appropriate path forward.",
         who: "Will Larson, Staff archetypes",
         url: "https://staffeng.com/guides/staff-archetypes/",
       },
       {
-        q: "at the senior levels, we are expected to identify problems that match business opportunities",
+        quote:
+          "at the senior levels, we are expected to identify problems that match business opportunities",
         who: "Camille Fournier",
         url: "https://www.elidedbranches.com/2023/07/the-next-larger-context.html",
       },
@@ -66,18 +68,19 @@ export const REFS: Record<string, Topic> = {
     examples: ["Features", "Platform", "Migrations"],
     items: [
       {
-        q: "I own and deliver org/company-wide multi-year, multi-team goals",
+        quote: "I own and deliver org/company-wide multi-year, multi-team goals",
         who: "Dropbox, IC6 Principal",
         url: "https://dropbox.github.io/dbx-career-framework/ic6_principal_software_engineer.html",
       },
       {
-        q: "Principal Engineers are hands-on and lead by example.",
+        quote: "Principal Engineers are hands-on and lead by example.",
         who: "Amazon, Exemplary practitioner",
         warn: "Hacker News repost, not the official page",
         url: "https://news.ycombinator.com/item?id=26004088",
       },
       {
-        q: "Solves technical problems of the highest scope, complexity, and ambiguity for their sub-department.",
+        quote:
+          "Solves technical problems of the highest scope, complexity, and ambiguity for their sub-department.",
         who: "GitLab, Principal Engineer",
         url: "https://handbook.gitlab.com/job-families/engineering/development/management/principal-engineer/",
       },
@@ -89,17 +92,18 @@ export const REFS: Record<string, Topic> = {
     examples: ["Teaching reviews", "Mentoring", "Pairing", "Recognition"],
     items: [
       {
-        q: "To sponsor someone is to feel on the hook to help get someone promoted.",
+        quote: "To sponsor someone is to feel on the hook to help get someone promoted.",
         who: "Lara Hogan",
         url: "https://larahogan.me/blog/what-sponsorship-looks-like/",
       },
       {
-        q: "our job isn't to do the code, but to help others do it with growth and the long-term in mind.",
+        quote:
+          "our job isn't to do the code, but to help others do it with growth and the long-term in mind.",
         who: "Silvia Botros",
         url: "https://staffeng.com/stories/silvia-botros/",
       },
       {
-        q: "Who have you mentored and through what accomplishments?",
+        quote: "Who have you mentored and through what accomplishments?",
         who: "Will Larson, Promo packets",
         url: "https://lethain.com/promo-packets/",
       },
@@ -111,17 +115,19 @@ export const REFS: Record<string, Topic> = {
     examples: ["Open source upstream", "Talks", "Community"],
     items: [
       {
-        q: "She is an approver for the OpenTelemetry Go SIG, wrote vendor exporters for Go and Python",
+        quote:
+          "She is an approver for the OpenTelemetry Go SIG, wrote vendor exporters for Go and Python",
         who: "Liz Fong-Jones, OTel GC 2020 candidacy",
         url: "https://github.com/open-telemetry/community/blob/main/elections/2020/governance-committee-candidates.md",
       },
       {
-        q: "As a GC member, I actively mediate community conflicts.",
+        quote: "As a GC member, I actively mediate community conflicts.",
         who: "Juraci Paixão Kröhling",
         url: "https://grafana.com/blog/2024/08/16/behind-the-scenes-of-the-opentelemetry-governance-committee/",
       },
       {
-        q: "Interact with customers and other external stakeholders as a consultant and spokesperson",
+        quote:
+          "Interact with customers and other external stakeholders as a consultant and spokesperson",
         who: "GitLab, Principal Engineer",
         url: "https://handbook.gitlab.com/job-families/engineering/development/management/principal-engineer/",
       },
@@ -134,17 +140,17 @@ export const REFS: Record<string, Topic> = {
     examples: ["Onboarding", "Coordination", "Docs", "Unblocking"],
     items: [
       {
-        q: "Glue work is the difference between a project that succeeds and one that fails.",
+        quote: "Glue work is the difference between a project that succeeds and one that fails.",
         who: "Tanya Reilly, Being Glue",
         url: "https://noidea.dog/glue",
       },
       {
-        q: "If you only do glue, you will only get better at glue.",
+        quote: "If you only do glue, you will only get better at glue.",
         who: "Tanya Reilly",
         url: "https://noidea.dog/glue",
       },
       {
-        q: "You should do this kind of extra work for the projects you lead",
+        quote: "You should do this kind of extra work for the projects you lead",
         who: "Sean Goedecke",
         url: "https://www.seangoedecke.com/glue-work-considered-harmful/",
       },
@@ -157,12 +163,13 @@ export const REFS: Record<string, Topic> = {
     examples: ["Wouldn't happen", "Slower", "Same"],
     items: [
       {
-        q: "things that simply won't happen if you don't do them are your biggest opportunity to work on something that matters",
+        quote:
+          "things that simply won't happen if you don't do them are your biggest opportunity to work on something that matters",
         who: "Will Larson",
         url: "https://staffeng.com/guides/work-on-what-matters/",
       },
       {
-        q: "you won't get promoted if your company's leadership doesn't know who you are.",
+        quote: "you won't get promoted if your company's leadership doesn't know who you are.",
         who: "Will Larson, Getting the title where you are",
         url: "https://staffeng.com/guides/getting-the-title-where-you-are/",
       },
@@ -174,17 +181,19 @@ export const REFS: Record<string, Topic> = {
     examples: ["Your team", "Across teams", "Company goal"],
     items: [
       {
-        q: "While a senior engineer typically works across a team, a Staff or Principal engineer usually works across a larger organization.",
+        quote:
+          "While a senior engineer typically works across a team, a Staff or Principal engineer usually works across a larger organization.",
         who: "Gergely Orosz",
         url: "https://newsletter.pragmaticengineer.com/p/engineering-career-paths",
       },
       {
-        q: "Principal Engineers and Senior Directors of Engineering primarily focus on the engineering output of multiple groups",
+        quote:
+          "Principal Engineers and Senior Directors of Engineering primarily focus on the engineering output of multiple groups",
         who: "Mike McQuaid",
         url: "https://mikemcquaid.com/what-is-a-staff-plus-principal-engineer/",
       },
       {
-        q: "I deliver results against a strategic company-level business objective",
+        quote: "I deliver results against a strategic company-level business objective",
         who: "Dropbox, IC6",
         url: "https://dropbox.github.io/dbx-career-framework/ic6_principal_software_engineer.html",
       },
@@ -197,17 +206,18 @@ export const REFS: Record<string, Topic> = {
     examples: ["Brag doc", "Work log"],
     items: [
       {
-        q: "So if your manager is going to effectively advocate for you, they need help.",
+        quote: "So if your manager is going to effectively advocate for you, they need help.",
         who: "Julia Evans, Brag documents",
         url: "https://jvns.ca/blog/brag-documents/",
       },
       {
-        q: "Engineers who know all their work have an easier way of saying no to new work",
+        quote: "Engineers who know all their work have an easier way of saying no to new work",
         who: "Gergely Orosz, Work log",
         url: "https://blog.pragmaticengineer.com/work-log-template-for-software-engineers/",
       },
       {
-        q: "can take on massive ambiguous cross-org projects and make them succeed despite the difficulty.",
+        quote:
+          "can take on massive ambiguous cross-org projects and make them succeed despite the difficulty.",
         who: "Tanya Reilly, The Staff Engineer's Path",
         url: "https://noidea.dog/staff",
       },

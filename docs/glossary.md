@@ -28,4 +28,5 @@ Names in code use these words in full: `withoutMe`, not `wm`; `keyResult`, not `
 | trace | A week, drawn on Trace | |
 | sample | The fictional example data shown before your first review | |
 
-Well-known short words stay: `id`, `url`, `api`, `db`, `json`, `html`, `pr`, `css`.
+Well-known short words stay: `id`, `url`, `api`, `db`, `json`, `html`, `pr`, `css`, and `cn`
+(the shadcn class-name helper).

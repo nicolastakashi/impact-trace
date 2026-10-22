@@ -5,12 +5,12 @@ import gsap from "gsap";
 import { ChevronDown, ChevronRight, Maximize2, Play } from "lucide-react";
 import {
   CloseButton,
-  cnt,
-  DOW,
-  fmtWhen,
+  countBy,
+  WEEKDAYS,
+  formatWhen,
   MODES,
-  mc,
-  openItem,
+  modeColor,
+  openThread,
   percent,
   PILLAR,
   plural,
@@ -18,7 +18,7 @@ import {
   reviewHref,
   SampleNote,
   useNorth,
-  WMS,
+  WITHOUT_ME_LABELS,
   yearOf,
   type North,
 } from "./lib";
@@ -366,7 +366,7 @@ export function Trace({ params }: { params: URLSearchParams }) {
 
   const passes = (thread: Thread) =>
     (!filter.mode || thread.mode === filter.mode) && (!filter.critical || isCritical(thread));
-  const byMode = cnt(threads, (thread: Thread) => thread.mode);
+  const byMode = countBy(threads, (thread: Thread) => thread.mode);
   // Ties go to the mode seen first, not MODES order.
   const topMode = Object.keys(byMode).sort((first, second) => byMode[second]! - byMode[first]!)[0]!;
   const critical = threads.filter(isCritical).length;
@@ -438,7 +438,7 @@ export function Trace({ params }: { params: URLSearchParams }) {
 }
 
 // The heatmap's color: the filtered mode's, else the accent.
-const heatColor = (mode: string | null) => (mode ? mc(mode) : "var(--accent)");
+const heatColor = (mode: string | null) => (mode ? modeColor(mode) : "var(--accent)");
 
 function Explorer({
   north,
@@ -584,7 +584,7 @@ function HeatCell({
       data-n={count || undefined}
       title={
         count
-          ? `${plural(count, "span")} · ${north.weeks[week]} ${DOW[day % 7]} · ${BUCKETS[bucket]![0]}`
+          ? `${plural(count, "span")} · ${north.weeks[week]} ${WEEKDAYS[day % 7]} · ${BUCKETS[bucket]![0]}`
           : undefined
       }
       className={cn(
@@ -623,7 +623,7 @@ function Filters({
       {modesByCount(byMode).map((mode) => (
         <Chip
           key={mode}
-          color={mc(mode)}
+          color={modeColor(mode)}
           on={filter.mode === mode}
           dim={!!filter.mode && filter.mode !== mode}
           count={byMode[mode]!}
@@ -772,7 +772,7 @@ function Waterfall({
         >
           <span className="lbl pl-5 max-sm:hidden">Span</span>
           <div className="relative h-full">
-            {DOW.map((day, index) => (
+            {WEEKDAYS.map((day, index) => (
               <span
                 key={day}
                 className="absolute inset-y-0 flex items-center pl-1.75 font-mono text-[10.5px] font-medium tracking-[.06em] text-ink-3 uppercase"
@@ -870,7 +870,7 @@ function WeekTrace({
               key={thread.id}
               data-at={position(thread.start)}
               className="absolute top-1/2 -mt-1.5 -ml-[1.5px] h-3 w-0.75 rounded-[2px]"
-              style={{ left: `${position(thread.start)}%`, background: mc(thread.mode) }}
+              style={{ left: `${position(thread.start)}%`, background: modeColor(thread.mode) }}
             />
           ))}
         </div>
@@ -925,7 +925,7 @@ function SpanRow({
     <div
       onClick={() => toggle(thread.id)}
       onPointerEnter={() => hover(thread)}
-      style={colorVar(mc(thread.mode))}
+      style={colorVar(modeColor(thread.mode))}
       className={cn(
         row,
         rule,
@@ -1032,7 +1032,7 @@ function SummaryBody({
   rest: Thread[];
   toggle: (id: string) => void;
 }) {
-  const byMode = cnt(selected, (thread: Thread) => thread.mode);
+  const byMode = countBy(selected, (thread: Thread) => thread.mode);
   const modes = modesByCount(byMode);
   const longest = selected
     .filter((thread) => thread.hours != null)
@@ -1046,7 +1046,7 @@ function SummaryBody({
             key={mode}
             data-mix
             className="origin-left"
-            style={{ flex: byMode[mode], background: mc(mode) }}
+            style={{ flex: byMode[mode], background: modeColor(mode) }}
             title={`${MODES[mode]}: ${byMode[mode]}`}
           />
         ))}
@@ -1057,7 +1057,7 @@ function SummaryBody({
             key={mode}
             className="grid grid-cols-[auto_1fr_auto_64px] items-center gap-2.5 border-t border-line py-1.75 text-[13.5px] first:border-t-0"
           >
-            <i className={swatch} style={colorVar(mc(mode))} />
+            <i className={swatch} style={colorVar(modeColor(mode))} />
             <span>{MODES[mode]}</span>
             <b className="font-mono text-[13px] font-semibold">{byMode[mode]}</b>
             <small className="text-right font-mono text-[11.5px] font-medium text-ink-3">
@@ -1129,7 +1129,7 @@ function SpanDetail({
     <>
       <div className="flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-2 text-[12.5px] text-ink-2">
-          <i className={swatch} style={colorVar(mc(thread.mode))} />
+          <i className={swatch} style={colorVar(modeColor(thread.mode))} />
           {`${MODES[thread.mode]} · ${north.weeks[thread.weekIndex]}`}
         </span>
         <CloseButton onClick={close} />
@@ -1145,7 +1145,7 @@ function SpanDetail({
         <dt>mode</dt>
         <dd>{MODES[thread.mode]}</dd>
         <dt>without_you</dt>
-        <dd>{thread.withoutMe ? WMS[thread.withoutMe] : "not answered"}</dd>
+        <dd>{thread.withoutMe ? WITHOUT_ME_LABELS[thread.withoutMe] : "not answered"}</dd>
         <dt>project</dt>
         <dd>
           <ProjectName thread={thread} north={north} />
@@ -1153,7 +1153,9 @@ function SpanDetail({
         <dt>pillar</dt>
         <dd>{PILLAR[thread.pillar] ?? "none"}</dd>
         <dt>started</dt>
-        <dd>{thread.start ? `${fmtWhen(thread.start)}, ${formatDay(thread.start)}` : "no time"}</dd>
+        <dd>
+          {thread.start ? `${formatWhen(thread.start)}, ${formatDay(thread.start)}` : "no time"}
+        </dd>
       </dl>
       {thread.summary && <p className="m-0 text-sm leading-normal text-ink-2">{thread.summary}</p>}
       <span className="lbl">{`Span events · ${thread.events.length}`}</span>
@@ -1168,7 +1170,7 @@ function SpanDetail({
           variant="outline"
           size="xs"
           className="font-mono text-xs text-ink-2"
-          onClick={() => openItem(thread.id)}
+          onClick={() => openThread(thread.id)}
         >
           <Maximize2 className="size-3" />
           open thread
@@ -1188,7 +1190,7 @@ function EventRow({ event }: { event: SpanEvent }) {
   return (
     <li className="grid grid-cols-[78px_104px_minmax(0,1fr)] items-baseline gap-2 border-t border-line py-1.75 text-[12.5px] max-sm:grid-cols-[70px_minmax(0,1fr)]">
       <time className="font-mono text-[11.5px] font-medium text-ink-3">
-        {time ? fmtWhen(Date.parse(time)) : "no time"}
+        {time ? formatWhen(Date.parse(time)) : "no time"}
       </time>
       <span className="font-mono text-[11.5px] font-medium text-ink-2 max-sm:hidden">
         {EVENT_KIND[kind] ?? kind}
@@ -1207,4 +1209,4 @@ function EventRow({ event }: { event: SpanEvent }) {
   );
 }
 
-export const View = ({ p: params }: { p: URLSearchParams }) => <Trace params={params} />;
+export const View = ({ params }: { params: URLSearchParams }) => <Trace params={params} />;

@@ -1,6 +1,6 @@
 // SEARCH: the ⌘K box. Views, the recap and your threads, by title, project or person.
 import { useRef, useState } from "react";
-import { go, mc, type North, openItem, openStory, useEvent, useNorth } from "./lib";
+import { go, modeColor, type North, openThread, openStory, useEvent, useNorth } from "./lib";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 
@@ -42,7 +42,7 @@ function resultsOf(north: North | null): Result[] {
         label: thread.title,
         tag: north.weeks[thread.weekIndex]!,
         mode: thread.mode,
-        run: () => openItem(thread.id),
+        run: () => openThread(thread.id),
         haystack:
           `${thread.title} ${north.projects[thread.projectId]?.name ?? ""} ${thread.quote?.who ?? ""} ${praisedBy}`.toLowerCase(),
       };
@@ -100,7 +100,7 @@ export function Search() {
               <CommandItem key={result.id} value={result.id} onSelect={() => pick(result)}>
                 <i
                   className="size-2.5 flex-none rounded-full"
-                  style={{ background: result.mode ? mc(result.mode) : "var(--line-2)" }}
+                  style={{ background: result.mode ? modeColor(result.mode) : "var(--line-2)" }}
                 />
                 <span className="min-w-0 flex-1 truncate">{result.label}</span>
                 <span className="font-mono text-[11px] font-medium text-ink-3">{result.tag}</span>
@@ -113,4 +113,4 @@ export function Search() {
   );
 }
 
-export const View = (_: { p: URLSearchParams }) => <Search />;
+export const View = (_: { params: URLSearchParams }) => <Search />;

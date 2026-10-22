@@ -6,7 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { Check, ChevronRight, X } from "lucide-react";
 import {
-  fmtWhen,
+  formatWhen,
   type North,
   plural,
   post,
@@ -32,7 +32,7 @@ type SaveVerdict = (key: string, verdict: string | null, why?: string) => void;
 
 const nextWeek = (week: string) => `W${String(+week.slice(6) + 1).padStart(2, "0")}`; // ponytail: W53 and New Year are not handled
 const whereSaid = (message: Message) =>
-  `${message.channel} · ${shortWeek(message.week)}${message.at ? ` · ${fmtWhen(Date.parse(message.at))}` : ""}`;
+  `${message.channel} · ${shortWeek(message.week)}${message.at ? ` · ${formatWhen(Date.parse(message.at))}` : ""}`;
 const markerPattern = (markers: string[], flags: string) =>
   new RegExp(
     markers.map((marker) => marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"),
@@ -926,4 +926,4 @@ function WeekFeedback({
   );
 }
 
-export const View = ({ p: params }: { p: URLSearchParams }) => <Feedback params={params} />;
+export const View = ({ params }: { params: URLSearchParams }) => <Feedback params={params} />;

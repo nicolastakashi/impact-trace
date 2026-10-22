@@ -522,7 +522,7 @@ function Project({ projectId }: { projectId: string }) {
   );
 }
 
-export const View = ({ p: params }: { p: URLSearchParams }) => (
+export const View = ({ params }: { params: URLSearchParams }) => (
   <section className="view" id="v-project">
     <div className="grid gap-5">
       <Project projectId={params.get("id") ?? ""} />

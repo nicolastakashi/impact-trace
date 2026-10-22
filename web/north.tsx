@@ -5,16 +5,16 @@ import { Check, Play } from "lucide-react";
 import {
   axis,
   By,
-  cnt,
+  countBy,
   countUp,
   go,
   goalsOf,
   loadPending,
   mean,
   MODES,
-  mc,
+  modeColor,
   type North,
-  openItem,
+  openThread,
   openStory,
   percent,
   post,
@@ -24,7 +24,7 @@ import {
   toast,
   useMotion,
   useNorth,
-  WMS,
+  WITHOUT_ME_LABELS,
 } from "./lib";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -339,7 +339,7 @@ const Delivered = ({ north }: { north: North }) => (
 
 // By mode: longest first, in the mode colors Trace uses.
 function ByMode({ threads }: { threads: any[] }) {
-  const byMode = cnt(threads, (thread) => thread.mode);
+  const byMode = countBy(threads, (thread) => thread.mode);
   const modes = Object.keys(MODES).sort(
     (first, second) => (byMode[second] ?? 0) - (byMode[first] ?? 0),
   );
@@ -359,7 +359,10 @@ function ByMode({ threads }: { threads: any[] }) {
             <i
               data-grow="x"
               className="block h-full origin-left rounded-xs"
-              style={{ width: `${((byMode[mode] ?? 0) / longest) * 100}%`, background: mc(mode) }}
+              style={{
+                width: `${((byMode[mode] ?? 0) / longest) * 100}%`,
+                background: modeColor(mode),
+              }}
             />
           </span>
           <span className="text-right font-num text-sm leading-none font-semibold tabular-nums">
@@ -378,8 +381,8 @@ const ANSWER_COLOR: Record<string, string> = {
   same: "var(--rest)",
 };
 function WithoutYou({ threads }: { threads: any[] }) {
-  const byAnswer = cnt(threads, (thread) => thread.withoutMe);
-  const answers = Object.keys(WMS);
+  const byAnswer = countBy(threads, (thread) => thread.withoutMe);
+  const answers = Object.keys(WITHOUT_ME_LABELS);
   const answered = sum(answers.map((answer) => byAnswer[answer] ?? 0));
   return (
     <div className={deliveredColumn}>
@@ -392,7 +395,9 @@ function WithoutYou({ threads }: { threads: any[] }) {
       <div
         className="flex h-3 gap-0.5 overflow-hidden rounded-[3px]"
         role="img"
-        aria-label={answers.map((answer) => `${byAnswer[answer] ?? 0} ${WMS[answer]}`).join(", ")}
+        aria-label={answers
+          .map((answer) => `${byAnswer[answer] ?? 0} ${WITHOUT_ME_LABELS[answer]}`)
+          .join(", ")}
       >
         {answers
           .filter((answer) => byAnswer[answer])
@@ -416,7 +421,7 @@ function WithoutYou({ threads }: { threads: any[] }) {
               {byAnswer[answer] ?? 0}
             </b>
             <span>
-              {WMS[answer]} · {percent(byAnswer[answer] ?? 0, answered)}%
+              {WITHOUT_ME_LABELS[answer]} · {percent(byAnswer[answer] ?? 0, answered)}%
             </span>
           </li>
         ))}
@@ -750,7 +755,7 @@ function Praise({
             variant="outline"
             size="xs"
             className={chipClass}
-            onClick={() => openItem(thread.id)}
+            onClick={() => openThread(thread.id)}
           >
             {thread.title} →
           </Button>
@@ -1085,4 +1090,4 @@ function Home() {
   );
 }
 
-export const View = (_: { p: URLSearchParams }) => <Home />;
+export const View = (_: { params: URLSearchParams }) => <Home />;

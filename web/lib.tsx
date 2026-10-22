@@ -157,13 +157,13 @@ export const PILLAR: Record<string, string> = {
   exec: "execution",
   level: "leveling-up",
 };
-export const WMS: Record<string, string> = {
+export const WITHOUT_ME_LABELS: Record<string, string> = {
   wouldnt: "wouldn't happen",
   slower: "slower",
   same: "same",
 };
-export const mc = (mode: string) => `var(--m-${mode})`;
-export const cnt = <T,>(values: T[], keyOf: (value: T) => string) =>
+export const modeColor = (mode: string) => `var(--m-${mode})`;
+export const countBy = <T,>(values: T[], keyOf: (value: T) => string) =>
   values.reduce(
     (counts, value) => {
       const key = keyOf(value);
@@ -181,13 +181,13 @@ export const plural = (count: number, word: string) => `${count} ${word}${count 
 
 // "2026-W43" → "W43".
 export const shortWeek = (week: string) => week.slice(5);
-export const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 // "Tue 09:05", in this browser's time zone.
-export const fmtWhen = (time: number) => {
+export const formatWhen = (time: number) => {
   const date = new Date(time);
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${DOW[(date.getDay() + 6) % 7]} ${hours}:${minutes}`;
+  return `${WEEKDAYS[(date.getDay() + 6) % 7]} ${hours}:${minutes}`;
 };
 
 // The goals a thread serves. The sample names one goal per project instead.
@@ -239,7 +239,8 @@ export const countUp = (element: HTMLElement, end: number, duration: number) => 
 };
 
 // Overlays any view can open: one thread's sheet, the Wrapped story, search.
-export const openItem = (id: string) => dispatchEvent(new CustomEvent("open-item", { detail: id }));
+export const openThread = (id: string) =>
+  dispatchEvent(new CustomEvent("open-thread", { detail: id }));
 export const openStory = () => dispatchEvent(new Event("open-story"));
 export const openSearch = () => dispatchEvent(new Event("open-search"));
 export function useEvent<T = unknown>(name: string, on: (detail: T) => void) {

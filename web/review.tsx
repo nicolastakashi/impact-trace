@@ -2,7 +2,7 @@
 import { useEffect, useReducer, useRef } from "react";
 import { ArrowLeft, ArrowRight, ChevronDown, ChevronUp, XIcon } from "lucide-react";
 import gsap from "gsap";
-import { cnt as countBy, MODES, mc as modeColor, PILLAR, reduced, toast } from "./lib";
+import { countBy, MODES, modeColor, PILLAR, reduced, toast } from "./lib";
 import { Button } from "./ui/button";
 import { cn } from "./ui/cn";
 import { Input, NativeSelect, Textarea } from "./ui/input";
@@ -1024,4 +1024,4 @@ function Segments({
 }
 
 // The router passes the address parameters as `p`.
-export const View = ({ p: params }: { p: URLSearchParams }) => <Review params={params} />;
+export const View = ({ params }: { params: URLSearchParams }) => <Review params={params} />;

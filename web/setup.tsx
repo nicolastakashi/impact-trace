@@ -302,4 +302,4 @@ const FirstWeekStep = () => (
 );
 
 // The router passes the address parameters as `p`; Setup needs none.
-export const View = (_: { p: URLSearchParams }) => <Setup />;
+export const View = (_: { params: URLSearchParams }) => <Setup />;

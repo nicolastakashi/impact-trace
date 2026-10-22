@@ -1314,4 +1314,4 @@ function DraftCard({
   );
 }
 
-export const View = ({ p: params }: { p: URLSearchParams }) => <Goals focus={params.get("id")} />;
+export const View = ({ params }: { params: URLSearchParams }) => <Goals focus={params.get("id")} />;

@@ -327,7 +327,7 @@ function Projects() {
 }
 
 // The old address #/projects?p=<id> opens that project.
-export function View({ p: params }: { p: URLSearchParams }) {
+export function View({ params }: { params: URLSearchParams }) {
   const id = params.get("p");
   useEffect(() => {
     if (id) location.replace(`#/project?id=${encodeURIComponent(id)}`);
