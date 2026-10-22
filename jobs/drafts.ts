@@ -8,12 +8,12 @@ import { current, known, METRICS, quarterAll } from "../core/metrics";
 import { promptVersion, readJson } from "./claude";
 import { facts, fetchAppFacts, localTimeZone } from "./facts";
 
-export const quarterOf = (d: Date) =>
-  `${d.getUTCFullYear()}-Q${Math.floor(d.getUTCMonth() / 3) + 1}`;
+export const quarterOf = (date: Date) =>
+  `${date.getUTCFullYear()}-Q${Math.floor(date.getUTCMonth() / 3) + 1}`;
 
 function lastQuarter(quarter: string) {
-  const [year, n] = quarter.split("-Q").map(Number);
-  return n > 1 ? `${year}-Q${n - 1}` : `${year - 1}-Q4`;
+  const [year, quarterNumber] = quarter.split("-Q").map(Number);
+  return quarterNumber > 1 ? `${year}-Q${quarterNumber - 1}` : `${year - 1}-Q4`;
 }
 
 // The setup page may not have run yet: then there is no level.
@@ -72,50 +72,54 @@ const numbersIn = (text: string) => text.match(/\d+(?:\.\d+)?/g) ?? [];
 type Check = { db: Database; input: string; quarter: string; week: string; dropped: string[] };
 
 // A number counts as yours when it stands alone somewhere in the input.
-const inData = (check: Check, n: string) =>
-  new RegExp(`(?<![\\d.])${n.replace(".", "\\.")}(?![\\d])`).test(check.input);
+const inData = (check: Check, number: string) =>
+  new RegExp(`(?<![\\d.])${number.replace(".", "\\.")}(?![\\d])`).test(check.input);
 
-function keyResult(check: Check, title: string, kr: any) {
-  const text = shortText(kr.text, 200);
-  const metric = kr.metric || null;
-  if (!text || !Number.isFinite(kr.target) || (metric && !known(check.db, metric))) {
-    check.dropped.push(`${title} / ${kr.text}: bad key result`);
+function checkedKeyResult(check: Check, title: string, keyResult: any) {
+  const text = shortText(keyResult.text, 200);
+  const metric = keyResult.metric || null;
+  if (!text || !Number.isFinite(keyResult.target) || (metric && !known(check.db, metric))) {
+    check.dropped.push(`${title} / ${keyResult.text}: bad key result`);
     return [];
   }
-  const made = numbersIn(text).filter((n) => n !== String(kr.target) && !inData(check, n));
+  const made = numbersIn(text).filter(
+    (number) => number !== String(keyResult.target) && !inData(check, number),
+  );
   if (made.length) {
     check.dropped.push(`${title} / ${text}: numbers not in your data: ${made.join(", ")}`);
     return [];
   }
-  return [{ text, metric, start: start(check, kr, metric), target: kr.target }];
+  return [{ text, metric, start: start(check, keyResult, metric), target: keyResult.target }];
 }
 
 // A start the app can measure is code's. Any other start must be copied from your data:
 // Claude averaged weeks itself once (2.75), so a number it worked out stays empty for you.
 // A quarter total starts at 0.
-function start(check: Check, kr: any, metric: string | null) {
+function start(check: Check, keyResult: any, metric: string | null) {
   if (metric)
     return METRICS[metric]?.agg === "total"
       ? 0
       : current(check.db, metric, check.quarter, check.week);
-  return Number.isFinite(kr.start) && inData(check, String(kr.start)) ? kr.start : null;
+  return Number.isFinite(keyResult.start) && inData(check, String(keyResult.start))
+    ? keyResult.start
+    : null;
 }
 
-function objective(check: Check, o: any) {
-  const title = shortText(o.title, 120);
-  const why = shortText(o.why, 400);
-  const validKind = ["team", "personal"].includes(o.kind);
-  const validType = ["committed", "aspirational"].includes(o.type);
+function checkedGoal(check: Check, goal: any) {
+  const title = shortText(goal.title, 120);
+  const why = shortText(goal.why, 400);
+  const validKind = ["team", "personal"].includes(goal.kind);
+  const validType = ["committed", "aspirational"].includes(goal.type);
   if (!title || !why || !validKind || !validType) {
-    check.dropped.push(`${o.title}: bad fields`);
+    check.dropped.push(`${goal.title}: bad fields`);
     return [];
   }
   // Each "based on" must be copied from the input; anything else is Claude's own story.
-  const based_on = (o.based_on ?? []).filter(
-    (b: any) =>
-      typeof b === "string" &&
-      b.length >= 4 &&
-      check.input.includes(JSON.stringify(b).slice(1, -1)),
+  const based_on = (goal.based_on ?? []).filter(
+    (basis: any) =>
+      typeof basis === "string" &&
+      basis.length >= 4 &&
+      check.input.includes(JSON.stringify(basis).slice(1, -1)),
   );
   if (!based_on.length) {
     check.dropped.push(`${title}: nothing it is based on is in your data`);
@@ -123,17 +127,19 @@ function objective(check: Check, o: any) {
   }
   // A number in "why" is copied from your data, or the draft goes. ponytail: matches digits
   // anywhere in the input, so a wrong number that exists elsewhere slips through.
-  const made = numbersIn(why).filter((n) => !inData(check, n));
+  const made = numbersIn(why).filter((number) => !inData(check, number));
   if (made.length) {
     check.dropped.push(`${title}: numbers not in your data: ${made.join(", ")}`);
     return [];
   }
-  const krs = (o.key_results ?? []).slice(0, 5).flatMap((kr: any) => keyResult(check, title, kr));
-  if (!krs.length) {
+  const keyResults = (goal.key_results ?? [])
+    .slice(0, 5)
+    .flatMap((keyResult: any) => checkedKeyResult(check, title, keyResult));
+  if (!keyResults.length) {
     check.dropped.push(`${title}: no key result left`);
     return [];
   }
-  return [{ title, kind: o.kind, type: o.type, why, based_on, krs }];
+  return [{ title, kind: goal.kind, type: goal.type, why, based_on, keyResults }];
 }
 
 // Replaces the drafts you have not used. Returns what was saved and why anything was dropped.
@@ -148,7 +154,7 @@ export function saveDrafts(db: Database, run: any, input: any, version: string, 
   };
   if (run.is_error || !Array.isArray(out?.objectives))
     throw new Error(`Claude failed: ${run.result ?? "no objectives"}`);
-  const drafts = out.objectives.slice(0, 5).flatMap((o: any) => objective(check, o));
+  const drafts = out.objectives.slice(0, 5).flatMap((goal: any) => checkedGoal(check, goal));
   const at = now.toISOString();
   db.transaction(() => {
     db.query("DELETE FROM goal_drafts").run();
@@ -163,7 +169,7 @@ export function saveDrafts(db: Database, run: any, input: any, version: string, 
         check.quarter,
         draft.why,
         JSON.stringify(draft.based_on),
-        JSON.stringify(draft.krs),
+        JSON.stringify(draft.keyResults),
         "sonnet",
         version,
         at,
@@ -173,13 +179,13 @@ export function saveDrafts(db: Database, run: any, input: any, version: string, 
 }
 
 if (import.meta.main) {
-  const [cmd, file, inFile] = process.argv.slice(2);
+  const [command, file, inputFile] = process.argv.slice(2);
   const db = open();
-  if (cmd === "emit") {
+  if (command === "emit") {
     const northFacts = facts(await fetchAppFacts(), localTimeZone());
     console.log(JSON.stringify(draftInput(db, northFacts)));
-  } else if (cmd === "save") {
+  } else if (command === "save") {
     const version = promptVersion("draft-goals");
-    console.log(saveDrafts(db, readJson(file), readJson(inFile), version));
+    console.log(saveDrafts(db, readJson(file), readJson(inputFile), version));
   } else throw new Error("usage: bun jobs/drafts.ts emit | save <run.json> <in.json>");
 }
