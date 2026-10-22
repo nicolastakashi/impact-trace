@@ -1,6 +1,6 @@
 // SEARCH: the ⌘K box. Views, the recap and your threads, by title, project or person.
 import { useRef, useState } from "react";
-import { mc, openItem, openStory, useEvent, useNorth } from "./lib";
+import { go, mc, type North, openItem, openStory, useEvent, useNorth } from "./lib";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 
@@ -15,49 +15,61 @@ const VIEWS = [
   ["refs", "References"],
   ["setup", "Setup"],
 ];
-type R = { id: string; label: string; t: string; m?: string; hay?: string; run: () => void };
+// One row: a view, the recap or a thread. `tag` is the right-hand caption; `hay` what the query matches.
+type Result = {
+  id: string;
+  label: string;
+  tag: string;
+  mode?: string;
+  hay?: string;
+  run: () => void;
+};
+
+function resultsOf(north: North | null): Result[] {
+  if (!north) return [];
+  return [
+    ...VIEWS.map(([view, label]) => ({
+      id: `v:${view}`,
+      label: `Go to ${label}`,
+      tag: "view",
+      run: () => go(`#/${view}`),
+    })),
+    { id: "recap", label: "Open recap (Wrapped)", tag: "recap", run: openStory },
+    ...north.ITEMS.map((i) => {
+      const praisedBy = i.rec != null ? north.REC[i.rec].who : "";
+      return {
+        id: `i:${i.id}`,
+        label: i.title,
+        tag: north.WEEKS[i.w]!,
+        mode: i.mode,
+        run: () => openItem(i.id),
+        hay: `${i.title} ${north.PROJECTS[i.s]?.name ?? ""} ${i.quote?.who ?? ""} ${praisedBy}`.toLowerCase(),
+      };
+    }),
+  ];
+}
 
 export function Search() {
-  const [d] = useNorth(),
-    [open, setOpen] = useState(false),
-    [q, setQ] = useState(""),
-    [sel, setSel] = useState("");
+  const [north] = useNorth();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState("");
   // A result moves focus on (a view, the sheet, the recap): then do not hand it back to the header.
   const went = useRef(false);
   // ⌘K again closes it.
   useEvent("open-search", () => {
     setOpen((o) => !o);
-    setQ("");
-    setSel("");
+    setQuery("");
+    setSelected("");
     went.current = false;
   });
-  const all: R[] = !d
-    ? []
-    : [
-        ...VIEWS.map(([v, l]) => ({
-          id: `v:${v}`,
-          label: `Go to ${l}`,
-          t: "view",
-          run: () => {
-            location.hash = `#/${v}`;
-          },
-        })),
-        { id: "recap", label: "Open recap (Wrapped)", t: "recap", run: openStory },
-        ...d.ITEMS.map((i) => ({
-          id: `i:${i.id}`,
-          label: i.title,
-          t: d.WEEKS[i.w]!,
-          m: i.mode,
-          run: () => openItem(i.id),
-          hay: `${i.title} ${d.PROJECTS[i.s]?.name ?? ""} ${i.quote?.who ?? ""} ${i.rec != null ? d.REC[i.rec].who : ""}`.toLowerCase(),
-        })),
-      ];
   // Our own filter, not cmdk's fuzzy one: a plain substring, at most 12 results.
-  const res = all
-    .filter((r) => !q || (r.hay ?? r.label.toLowerCase()).includes(q.toLowerCase()))
+  const needle = query.toLowerCase();
+  const results = resultsOf(north)
+    .filter((r) => !query || (r.hay ?? r.label.toLowerCase()).includes(needle))
     .slice(0, 12);
-  const cur = res.some((r) => r.id === sel) ? sel : (res[0]?.id ?? "");
-  const pick = (r: R) => {
+  const active = results.some((r) => r.id === selected) ? selected : (results[0]?.id ?? "");
+  const pick = (r: Result) => {
     went.current = true;
     setOpen(false);
     r.run();
@@ -70,25 +82,25 @@ export function Search() {
         onCloseAutoFocus={(e) => went.current && e.preventDefault()}
       >
         <DialogTitle className="sr-only">Search</DialogTitle>
-        <Command shouldFilter={false} value={cur} onValueChange={setSel}>
+        <Command shouldFilter={false} value={active} onValueChange={setSelected}>
           <CommandInput
             placeholder="Search items, people, views…"
-            value={q}
+            value={query}
             onValueChange={(v) => {
-              setQ(v);
-              setSel("");
+              setQuery(v);
+              setSelected("");
             }}
           />
           <CommandList>
             <CommandEmpty>Nothing found. Try a person or a stream name.</CommandEmpty>
-            {res.map((r) => (
+            {results.map((r) => (
               <CommandItem key={r.id} value={r.id} onSelect={() => pick(r)}>
                 <i
                   className="size-2.5 flex-none rounded-full"
-                  style={{ background: r.m ? mc(r.m) : "var(--line-2)" }}
+                  style={{ background: r.mode ? mc(r.mode) : "var(--line-2)" }}
                 />
                 <span className="min-w-0 flex-1 truncate">{r.label}</span>
-                <span className="font-mono text-[11px] font-medium text-ink-3">{r.t}</span>
+                <span className="font-mono text-[11px] font-medium text-ink-3">{r.tag}</span>
               </CommandItem>
             ))}
           </CommandList>
