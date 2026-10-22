@@ -4,11 +4,7 @@ Weekly impact tracking for engineers.
 
 ![Review a thread, then see your weeks drawn as a trace](docs/demo.gif)
 
-The whole app in 73 seconds, narrated:
-
-https://github.com/user-attachments/assets/b3cd33fc-3e32-4802-92e1-dcd2d3fb6645
-
-All data in the demo and the video is fictional.
+All data in the demo is fictional.
 
 ## Quick start
 
@@ -60,6 +56,10 @@ PORT=4318 bun start      # a second copy next to yours, e.g. a fresh clone with 
 `data/` holds your work data and `config.json`. It is git-ignored and must never be pushed.
 
 ## What it does
+
+The whole app in 73 seconds, narrated, on fictional data:
+
+https://github.com/user-attachments/assets/b3cd33fc-3e32-4802-92e1-dcd2d3fb6645
 
 Claude Code collects the facts from GitHub, Linear, Slack, Calendar and Docs through
 CLIs and MCPs. Code here only validates them, stores them in SQLite, and shows them.
