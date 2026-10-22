@@ -52,6 +52,16 @@ function useRoute() {
   useEffect(() => {
     scrollTo(0, 0);
   }, [route.view]);
+  // A fresh clone has no config yet: the first visit starts on Setup. A link to a view still wins.
+  useEffect(() => {
+    if (location.hash) return;
+    fetch("/api/setup")
+      .then((response) => response.json())
+      .then((setup) => {
+        if (!setup.config && !location.hash) location.replace("#/setup");
+      })
+      .catch(() => {});
+  }, []);
   return route;
 }
 
