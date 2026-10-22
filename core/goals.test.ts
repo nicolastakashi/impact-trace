@@ -18,12 +18,12 @@ test("a thread serves a goal through its project, a merged project, or a direct 
   db.query("INSERT INTO goal_events VALUES (2, 'e1')").run();
   // You merged p1 into p2 after linking p1: p2's threads serve goal 1 now.
   db.query("INSERT INTO project_merges VALUES ('p1', 'p2', 'now')").run();
-  const L = links(db);
+  const goalLinks = links(db);
   expect(
-    goalsOf(L, { projects: [{ id: "p2" }], events: [{ id: "e1" }, { id: "e2" }] }).sort(),
+    goalsOf(goalLinks, { projects: [{ id: "p2" }], events: [{ id: "e1" }, { id: "e2" }] }).sort(),
   ).toEqual([1, 2]);
-  expect(goalsOf(L, { projects: [], events: [{ id: "e1" }] })).toEqual([2]);
-  expect(goalsOf(L, { projects: [{ id: "p3" }], events: [{ id: "e9" }] })).toEqual([]);
+  expect(goalsOf(goalLinks, { projects: [], events: [{ id: "e1" }] })).toEqual([2]);
+  expect(goalsOf(goalLinks, { projects: [{ id: "p3" }], events: [{ id: "e9" }] })).toEqual([]);
   // Deleting a goal removes its links, not the project.
   db.exec("PRAGMA foreign_keys = ON");
   db.query("DELETE FROM goals WHERE id = 1").run();
