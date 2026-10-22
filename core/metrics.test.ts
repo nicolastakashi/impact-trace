@@ -1,14 +1,16 @@
 import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { migrate } from "./db";
 import { current, measure, progress, quarterWeeks } from "./metrics";
 
-const db = () => {
-  const d = new Database(":memory:", { strict: true });
-  migrate(d);
-  return d;
+const freshDb = () => {
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  return db;
 };
-const ev = (d: Database, id: string, kind: string, week: string, payload: any) =>
+const addEvent = (d: Database, id: string, kind: string, week: string, payload: any) =>
   d
     .query(
       `INSERT INTO events (id, source, kind, week, occurred_at, title, url, author, project_id, milestone_id, payload, run_id)
@@ -25,7 +27,7 @@ test("progress runs from start to target, both ways, and stops at the ends", () 
 });
 
 test("quarter weeks are the last 4 closed weeks that start in it", () => {
-  const d = db();
+  const d = freshDb();
   for (const w of [
     "2026-W34",
     "2026-W36",
@@ -35,7 +37,7 @@ test("quarter weeks are the last 4 closed weeks that start in it", () => {
     "2026-W42",
     "2026-W43",
   ])
-    ev(d, `e${w}`, "pr_merged", w, {});
+    addEvent(d, `e${w}`, "pr_merged", w, {});
   // W40 starts on Monday 28 September, so it is Q3; W41 would be the first of Q4. W43 is still open.
   expect(quarterWeeks(d, "2026-Q4", "2026-W43")).toEqual(["2026-W42"]);
   expect(quarterWeeks(d, "2026-Q3", "2026-W43")).toEqual([
@@ -53,16 +55,16 @@ test("quarter weeks are the last 4 closed weeks that start in it", () => {
 });
 
 test("metrics are a rate over the weeks asked for", () => {
-  const d = db();
-  ev(d, "r1", "reviews_given", "2026-W42", { count: 6 });
-  ev(d, "r2", "reviews_given", "2026-W43", { count: 3 });
-  ev(d, "o1", "prs_opened", "2026-W42", { count: 4 });
-  ev(d, "o2", "prs_opened", "2026-W43", { count: 2 });
-  ev(d, "p1", "pr_merged", "2026-W43", {
+  const d = freshDb();
+  addEvent(d, "r1", "reviews_given", "2026-W42", { count: 6 });
+  addEvent(d, "r2", "reviews_given", "2026-W43", { count: 3 });
+  addEvent(d, "o1", "prs_opened", "2026-W42", { count: 4 });
+  addEvent(d, "o2", "prs_opened", "2026-W43", { count: 2 });
+  addEvent(d, "p1", "pr_merged", "2026-W43", {
     at: "2026-10-20T12:00:00Z",
     opened: "2026-10-20T00:00:00Z",
   });
-  ev(d, "p2", "pr_merged", "2026-W43", {
+  addEvent(d, "p2", "pr_merged", "2026-W43", {
     at: "2026-10-21T00:00:00Z",
     opened: "2026-10-20T00:00:00Z",
   });
@@ -76,13 +78,11 @@ test("metrics are a rate over the weeks asked for", () => {
 test("key results written as text become key results", () => {
   const d = new Database(":memory:", { strict: true });
   // Stop before 014, write an old goal, then run the rest.
-  const { readdirSync, readFileSync } = require("node:fs"),
-    { join } = require("node:path");
-  const dir = join(import.meta.dir, "../db/migrations"),
-    files = readdirSync(dir)
-      .filter((f: string) => f.endsWith(".sql"))
-      .sort();
-  for (const f of files.slice(0, 13)) d.exec(readFileSync(join(dir, f), "utf8"));
+  const dir = join(import.meta.dir, "../db/migrations");
+  const files = readdirSync(dir)
+    .filter((file) => file.endsWith(".sql"))
+    .sort();
+  for (const file of files.slice(0, 13)) d.exec(readFileSync(join(dir, file), "utf8"));
   d.exec("PRAGMA user_version = 13");
   d.query("INSERT INTO goals (title, kind, krs, at) VALUES ('Exports GA', 'team', ?, 'now')").run(
     "3 customers on it\n\n  docs live  \n",
@@ -96,19 +96,19 @@ test("key results written as text become key results", () => {
 });
 
 test("a rare event is the quarter's total so far, this week too; a flow is a rate of closed weeks", () => {
-  const d = db();
+  const d = freshDb();
   // W39 is Q3. W41–W43 are Q4, and W43 is this week, still open.
   for (const w of ["2026-W39", "2026-W41", "2026-W43"]) {
-    ev(d, `m${w}`, "slack_mention", w, {});
+    addEvent(d, `m${w}`, "slack_mention", w, {});
     d.query(
       "INSERT INTO mention_kinds (event_id, kind, about, quote, model, prompt_version, at) VALUES (?, 'praise', null, null, 'm', 'v', 'x')",
     ).run(`m${w}`);
-    ev(d, `r${w}`, "reviews_given", w, { count: 6 });
+    addEvent(d, `r${w}`, "reviews_given", w, { count: 6 });
   }
   expect(current(d, "recognition", "2026-Q4", "2026-W43")).toBe(2);
   expect(current(d, "recognition", "2026-Q3", "2026-W43")).toBe(1);
   // W39 and W41 are the closed weeks, whatever the quarter.
   expect(current(d, "reviews_given", "2026-Q4", "2026-W43")).toBe(6);
-  ev(d, "r2026-W42", "reviews_given", "2026-W42", { count: 0 });
+  addEvent(d, "r2026-W42", "reviews_given", "2026-W42", { count: 0 });
   expect(current(d, "reviews_given", "2026-Q4", "2026-W43")).toBe(4);
 });
