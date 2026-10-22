@@ -1,5 +1,5 @@
 // Facts for a Claude session: the numbers North shows, counted by code, as one JSON.
-// Usage: bun ingest/facts.ts [week]   (the app must run: docker compose up -d)
+// Usage: bun jobs/facts.ts [week]   (the app must run: docker compose up -d)
 // Without a week: totals and every week. With one (2026-W42): that week's threads in full.
 
 const tally = (xs: (string | undefined)[]) => xs.reduce((m, x) => ({ ...m, [x ?? "unset"]: (m[x ?? "unset"] ?? 0) + 1 }), {} as Record<string, number>);
@@ -53,7 +53,7 @@ export function facts(d: any, tz: string, week?: string) {
 
 if (import.meta.main) {
   const week = process.argv[2];
-  if (week && !/^\d{4}-W\d{2}$/.test(week)) throw new Error("usage: bun ingest/facts.ts [2026-W42]");
+  if (week && !/^\d{4}-W\d{2}$/.test(week)) throw new Error("usage: bun jobs/facts.ts [2026-W42]");
   const r = await fetch("http://127.0.0.1:4317/api/facts").catch(() => null);
   if (!r?.ok) throw new Error(r ? await r.text() : "The app is not running: docker compose up -d");
   // Your time zone comes from this machine, like the browser does for North.

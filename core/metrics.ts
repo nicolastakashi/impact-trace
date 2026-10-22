@@ -5,8 +5,8 @@
 // - total: the quarter so far, from 0. Rare events (praise, a talk), where a week without one
 //   is normal and a weekly rate reads as failure.
 import type { Database } from "bun:sqlite";
-import { dayOf } from "./ingest";
-import { labelsOf, reviewThreads } from "./review";
+import { dayOf } from "./db";
+import { labelsOf, reviewThreads } from "./threads";
 
 type Metric = { label: string; unit: string; better: "up" | "down"; agg: "rate" | "total"; value: (db: Database, weeks: string[]) => number | null };
 const marks = (w: string[]) => w.map(() => "?").join(",");

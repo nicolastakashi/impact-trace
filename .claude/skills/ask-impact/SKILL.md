@@ -9,8 +9,8 @@ Answer `$ARGUMENTS` from the data. You explain; you never count.
 ## 1. Get the facts
 
 ```
-bun ingest/facts.ts            # totals and every week
-bun ingest/facts.ts 2026-W42   # one week, with its threads, links and praise
+bun jobs/facts.ts            # totals and every week
+bun jobs/facts.ts 2026-W42   # one week, with its threads, links and praise
 ```
 
 If it fails, the app is down: tell the user to run `docker compose up -d`. Do not read the
@@ -20,7 +20,7 @@ database to work around it.
 
 - Every number comes from the facts output. Never add, average or compare by hand. If a
   question needs a number the facts do not have, say so and name what to add to
-  `ingest/facts.ts`.
+  `jobs/facts.ts`.
 - Copy numbers exactly. A value the facts have is never shown as missing. `events` counts
   each thread's PRs, issues and messages by kind: use it, never count links.
 - Say where each number comes from: kept threads (what the user kept in review) or

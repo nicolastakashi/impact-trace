@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
-import { migrate } from "./ingest";
+import { migrate } from "./db";
 import { current, measure, progress, quarterWeeks } from "./metrics";
 
 const db = () => { const d = new Database(":memory:", { strict: true }); migrate(d); return d; };

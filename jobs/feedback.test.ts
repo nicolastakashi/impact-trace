@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
-import { migrate } from "./ingest";
+import { migrate } from "../core/db";
 import { CATEGORIES, isoWeek, pendingMondays, verify } from "./feedback";
 
 test("feedback keeps only quotes found in your messages and counts markers itself", () => {

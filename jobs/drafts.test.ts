@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
-import { migrate } from "./ingest";
+import { migrate } from "../core/db";
 import { saveDrafts } from "./drafts";
 
 const NOW = new Date("2026-10-21T12:00:00Z");

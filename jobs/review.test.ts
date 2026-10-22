@@ -1,8 +1,10 @@
 import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
-import { migrate, threads } from "./ingest";
+import { migrate } from "../core/db";
+import { threads } from "../core/threads";
 import { saveAssignments, unplaced } from "./assign";
-import { labelsOf, reviewThreads, saveSuggestions } from "./review";
+import { labelsOf, reviewThreads } from "../core/threads";
+import { saveSuggestions } from "./review";
 
 test("review keeps threads that say something and saves only known keys", () => {
   const db = new Database(":memory:", { strict: true });

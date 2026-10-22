@@ -3,7 +3,9 @@ import { expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { dayOf, ingestWeek, isoWeek, migrate, refOf, refsIn, threads } from "./ingest";
+import { dayOf, isoWeek, migrate } from "../core/db";
+import { ingestWeek, refOf, refsIn } from "./ingest";
+import { threads } from "../core/threads";
 
 const ME = { name: "Riley Chen", github: "rchen", orgs: ["acme"], level: "Senior Engineer" };
 

@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
-import { migrate } from "./ingest";
+import { migrate } from "./db";
 import { goalsOf, links } from "./goals";
 
 test("a thread serves a goal through its project, a merged project, or a direct link", () => {

@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 label=$1; shift
 mkdir -p "data/eval/$label"
 for W in "$@"; do
-  bun -e 'import { open } from "./ingest/ingest"; import { reviewThreads } from "./ingest/review";
+  bun -e 'import { open } from "./core/db"; import { reviewThreads } from "./core/threads";
     console.log(JSON.stringify(reviewThreads(open(), process.argv[1]).filter((t) => t.events.length > 1)
       .map(({ key, events }) => ({ key, events: events.map(({ kind, title, text }) => ({ kind, title, text })) }))))' "$W" |
     claude -p "/check-threads $W" --model sonnet --output-format json --json-schema "$(cat schemas/check.json)" \

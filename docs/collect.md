@@ -38,4 +38,4 @@ One week of your work, from 6 sources, into `data/impact.db`.
   20 rows returned. Code checks that the rows fill the pages read, and drops rows from
   other days.
 
-Code: `run.sh`, `.claude/skills/collect-*`, `ingest/ingest.ts`. Next: [threads](threads.md).
+Code: `run.sh`, `.claude/skills/collect-*`, `jobs/ingest.ts`. Next: [threads](threads.md).

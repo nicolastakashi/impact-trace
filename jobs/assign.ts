@@ -1,12 +1,13 @@
 // Claude places threads Linear does not put in a project, so they group with that project's work.
-// Usage: bun ingest/assign.ts emit 2026-W42 | claude -p "/assign-projects 2026-W42" ...
-//        bun ingest/assign.ts save 2026-W42 data/raw/2026-W42/assign.run.json
+// Usage: bun jobs/assign.ts emit 2026-W42 | claude -p "/assign-projects 2026-W42" ...
+//        bun jobs/assign.ts save 2026-W42 data/raw/2026-W42/assign.run.json
 import type { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { LIVE, open, ROOT } from "./ingest";
-import { reviewThreads } from "./review";
+import { LIVE } from "../core/threads";
+import { open, ROOT } from "../core/db";
+import { reviewThreads } from "../core/threads";
 
 export function unplaced(db: Database, week: string) {
   return {
@@ -49,5 +50,5 @@ if (import.meta.main) {
     const skill = readFileSync(join(ROOT, ".claude/skills/assign-projects/SKILL.md"));
     const version = createHash("sha256").update(skill).digest("hex").slice(0, 8);
     console.log(saveAssignments(db, week, JSON.parse(readFileSync(file, "utf8")), version));
-  } else throw new Error("usage: bun ingest/assign.ts emit|save <week> [file]");
+  } else throw new Error("usage: bun jobs/assign.ts emit|save <week> [file]");
 }

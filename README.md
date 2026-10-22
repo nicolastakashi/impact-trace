@@ -9,6 +9,10 @@ CLIs and MCPs. Code here only validates them, stores them in SQLite, and shows t
 claude -p (skills) ━▶ data/raw/<week>/*.json ━▶ ingest ━▶ data/impact.db ━▶ app
 ```
 
+- `jobs/`: the steps `run.sh` runs (ingest, labels, mentions, feedback, drafts).
+- `core/`: what the jobs and the server share: the database, threads, goals, metrics.
+- `app/`: the server, one file per API area. `web/`: the React app.
+
 North and Trace show the threads you kept in review, the last 8 weeks. Before your first
 review they show fictional example data, marked as such.
 
@@ -18,7 +22,7 @@ ends. The code drops any quote it cannot find in your messages and makes every c
 one experiment it proposes is measured the next week. Accept or reject each piece, with a reason if you want:
 the next run reads your verdicts and does not repeat what you rejected.
 
-Claude may only flag the categories in `ingest/feedback-categories.json`. Each one has a source
+Claude may only flag the categories in `jobs/feedback-categories.json`. Each one has a source
 (Reilly, Larson, Marquet, research on hedges), shown on its card as "Why this counts". Cards
 follow SBI (Situation, Behavior, Impact) and end with what to say next time.
 
@@ -54,7 +58,7 @@ follow SBI (Situation, Behavior, Impact) and end with what to say next time.
 bun app/server.ts        # first run opens the setup page: tools, who you are, first week
 ./run.sh 2026-10-12      # collect and ingest the week of that Monday (default: this week)
 ./draft-goals.sh         # Claude drafts objectives from your data; you use or dismiss them
-bun test                 # ingest self-check
+bun test core jobs       # unit tests (qa/ holds the Playwright specs)
 bun install && bun run qa  # click-through tests in your Chrome, fictional data
 ```
 

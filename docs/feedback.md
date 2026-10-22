@@ -21,7 +21,7 @@ week ends.
 
 ## Why it works this way
 
-- **Only sourced categories.** Claude picks from `ingest/feedback-categories.json`. Each one
+- **Only sourced categories.** Claude picks from `jobs/feedback-categories.json`. Each one
   cites who says it matters (Reilly, Larson, Marquet, hedge research). The code drops anything
   else. Summaries we wrote show as "In our words", never as quotes.
 - **Quotes are checked.** The code drops any quote it cannot find in your messages, and a
@@ -32,4 +32,4 @@ week ends.
 - **Your verdicts win.** A rejected pattern does not come back without new evidence. Your
   reason teaches Claude what you meant.
 
-About $0.66 a week. Code: `ingest/feedback.ts`, `.claude/skills/weekly-feedback`.
+About $0.66 a week. Code: `jobs/feedback.ts`, `.claude/skills/weekly-feedback`.
