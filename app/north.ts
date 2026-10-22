@@ -176,7 +176,7 @@ function projectsOf(threads: any[], weeks: string[]) {
       url: project?.url ?? null,
       lead: project?.lead ?? null,
       status: project?.status ?? "",
-      milestones: project?.ms ?? [],
+      milestones: project?.milestones ?? [],
     };
   }
   return { byId, used };

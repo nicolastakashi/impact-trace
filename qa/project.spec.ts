@@ -6,7 +6,7 @@ const get = async (request: any, id = "P-EXP") =>
 // A second project: the W40 Exports API thread moved into a new topic.
 const topic = async (request: any, name = "Docs work") => {
   const thread = (await get(request)).threads[0];
-  await request.post("/api/group", { data: { week: thread.week, key: thread.key, name } });
+  await request.post("/api/thread-project", { data: { week: thread.week, key: thread.key, name } });
 };
 
 test("shows sources, facts, milestones and the threads to review", async ({ page, view }) => {
@@ -91,7 +91,11 @@ test("switch the goals it serves", async ({ page, view, request }) => {
     "#/goals",
   );
   await request.post("/api/goal", {
-    data: { title: "Ship exports", kind: "team", krs: [{ text: "A number", start: 0, target: 2 }] },
+    data: {
+      title: "Ship exports",
+      kind: "team",
+      keyResults: [{ text: "A number", start: 0, target: 2 }],
+    },
   });
   await page.reload();
   const goalButton = page
@@ -101,7 +105,7 @@ test("switch the goals it serves", async ({ page, view, request }) => {
   await goalButton.click();
   await expect(toast(page)).toHaveText("Serves Ship exports");
   await expect(goalButton).toHaveAttribute("aria-pressed", "true");
-  expect((await get(request)).goals[0].on_).toBe(1);
+  expect((await get(request)).goals[0].linked).toBe(1);
   await goalButton.click();
   await expect(toast(page)).toHaveText("No longer serves Ship exports");
   await expect(goalButton).toHaveAttribute("aria-pressed", "false");

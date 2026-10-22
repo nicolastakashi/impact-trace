@@ -124,7 +124,7 @@ const goals = (data: any) =>
     kind: goal.kind,
     type: goal.type,
     quarter: goal.quarter,
-    key_results: goal.krs.map((keyResult: any) => ({
+    key_results: goal.keyResults.map((keyResult: any) => ({
       text: keyResult.text,
       measured_by: keyResult.metric ?? "you",
       start: keyResult.start,

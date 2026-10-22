@@ -152,7 +152,7 @@ function LoadingSteps() {
 
 function ToolsStep({ checks }: { checks: SetupData }) {
   return (
-    <Step number={1} title="Tools" done={checks.gh && checks.claude}>
+    <Step number={1} title="Tools" done={checks.github && checks.claude}>
       <ul className="grid gap-2 text-sm text-ink-2">
         {checks.host && (
           <li>
@@ -165,10 +165,10 @@ function ToolsStep({ checks }: { checks: SetupData }) {
           {`Claude Code ${checks.claude === false ? "· install it, then reload" : ""}`}
         </li>
         <li className="flex gap-2.5">
-          <StatusMark ok={checks.gh} />
+          <StatusMark ok={checks.github} />
           <span>
             GitHub CLI, logged in{" "}
-            {checks.gh === false && (
+            {checks.github === false && (
               <>
                 · run <code>gh auth login</code>, then reload
               </>

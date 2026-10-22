@@ -33,7 +33,7 @@ const POST: Record<string, (body: any) => Response> = {
   "/api/mention": mention,
   "/api/labels": decide,
   "/api/unassign": unassign,
-  "/api/group": assignThread,
+  "/api/thread-project": assignThread,
   "/api/merge": merge,
   "/api/delete": deleteProject,
   "/api/restore": restore,
@@ -46,7 +46,7 @@ const POST: Record<string, (body: any) => Response> = {
 };
 const GET: Record<string, (params: URLSearchParams) => Response> = {
   "/api/setup": (params) => setup(params.has("guess")),
-  "/api/groups": () => Response.json(projectThreads()),
+  "/api/project-threads": () => Response.json(projectThreads()),
   "/api/pending": () => Response.json(pending()),
   "/api/project": (params) => project(params.get("id") ?? ""),
   "/api/review": (params) => {

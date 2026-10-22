@@ -15,7 +15,7 @@ test("a draft becomes a goal with one click", async ({ page, view, request }) =>
   expect(goal.description).toBe("Batch exports is open and most of your work sits in Exports API.");
   // Starts are code's: the milestone is at 60.
   expect(
-    goal.krs.map((keyResult: any) => [keyResult.text, keyResult.start, keyResult.target]),
+    goal.keyResults.map((keyResult: any) => [keyResult.text, keyResult.start, keyResult.target]),
   ).toEqual([
     ["Batch exports milestone done", 60, 100],
     ["PRs you review each week", 3, 5],
@@ -29,7 +29,10 @@ test("drop a key result and change a target before adding", async ({ page, view,
   await page.getByRole("button", { name: "Add as goal" }).click();
   await expect(toast(page)).toContainText("Added");
   expect(
-    (await goals(request)).goals[0].krs.map((keyResult: any) => [keyResult.text, keyResult.target]),
+    (await goals(request)).goals[0].keyResults.map((keyResult: any) => [
+      keyResult.text,
+      keyResult.target,
+    ]),
   ).toEqual([["Batch exports milestone done", 90]]);
 });
 
@@ -58,12 +61,12 @@ test("write a goal by hand, with a measured key result", async ({ page, view, re
   await page.getByRole("button", { name: "Create objective" }).click();
   await expect(toast(page)).toHaveText("Goal created");
   const goal = (await goals(request)).goals[0];
-  expect([goal.title, goal.description, goal.krs[0].metric, goal.krs[0].target]).toEqual([
-    "Reviews flow both ways",
-    "Others review as much as I do.",
-    "reviews_given",
-    6,
-  ]);
+  expect([
+    goal.title,
+    goal.description,
+    goal.keyResults[0].metric,
+    goal.keyResults[0].target,
+  ]).toEqual(["Reviews flow both ways", "Others review as much as I do.", "reviews_given", 6]);
 });
 
 test("a wrong number is explained, and nothing is lost", async ({ page, view }) => {
@@ -83,7 +86,7 @@ test("one goal open at a time; confidence; edit; delete", async ({ page, view, r
       data: {
         title,
         kind: "team",
-        krs: [{ text: "A number", start: 0, target: 2, current: 1 }],
+        keyResults: [{ text: "A number", start: 0, target: 2, current: 1 }],
       },
     });
   await view("goals");

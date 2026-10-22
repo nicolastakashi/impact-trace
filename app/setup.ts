@@ -28,7 +28,7 @@ export function setup(guess: boolean) {
     config,
     checks: {
       host,
-      gh: host ? null : !!github,
+      github: host ? null : !!github,
       claude: host ? null : !!run("claude", "--version"),
     },
     guess: {

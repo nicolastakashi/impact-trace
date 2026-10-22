@@ -42,9 +42,9 @@ export function draftInput(db: Database, northFacts: any, now = new Date()) {
       label: metric.label,
       unit: metric.unit,
       better: metric.better,
-      agg: metric.agg,
+      aggregation: metric.aggregation,
       now: current(db, key, quarter, week),
-      ...(metric.agg === "total"
+      ...(metric.aggregation === "total"
         ? { last_quarter: current(db, key, lastQuarter(quarter), week) }
         : {}),
     })),
@@ -97,7 +97,7 @@ function checkedKeyResult(check: Check, title: string, keyResult: any) {
 // A quarter total starts at 0.
 function start(check: Check, keyResult: any, metric: string | null) {
   if (metric)
-    return METRICS[metric]?.agg === "total"
+    return METRICS[metric]?.aggregation === "total"
       ? 0
       : current(check.db, metric, check.quarter, check.week);
   return Number.isFinite(keyResult.start) && inData(check, String(keyResult.start))

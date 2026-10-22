@@ -55,7 +55,7 @@ const APP_FACTS = {
       type: "committed",
       quarter: "2026-Q4",
       checkins: [{ week: "2026-W42", confidence: 6 }],
-      krs: [
+      keyResults: [
         {
           text: "Lead time under a day",
           metric: "lead_time_h",

@@ -43,7 +43,7 @@ export function projects(weeks: string[]) {
         ...project,
         done: done.get(project.id) ?? zero,
         open: open.get(project.id) ?? 0,
-        ms: milestones.all(project.id),
+        milestones: milestones.all(project.id),
       }),
     ),
     none: { done: done.get(null) ?? zero, open: open.get(null) ?? 0 },
@@ -58,12 +58,12 @@ export function projects(weeks: string[]) {
 export function assignThread(body: any) {
   const thread = threadOf(body);
   if (!thread) return badRequest("Unknown thread for that week");
-  let id = typeof body.group_id === "string" ? body.group_id : null;
+  let id = typeof body.projectId === "string" ? body.projectId : null;
   if (id && !db.query("SELECT 1 FROM projects WHERE id = ?").get(id))
-    return badRequest("Unknown group");
+    return badRequest("Unknown project");
   if (!id) {
     const name = typeof body.name === "string" ? body.name.trim() : "";
-    if (!name || name.length > 80) return badRequest("A new group needs a name");
+    if (!name || name.length > 80) return badRequest("A new project needs a name");
     id = topicNamed(name);
   }
   const put =
@@ -73,7 +73,7 @@ export function assignThread(body: any) {
   db.transaction(() => {
     for (const event of thread.events) put.run(event.id, id, at);
   })();
-  return Response.json({ ok: true, group_id: id });
+  return Response.json({ ok: true, projectId: id });
 }
 
 // The project with this name, any case, or a new topic for it. Returns its id.
@@ -168,7 +168,7 @@ export function projectThreads() {
     }
   return {
     weeks,
-    groups: [...byId.values()].filter(
+    projects: [...byId.values()].filter(
       (entry) => Object.keys(entry.weeks).length || entry.kind === "topic",
     ),
     deleted: db
@@ -225,14 +225,14 @@ export function project(id: string) {
     project: found,
     goals: db
       .query(
-        "SELECT id, title, kind, EXISTS (SELECT 1 FROM goal_projects WHERE goal_id = goals.id AND project_id = ?) on_ FROM goals ORDER BY kind = 'personal', id",
+        "SELECT id, title, kind, EXISTS (SELECT 1 FROM goal_projects WHERE goal_id = goals.id AND project_id = ?) linked FROM goals ORDER BY kind = 'personal', id",
       )
       .all(id),
     deleted: !!db.query("SELECT 1 FROM project_deletions WHERE id = ?").get(id),
     sources,
     weeks,
     threads,
-    ms: db
+    milestones: db
       .query("SELECT name, progress FROM milestones WHERE project_id = ? ORDER BY name")
       .all(id),
     open: (

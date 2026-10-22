@@ -26,14 +26,14 @@ const KINDS = [
   ["topic", "Topics"],
 ];
 
-const threadCount = (group: Data) =>
-  Object.values(group.weeks).reduce((sum: number, list: Data) => sum + list.length, 0);
+const threadCount = (project: Data) =>
+  Object.values(project.weeks).reduce((sum: number, list: Data) => sum + list.length, 0);
 
-function SourceLine({ group, linear }: { group: Data; linear: Data }) {
-  const merged = group.merged?.length
-    ? ` · includes ${group.merged.map((mergedProject: Data) => mergedProject.name).join(", ")}`
+function SourceLine({ project, linear }: { project: Data; linear: Data }) {
+  const merged = project.merged?.length
+    ? ` · includes ${project.merged.map((mergedProject: Data) => mergedProject.name).join(", ")}`
     : "";
-  if (group.kind === "topic" || !linear)
+  if (project.kind === "topic" || !linear)
     return (
       <By className="-mt-2">
         <SourceDiamond kind="topic" />
@@ -52,44 +52,44 @@ function SourceLine({ group, linear }: { group: Data; linear: Data }) {
 
 // Merge and delete ask once, inline, and name what will happen.
 function CardActions({
-  group,
-  groups,
+  project,
+  projects,
   ask,
   setAsk,
   run,
 }: {
-  group: Data;
-  groups: Data[];
+  project: Data;
+  projects: Data[];
   ask: Ask;
   setAsk: (ask: Ask) => void;
   run: Run;
 }) {
-  const asking = ask?.id === group.id;
+  const asking = ask?.id === project.id;
   if (asking && ask.into) {
     const into = ask.into;
-    const intoName = groups.find((other: Data) => other.id === into)?.name;
+    const intoName = projects.find((other: Data) => other.id === into)?.name;
     return (
       <>
-        {`Merge ${group.name} into ${intoName}? Its ${threads(group.total)} move there. You can split it out again.`}
+        {`Merge ${project.name} into ${intoName}? Its ${threads(project.total)} move there. You can split it out again.`}
         <ConfirmButtons
           className="ml-auto"
           label="merge"
-          onConfirm={() => run("/api/merge", { from: group.id, into }, "Merged")}
+          onConfirm={() => run("/api/merge", { from: project.id, into }, "Merged")}
           onCancel={() => setAsk(null)}
         />
       </>
     );
   }
   if (asking) {
-    const unmerged = group.merged?.length ? ", and the merged projects stand alone again" : "";
+    const unmerged = project.merged?.length ? ", and the merged projects stand alone again" : "";
     return (
       <>
-        {`Delete ${group.name}? ${threads(group.total)} will have no project${unmerged}. You can restore it below.`}
+        {`Delete ${project.name}? ${threads(project.total)} will have no project${unmerged}. You can restore it below.`}
         <ConfirmButtons
           className="ml-auto"
           label="delete"
           destructive
-          onConfirm={() => run("/api/delete", { id: group.id }, "Deleted")}
+          onConfirm={() => run("/api/delete", { id: project.id }, "Deleted")}
           onCancel={() => setAsk(null)}
         />
       </>
@@ -100,14 +100,14 @@ function CardActions({
       <NativeSelect
         className={smallSelectClass}
         value=""
-        aria-label={`Merge ${group.name} into another project`}
+        aria-label={`Merge ${project.name} into another project`}
         onChange={(event) =>
-          event.target.value && setAsk({ id: group.id, into: event.target.value })
+          event.target.value && setAsk({ id: project.id, into: event.target.value })
         }
       >
         <option value="">merge into…</option>
-        {groups
-          .filter((other: Data) => other.id !== group.id)
+        {projects
+          .filter((other: Data) => other.id !== project.id)
           .map((other: Data) => (
             <option key={other.id} value={other.id}>
               {other.name}
@@ -118,7 +118,7 @@ function CardActions({
         variant="dashed-destructive"
         size="xs"
         className="ml-auto"
-        onClick={() => setAsk({ id: group.id })}
+        onClick={() => setAsk({ id: project.id })}
       >
         delete
       </Button>
@@ -127,37 +127,37 @@ function CardActions({
 }
 
 function ProjectCard({
-  group,
+  project,
   data,
   linear,
   max,
   children,
 }: {
-  group: Data;
+  project: Data;
   data: Data;
   linear: Data;
   max: number;
   children: React.ReactNode;
 }) {
-  const todo = Object.values(group.weeks)
+  const todo = Object.values(project.weeks)
     .flat()
     .filter((thread: Data) => !thread.decided).length;
   return (
     <Card className="gap-3.5 transition-colors hover:border-line-2 sm:p-5.5">
       <a
         className="grid gap-3.5 rounded-xl text-inherit no-underline focus-visible:outline-2 focus-visible:outline-offset-6 focus-visible:outline-brand"
-        href={`#/project?id=${encodeURIComponent(group.id)}`}
-        aria-label={group.name}
+        href={`#/project?id=${encodeURIComponent(project.id)}`}
+        aria-label={project.name}
       >
         <span className="flex items-baseline gap-x-3.5 gap-y-2">
           <h2 className="m-0 font-num text-[22px] leading-[1.02] font-extrabold text-balance uppercase">
-            {group.name}
+            {project.name}
           </h2>
           {todo > 0 && <span className={toReviewClass}>{todo} to review</span>}
           <ChevronRight className="ml-auto size-4 self-center text-ink-3" />
         </span>
-        <SourceLine group={group} linear={linear} />
-        <Strip weeks={data.weeks} count={(week) => (group.weeks[week] ?? []).length} max={max} />
+        <SourceLine project={project} linear={linear} />
+        <Strip weeks={data.weeks} count={(week) => (project.weeks[week] ?? []).length} max={max} />
       </a>
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3 text-[13.5px] text-ink-2">
         {children}
@@ -206,29 +206,37 @@ function ProjectList({
   setAsk: (ask: Ask) => void;
   run: Run;
 }) {
-  const groups = data.groups
-    .filter((group: Data) => filter === "all" || group.kind === filter)
-    .map((group: Data) => ({ ...group, total: threadCount(group) }))
+  const projects = data.projects
+    .filter((project: Data) => filter === "all" || project.kind === filter)
+    .map((project: Data) => ({ ...project, total: threadCount(project) }))
     .sort(
       (left: Data, right: Data) => right.total - left.total || left.name.localeCompare(right.name),
     );
   const max = Math.max(
     1,
-    ...groups.flatMap((group: Data) => Object.values(group.weeks).map((list: Data) => list.length)),
+    ...projects.flatMap((project: Data) =>
+      Object.values(project.weeks).map((list: Data) => list.length),
+    ),
   );
   return (
     <>
-      {groups.length ? (
+      {projects.length ? (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(min(520px,100%),1fr))] items-start gap-3">
-          {groups.map((group: Data) => (
+          {projects.map((project: Data) => (
             <ProjectCard
-              key={group.id}
-              group={group}
+              key={project.id}
+              project={project}
               data={data}
-              linear={linear.get(group.id)}
+              linear={linear.get(project.id)}
               max={max}
             >
-              <CardActions group={group} groups={data.groups} ask={ask} setAsk={setAsk} run={run} />
+              <CardActions
+                project={project}
+                projects={data.projects}
+                ask={ask}
+                setAsk={setAsk}
+                run={run}
+              />
             </ProjectCard>
           ))}
         </div>
@@ -269,16 +277,16 @@ function Projects() {
   const [ask, setAsk] = useState<Ask>(null);
   // Always fresh: decisions made in review change the counts here.
   const load = async () => {
-    const [groups, linearProjects] = await Promise.all([
-      fetch("/api/groups").then((response) => (response.ok ? response.json() : null)),
+    const [projectThreads, linearProjects] = await Promise.all([
+      fetch("/api/project-threads").then((response) => (response.ok ? response.json() : null)),
       fetch("/api/projects?weeks=")
         .then((response) => (response.ok ? response.json() : { projects: [] }))
         .catch(() => ({ projects: [] })),
     ]);
-    if (!groups) return setFailed(true);
+    if (!projectThreads) return setFailed(true);
     setLinear(new Map(linearProjects.projects.map((project: Data) => [project.id, project])));
     setAsk(null);
-    setData(groups);
+    setData(projectThreads);
   };
   useEffect(() => {
     load();

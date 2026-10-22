@@ -206,13 +206,13 @@ function GoalsAndFacts({ data, id, act }: { data: Data; id: string; act: Act }) 
               key={goal.id}
               variant="outline"
               size="xs"
-              aria-pressed={!!goal.on_}
+              aria-pressed={!!goal.linked}
               className="rounded-full border-dashed bg-transparent px-2.5 text-xs font-medium text-ink-2 aria-pressed:border-solid aria-pressed:border-ink-2 aria-pressed:bg-s3 aria-pressed:text-ink"
               onClick={() =>
                 act(
                   "/api/goal-link",
-                  { goal_id: goal.id, project_id: id, on: !goal.on_ },
-                  goal.on_ ? `No longer serves ${goal.title}` : `Serves ${goal.title}`,
+                  { goal_id: goal.id, project_id: id, on: !goal.linked },
+                  goal.linked ? `No longer serves ${goal.title}` : `Serves ${goal.title}`,
                 )
               }
             >
@@ -224,7 +224,7 @@ function GoalsAndFacts({ data, id, act }: { data: Data; id: string; act: Act }) 
         )}
       </div>
       {facts && <By className="text-xs">{facts}</By>}
-      {data.ms.map((milestone: Data) => (
+      {data.milestones.map((milestone: Data) => (
         <div
           key={milestone.name}
           className="grid grid-cols-[1fr_90px_40px] items-center gap-2.5 text-[12.5px] text-ink-2"
@@ -338,8 +338,8 @@ function ThreadItem({
                 const target = others.find((project: Data) => project.id === event.target.value);
                 if (target)
                   act(
-                    "/api/group",
-                    { week: thread.week, key: thread.key, group_id: target.id },
+                    "/api/thread-project",
+                    { week: thread.week, key: thread.key, projectId: target.id },
                     `Moved to ${target.name}`,
                   );
               }}
@@ -357,7 +357,7 @@ function ThreadItem({
 function Project({ projectId }: { projectId: string }) {
   const [id, setId] = useState(projectId);
   const [data, setData] = useState<Data>(null);
-  const [allGroups, setAllGroups] = useState<Data[]>([]);
+  const [allProjects, setAllProjects] = useState<Data[]>([]);
   const [missing, setMissing] = useState(false);
   const [openThreads, setOpenThreads] = useState(new Set<string>());
   const [showDiscarded, setShowDiscarded] = useState(false);
@@ -374,7 +374,7 @@ function Project({ projectId }: { projectId: string }) {
       setId(loaded.into);
       return load(loaded.into);
     }
-    setAllGroups((await (await fetch("/api/groups")).json()).groups);
+    setAllProjects((await (await fetch("/api/project-threads")).json()).projects);
     setData(loaded);
   }
   useEffect(() => {
@@ -438,7 +438,7 @@ function Project({ projectId }: { projectId: string }) {
   const todo = live.filter((thread: Data) => !thread.decided).length;
   const liveIn = (week: string) => live.filter((thread: Data) => thread.week === week).length;
   const max = Math.max(1, ...data.weeks.map(liveIn));
-  const others = allGroups.filter((group: Data) => group.id !== project.id);
+  const others = allProjects.filter((other: Data) => other.id !== project.id);
   const weeks = data.weeks.filter((week: string) =>
     shown.some((thread: Data) => thread.week === week),
   );

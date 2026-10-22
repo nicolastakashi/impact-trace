@@ -45,7 +45,7 @@ export function review(week: string) {
       };
     }),
     goals: db.query("SELECT id, title, kind FROM goals ORDER BY kind = 'personal', id").all(),
-    groups: liveProjects(),
+    projects: liveProjects(),
     pending: pending(),
   };
 }

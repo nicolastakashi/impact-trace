@@ -12,7 +12,7 @@ type Metric = {
   label: string;
   unit: string;
   better: "up" | "down";
-  agg: "rate" | "total";
+  aggregation: "rate" | "total";
   value: (db: Database, weeks: string[]) => number | null;
 };
 // "IN ()" is not valid SQL, so every query below returns early for no weeks.
@@ -89,56 +89,56 @@ export const METRICS: Record<string, Metric> = {
     label: "PRs you reviewed",
     unit: "PRs a week",
     better: "up",
-    agg: "rate",
+    aggregation: "rate",
     value: (db, weeks) => perWeek(sumOf(db, "reviews_given", "count", weeks), weeks),
   },
   give_vs_take: {
     label: "Give vs take (reviewed ÷ opened)",
     unit: "×",
     better: "up",
-    agg: "rate",
+    aggregation: "rate",
     value: giveVsTake,
   },
   prs_merged: {
     label: "PRs you merged",
     unit: "PRs a week",
     better: "up",
-    agg: "rate",
+    aggregation: "rate",
     value: (db, weeks) => perWeek(countOf(db, "pr_merged", weeks), weeks),
   },
   lead_time_h: {
     label: "Lead time, median hours",
     unit: "h",
     better: "down",
-    agg: "rate",
+    aggregation: "rate",
     value: (db, weeks) => median(leadTimeHours(mergedPrs(db, weeks))),
   },
   recognition: {
     label: "Recognition from others",
     unit: "praise",
     better: "up",
-    agg: "total",
+    aggregation: "total",
     value: praiseCount,
   },
   asked_direct: {
     label: "Review requests that name you",
     unit: "PRs a week",
     better: "up",
-    agg: "rate",
+    aggregation: "rate",
     value: (db, weeks) => perWeek(sumOf(db, "review_requests", "direct", weeks), weeks),
   },
   elevate_threads: {
     label: "Threads that elevate others",
     unit: "threads",
     better: "up",
-    agg: "total",
+    aggregation: "total",
     value: (db, weeks) => keptIn(db, weeks, "elevate"),
   },
   external_threads: {
     label: "External threads (talks, upstream)",
     unit: "threads",
     better: "up",
-    agg: "total",
+    aggregation: "total",
     value: (db, weeks) => keptIn(db, weeks, "external"),
   },
 };
@@ -164,7 +164,9 @@ export function known(db: Database, metric: string) {
 
 // The weeks a metric reads now: see the top of this file.
 export const weeksFor = (db: Database, metric: string, quarter: string | null, now: string) =>
-  METRICS[metric]?.agg === "total" ? quarterAll(db, quarter, now) : quarterWeeks(db, null, now);
+  METRICS[metric]?.aggregation === "total"
+    ? quarterAll(db, quarter, now)
+    : quarterWeeks(db, null, now);
 export const current = (db: Database, metric: string, quarter: string | null, now: string) =>
   measure(db, metric, weeksFor(db, metric, quarter, now));
 

@@ -2,9 +2,11 @@ import { expect, test, toast } from "./helpers";
 
 // A second project to merge with: one Exports API thread moved into a new topic.
 const topic = async (request: any, name = "Docs work") => {
-  const project = (await (await request.get("/api/groups")).json()).groups[0],
+  const project = (await (await request.get("/api/project-threads")).json()).projects[0],
     week = Object.keys(project.weeks)[0]!;
-  await request.post("/api/group", { data: { week, key: project.weeks[week][0].key, name } });
+  await request.post("/api/thread-project", {
+    data: { week, key: project.weeks[week][0].key, name },
+  });
 };
 
 test("lists projects across weeks; a filter shows one kind", async ({ page, view, request }) => {
@@ -41,8 +43,8 @@ test("merge asks first, then moves the threads", async ({ page, view, request })
   await expect(toast(page)).toHaveText("Merged");
   await expect(page.getByRole("link", { name: "Docs work" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Exports API" })).toContainText("includes Docs work");
-  const project = (await (await request.get("/api/groups")).json()).groups.find(
-    (group: any) => group.id === "P-EXP",
+  const project = (await (await request.get("/api/project-threads")).json()).projects.find(
+    (candidate: any) => candidate.id === "P-EXP",
   );
   expect(project.merged.map((merged: any) => merged.name)).toEqual(["Docs work"]);
 });
@@ -68,7 +70,9 @@ test("delete asks first; restore brings it back", async ({ page, view, request }
   await expect(toast(page)).toHaveText("Deleted");
   await expect(page.getByText("No projects yet.")).toBeVisible();
   expect(
-    (await (await request.get("/api/groups")).json()).deleted.map((project: any) => project.id),
+    (await (await request.get("/api/project-threads")).json()).deleted.map(
+      (project: any) => project.id,
+    ),
   ).toEqual(["P-EXP"]);
   await page.getByText("Deleted · 1").click();
   await page.getByRole("button", { name: "restore" }).click();
