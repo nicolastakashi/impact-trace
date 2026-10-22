@@ -1,8 +1,9 @@
 // North, Trace, Feedback and Search read one object, built here from the threads you kept.
-import { labelsOf, reviewThreads } from "../core/threads";
+import { discardOf, labelsOf, labelValue, reviewThreads, setByYou } from "../core/threads";
 import { goalsOf } from "../core/goals";
-import { plain } from "../core/db";
-import { db, discard, goalLinks, labeled, pick } from "./data";
+import { placeholders, plain } from "../core/db";
+import { leadTimeHours, median } from "../core/metrics";
+import { db, goalLinks, labeled } from "./data";
 import { projects } from "./projects";
 
 // North and Trace: the threads you kept in review, the last 8 weeks. Same shape as sample.json.
@@ -24,23 +25,22 @@ export function north() {
   weeks.forEach((week, w) => {
     for (const t of reviewThreads(db, week)) {
       const l = labelsOf(db, t);
-      const v = pick(l);
-      if (discard(l) !== "no") continue;
+      if (discardOf(l) !== "no") continue;
       const it: any = {
         id: t.key,
         w,
         s: t.projects[0]?.id ?? "none",
-        title: v("title") ?? t.events[0].title,
-        summary: v("summary"),
-        mode: v("mode"),
-        pillar: v("pillar"),
-        wm: v("without_me"),
+        title: labelValue(l, "title") ?? t.events[0].title,
+        summary: labelValue(l, "summary"),
+        mode: labelValue(l, "mode"),
+        pillar: labelValue(l, "pillar"),
+        wm: labelValue(l, "without_me"),
         g: goalsOf(L, t).map((id) => `g${id}`),
         // Who set each label: facts for another session must say when a value is only Claude's guess.
         by: Object.fromEntries(
           ["title", "mode", "pillar", "without_me"].map((f) => [
             f,
-            l.some((r) => r.field === f && r.source === "human") ? "you" : "claude",
+            setByYou(l, f) ? "you" : "claude",
           ]),
         ),
         links: t.events
@@ -79,7 +79,7 @@ export function north() {
     db
       .query(
         `SELECT e.id, e.week, e.author, e.title, e.occurred_at, e.payload, k.about, k.quote FROM mention_kinds k
-    JOIN events e ON e.id = k.event_id WHERE COALESCE(k.human_kind, k.kind) = ? AND e.week IN (${weeks.map(() => "?").join(",")}) ORDER BY e.occurred_at`,
+    JOIN events e ON e.id = k.event_id WHERE COALESCE(k.human_kind, k.kind) = ? AND e.week IN (${placeholders(weeks)}) ORDER BY e.occurred_at`,
       )
       .all(kind, ...weeks) as any[];
   for (const m of sorted("praise")) {
@@ -179,12 +179,6 @@ export function north() {
     );
   const msgs = per("slack_message"),
     ments = per("slack_mention");
-  // Lead time: median hours from opened to merged. Median, because one PR open for a month would drag a mean.
-  const median = (xs: number[]) => {
-    const s = xs.sort((a, b) => a - b),
-      h = s.length >> 1;
-    return s.length ? +(s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2).toFixed(1) : 0;
-  };
   const prs = per("pr_merged");
   const hours = (m: any) =>
     String(m.start).includes("T") ? (Date.parse(m.end) - Date.parse(m.start)) / 36e5 : 0;
@@ -210,11 +204,8 @@ export function north() {
       opened: weekly("prs_opened"),
       asked_direct: weekly("review_requests", "direct"),
       asked_team: weekly("review_requests", "team"),
-      lead: prs.map((m) =>
-        median(
-          m.filter((p) => p.opened).map((p) => (Date.parse(p.at) - Date.parse(p.opened)) / 36e5),
-        ),
-      ),
+      // Lead time: median hours from opened to merged, 0 for a week without merges.
+      lead: prs.map((m) => median(leadTimeHours(m)) ?? 0),
     }),
     js("PROJECTS", P),
     js("REC", rec),

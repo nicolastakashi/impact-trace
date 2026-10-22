@@ -1,10 +1,10 @@
 // Goals. A thread serves a goal through a project you linked, or because you linked the thread.
-import { labelsOf, reviewThreads } from "../core/threads";
+import { discardOf, labelsOf, labelValue, reviewThreads } from "../core/threads";
 import { current, known, METRICS, progress } from "../core/metrics";
 import { direct, goalsOf } from "../core/goals";
 import { isoWeek } from "../core/db";
 import { LIVE } from "../core/threads";
-import { db, discard, goalLinks, labeled, pick, thread } from "./data";
+import { db, goalLinks, labeled, thread } from "./data";
 
 const QUARTER = /^\d{4}-Q[1-4]$/;
 export function goalList() {
@@ -49,15 +49,14 @@ export function goalList() {
   for (const week of weeks)
     for (const t of reviewThreads(db, week)) {
       const l = labelsOf(db, t),
-        d = discard(l);
+        d = discardOf(l);
       if (d === "yes") continue;
-      const v = pick(l);
       const mine = direct(L, t);
       if (t.projects[0]) busy.set(t.projects[0].id, (busy.get(t.projects[0].id) ?? 0) + 1);
       for (const id of goalsOf(L, t))
         (gs.get(id)!.weeks[week] ??= []).push({
           key: t.key,
-          title: v("title"),
+          title: labelValue(l, "title"),
           decided: !!d,
           direct: mine.includes(id),
         });

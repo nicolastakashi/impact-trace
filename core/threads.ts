@@ -1,5 +1,6 @@
 // Threads: events that belong together, and the labels on them.
 import type { Database } from "bun:sqlite";
+import { placeholders } from "./db";
 
 // An event's group, strongest first: yours; Linear's project; a dedicated #internal-* channel
 // as a topic; Claude's placement, unless you undid it (your row with no group).
@@ -32,7 +33,7 @@ export function threads(db: Database, weeks: string[]) {
     parent.set(x, r);
     return r;
   };
-  const marks = weeks.map(() => "?").join(",");
+  const marks = placeholders(weeks);
   const events = db
     .query(`SELECT id, source, ${PROJECT} p FROM events WHERE week IN (${marks})`)
     .all(...weeks) as any[];
@@ -147,7 +148,7 @@ export function labelsOf(db: Database, t: { key: string; events: { id: string }[
   const keys = [t.key, ...t.events.map((e) => `${week}:${e.id}`).filter((k) => k !== t.key)];
   const rows = db
     .query(
-      `SELECT thread_key, field, value, source FROM labels WHERE thread_key IN (${keys.map(() => "?").join()})`,
+      `SELECT thread_key, field, value, source FROM labels WHERE thread_key IN (${placeholders(keys)})`,
     )
     .all(...keys) as any[];
   const seen = new Set<string>();
@@ -155,3 +156,14 @@ export function labelsOf(db: Database, t: { key: string; events: { id: string }[
     .flatMap((k) => rows.filter((r) => r.thread_key === k))
     .filter((r) => !seen.has(r.field + r.source) && seen.add(r.field + r.source));
 }
+
+type Labels = ReturnType<typeof labelsOf>;
+const labelFrom = (labels: Labels, field: string, source: string) =>
+  labels.find((r) => r.field === field && r.source === source);
+// A label's value: yours, else Claude's.
+export const labelValue = (labels: Labels, field: string) =>
+  (labelFrom(labels, field, "human") ?? labelFrom(labels, field, "claude"))?.value;
+// Your keep (no) or discard (yes); undefined while you have not decided.
+export const discardOf = (labels: Labels) => labelFrom(labels, "discard", "human")?.value;
+export const setByYou = (labels: Labels, field: string) =>
+  labelFrom(labels, field, "human") !== undefined;

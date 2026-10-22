@@ -40,6 +40,9 @@ export function migrate(db: Database) {
   );
 }
 
+// "?, ?, ?" for an SQL IN list of these values.
+export const placeholders = (values: unknown[]) => values.map(() => "?").join(",");
+
 // Slack markup to what a person reads: <@U1|Ana> → @Ana, <url|label> → label, bare links dropped.
 export const plain = (t: string) =>
   t

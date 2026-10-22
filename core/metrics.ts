@@ -5,8 +5,8 @@
 // - total: the quarter so far, from 0. Rare events (praise, a talk), where a week without one
 //   is normal and a weekly rate reads as failure.
 import type { Database } from "bun:sqlite";
-import { dayOf } from "./db";
-import { labelsOf, reviewThreads } from "./threads";
+import { dayOf, placeholders } from "./db";
+import { discardOf, labelsOf, labelValue, reviewThreads } from "./threads";
 
 type Metric = {
   label: string;
@@ -15,7 +15,7 @@ type Metric = {
   agg: "rate" | "total";
   value: (db: Database, weeks: string[]) => number | null;
 };
-const marks = (w: string[]) => w.map(() => "?").join(",");
+const marks = placeholders;
 const sumOf = (db: Database, kind: string, field: string, weeks: string[]) =>
   weeks.length
     ? (
@@ -36,27 +36,25 @@ const countOf = (db: Database, kind: string, weeks: string[]) =>
       ).n
     : 0;
 const avg = (n: number, w: string[]) => (w.length ? +(n / w.length).toFixed(1) : null);
-const median = (xs: number[]) => {
-  const s = xs.sort((a, b) => a - b),
-    h = s.length >> 1;
-  return s.length ? +(s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2).toFixed(1) : null;
-};
+// Median, not mean: one PR open for a month would drag a mean. null for no values.
+export function median(values: number[]) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  const value = sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+  return +value.toFixed(1);
+}
+// Hours from opened to merged, for merged PRs that know when they were opened.
+export const leadTimeHours = (prs: { at: string; opened?: string }[]) =>
+  prs.filter((pr) => pr.opened).map((pr) => (Date.parse(pr.at) - Date.parse(pr.opened!)) / 36e5);
 // Kept threads with a mode, by your label first, then Claude's.
 const keptIn = (db: Database, weeks: string[], mode: string) =>
   weeks.reduce(
     (n, w) =>
       n +
       reviewThreads(db, w).filter((t) => {
-        const l = labelsOf(db, t),
-          v = (f: string) =>
-            (
-              l.find((r) => r.field === f && r.source === "human") ??
-              l.find((r) => r.field === f && r.source === "claude")
-            )?.value;
-        return (
-          l.find((r) => r.field === "discard" && r.source === "human")?.value === "no" &&
-          v("mode") === mode
-        );
+        const l = labelsOf(db, t);
+        return discardOf(l) === "no" && labelValue(l, "mode") === mode;
       }).length,
     0,
   );
@@ -93,18 +91,17 @@ export const METRICS: Record<string, Metric> = {
     agg: "rate",
     value: (db, w) =>
       median(
-        (w.length
-          ? (db
-              .query(
-                `SELECT payload p FROM events
+        leadTimeHours(
+          (w.length
+            ? (db
+                .query(
+                  `SELECT payload p FROM events
     WHERE kind = 'pr_merged' AND week IN (${marks(w)})`,
-              )
-              .all(...w) as any[])
-          : []
-        )
-          .map((r) => JSON.parse(r.p))
-          .filter((p) => p.opened)
-          .map((p) => (Date.parse(p.at) - Date.parse(p.opened)) / 36e5),
+                )
+                .all(...w) as any[])
+            : []
+          ).map((r) => JSON.parse(r.p)),
+        ),
       ),
   },
   recognition: {

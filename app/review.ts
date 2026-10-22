@@ -1,5 +1,5 @@
 // Review: your decisions on Claude's labels, the gold set.
-import { labelsOf, reviewThreads } from "../core/threads";
+import { labelsOf, reviewThreads, setByYou } from "../core/threads";
 import { direct, viaProject } from "../core/goals";
 import { LIVE } from "../core/threads";
 import { db, goalLinks, labeled, thread } from "./data";
@@ -16,8 +16,7 @@ const FIELDS = {
 // Threads you have not decided yet, per week. Review opens on the latest week that has some.
 export function pending() {
   const weeks = labeled().reverse();
-  const done = (t: any) =>
-    labelsOf(db, t).some((r) => r.field === "discard" && r.source === "human");
+  const done = (t: any) => setByYou(labelsOf(db, t), "discard");
   return Object.fromEntries(
     weeks.map((w) => [w, reviewThreads(db, w).filter((t) => !done(t)).length]),
   );

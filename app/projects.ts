@@ -1,7 +1,7 @@
 // Projects: Linear's and your topics, what you merged or deleted, and each one's threads.
-import { labelsOf, reviewThreads } from "../core/threads";
+import { discardOf, labelsOf, labelValue, reviewThreads } from "../core/threads";
 import { LIVE, PLACED } from "../core/threads";
-import { db, discard, labeled, pick, thread } from "./data";
+import { db, labeled, thread } from "./data";
 
 export function projects(weeks: string[]) {
   const ix = new Map(weeks.map((w, i) => [w, i]));
@@ -145,13 +145,12 @@ export function groups() {
       const g = t.projects[0] && by.get(t.projects[0].id);
       if (!g) continue;
       const l = labelsOf(db, t);
-      const v = pick(l);
-      const d = discard(l);
+      const d = discardOf(l);
       if (d === "yes") continue;
       (g.weeks[week] ??= []).push({
         key: t.key,
-        title: v("title"),
-        summary: v("summary"),
+        title: labelValue(l, "title"),
+        summary: labelValue(l, "summary"),
         events: t.events.length,
         decided: !!d,
       });
@@ -191,13 +190,12 @@ export function project(id: string) {
       .filter((t) => t.projects.some((x) => x.id === id))
       .map((t) => {
         const l = labelsOf(db, t);
-        const v = pick(l);
-        const d = discard(l);
+        const d = discardOf(l);
         return {
           week,
           key: t.key,
-          title: v("title"),
-          summary: v("summary"),
+          title: labelValue(l, "title"),
+          summary: labelValue(l, "summary"),
           decided: !!d,
           discarded: d === "yes",
           events: t.events.map((e) => ({
