@@ -29,11 +29,11 @@ What your work serves. You write each objective and its key results, or start fr
 - **A number, a start, a target.** Up to 5 per objective. "Ship X" is a task: if it is a
   Linear milestone, measure the milestone's % done.
 - **Measured by code or by you.** Pick a metric (reviews, give vs take, lead time,
-  recognition, requests that name you, elevate or external threads), a milestone, or
+  praise, requests that name you, elevate or external threads), a milestone, or
   "I update it" and type "now" yourself.
 - **Now is a rate or a total.** Flow you have every week (reviews, lead time, requests) is a
   rate over the last 4 closed weeks: a quarter's sum only grows, so "drop from 8 to 3" could
-  never be read from it. Rare events (recognition, elevate and external threads) count from 0
+  never be read from it. Rare events (praise, elevate and external threads) count from 0
   over the quarter: a week with no praise is normal, not a miss.
 - **Committed or aspirational.** Committed must reach 1.0. Aspirational is on track at 0.7,
   the tick on each bar.

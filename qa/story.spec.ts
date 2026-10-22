@@ -4,13 +4,14 @@ import { expect, test } from "./helpers";
 // Setup has no letter keys of its own, so typing in search changes nothing behind it.
 const recap = async (page: any) => {
   await page.keyboard.press("ControlOrMeta+k");
-  await page.getByPlaceholder("Search items, people, views…").fill("recap");
+  await page.getByPlaceholder("Search threads, people, views…").fill("recap");
   // The new app fetches its threads; on Setup they come after the gh checks.
   await expect(page.getByRole("option", { name: /Open recap \(Wrapped\)/ })).toBeVisible();
   await page.keyboard.press("Enter");
 };
 // Only the recap's text: the view behind it may say the same words.
-const see = (page: any, t: string | RegExp, exact?: boolean) => page.getByText(t, { exact }).filter({ visible: true });
+const see = (page: any, text: string | RegExp, exact?: boolean) =>
+  page.getByText(text, { exact }).filter({ visible: true });
 
 test("the recap starts with the period and steps with keys and taps", async ({ page, view }) => {
   await view("setup");
@@ -33,14 +34,16 @@ test("the recap starts with the period and steps with keys and taps", async ({ p
   await expect(see(page, "3 threads kept")).toBeVisible();
   await expect(see(page, "Retry exports on timeout, part 1")).toBeVisible();
   await page.getByRole("button", { name: "next" }).click();
-  await expect(see(page, "“Thanks @Riley Chen, the review on exports step 3 taught me a lot”")).toBeVisible();
+  await expect(
+    see(page, "“Thanks @Riley Chen, the review on exports step 3 taught me a lot”"),
+  ).toBeVisible();
   await expect(see(page, "Blair Ito")).toBeVisible();
 });
 
 test("the last slides: modes, then the open question", async ({ page, view }) => {
   await view("setup");
   await recap(page);
-  for (let i = 0; i < 8; i++) await page.keyboard.press("ArrowRight");
+  for (let slide = 0; slide < 8; slide++) await page.keyboard.press("ArrowRight");
   await expect(see(page, "How you delivered")).toBeVisible();
   await expect(see(page, "elevate", true)).toBeVisible();
   await page.keyboard.press("ArrowRight");

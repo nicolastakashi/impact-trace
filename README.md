@@ -39,6 +39,7 @@ follow SBI (Situation, Behavior, Impact) and end with what to say next time.
 | Feedback on how you show up | [feedback](docs/feedback.md) |
 | The daily schedule, with no gaps | [schedule](docs/schedule.md) |
 | Ask questions about your data | [ask](docs/ask.md) |
+| The words the app uses | [glossary](docs/glossary.md) |
 | Click-through tests on fictional data | [qa](docs/qa.md) |
 | The web app: React and shadcn | [react](docs/react.md) |
 
@@ -59,6 +60,7 @@ bun app/server.ts        # first run opens the setup page: tools, who you are, f
 ./run.sh 2026-10-12      # collect and ingest the week of that Monday (default: this week)
 ./draft-goals.sh         # Claude drafts objectives from your data; you use or dismiss them
 bun test core jobs       # unit tests (qa/ holds the Playwright specs)
+bun run fmt              # format the code (Prettier)
 bun install && bun run qa  # click-through tests in your Chrome, fictional data
 ```
 

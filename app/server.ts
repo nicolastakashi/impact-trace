@@ -2,9 +2,18 @@
 // The routes only: each API area is its own file in app/.
 import { CATEGORIES } from "../jobs/feedback";
 import { correct } from "../jobs/mentions";
-import { db, reopen, WEEK } from "./data";
+import { badRequest, db, reopen, WEEK } from "./data";
 import { decide, pending, review, unassign } from "./review";
-import { del, group, groups, merge, project, projects, restore, unmerge } from "./projects";
+import {
+  assignThread,
+  deleteProject,
+  merge,
+  project,
+  projects,
+  projectThreads,
+  restore,
+  unmerge,
+} from "./projects";
 import { checkin, dismissDraft, goalList, linkGoal, saveGoal } from "./goals";
 import { north, verdict } from "./north";
 import { saveSetup, setup } from "./setup";
@@ -13,30 +22,60 @@ import page from "../web/index.html";
 // Fictional example data for North, Trace and Feedback, before you keep a thread.
 import SAMPLE_DATA from "./sample.json";
 
-const mention = (b: any) => typeof b?.id === "string" && correct(db, b.id, b.kind ?? null) ? Response.json({ ok: true }) : new Response("Unknown mention or kind", { status: 400 });
+// You correct the kind Claude gave a mention.
+const mention = (body: any) =>
+  typeof body?.id === "string" && correct(db, body.id, body.kind ?? null)
+    ? Response.json({ ok: true })
+    : badRequest("Unknown mention or kind");
 // Writes take a JSON body. Each handler checks its own fields.
-const POST: Record<string, (b: any) => Response> = {
-  "/api/setup": saveSetup, "/api/mention": mention, "/api/labels": decide, "/api/unassign": unassign,
-  "/api/group": group, "/api/merge": merge, "/api/delete": del, "/api/restore": restore, "/api/unmerge": unmerge,
-  "/api/feedback": verdict, "/api/goal": saveGoal, "/api/draft-dismiss": dismissDraft, "/api/checkin": checkin, "/api/goal-link": linkGoal,
+const POST: Record<string, (body: any) => Response> = {
+  "/api/setup": saveSetup,
+  "/api/mention": mention,
+  "/api/labels": decide,
+  "/api/unassign": unassign,
+  "/api/thread-project": assignThread,
+  "/api/merge": merge,
+  "/api/delete": deleteProject,
+  "/api/restore": restore,
+  "/api/unmerge": unmerge,
+  "/api/feedback": verdict,
+  "/api/goal": saveGoal,
+  "/api/draft-dismiss": dismissDraft,
+  "/api/checkin": checkin,
+  "/api/goal-link": linkGoal,
 };
-const GET: Record<string, (q: URLSearchParams) => Response> = {
-  "/api/setup": (q) => setup(q.has("guess")),
-  "/api/groups": () => Response.json(groups()),
+const GET: Record<string, (params: URLSearchParams) => Response> = {
+  "/api/setup": (params) => setup(params.has("guess")),
+  "/api/project-threads": () => Response.json(projectThreads()),
   "/api/pending": () => Response.json(pending()),
-  "/api/project": (q) => project(q.get("id") ?? ""),
-  "/api/review": (q) => {
-    const left = Object.entries(pending()).find(([, n]) => n > 0);
-    const week = q.get("week") ?? left?.[0] ?? (db.query("SELECT max(week) w FROM labels").get() as any).w;
-    return WEEK.test(week ?? "") ? Response.json(review(week)) : Response.json({ week: null, weeks: [], threads: [] });
+  "/api/project": (params) => project(params.get("id") ?? ""),
+  "/api/review": (params) => {
+    // No week asked: the latest with undecided threads, else the latest labeled.
+    const undecided = Object.entries(pending()).find(([, count]) => count > 0);
+    const week =
+      params.get("week") ??
+      undecided?.[0] ??
+      (db.query("SELECT max(week) latest FROM labels").get() as any).latest;
+    return WEEK.test(week ?? "")
+      ? Response.json(review(week))
+      : Response.json({ week: null, weeks: [], threads: [] });
   },
   // Same data as North, as JSON, for jobs/facts.ts. No sample: facts are only ever yours.
-  "/api/facts": () => { const d = north(); return d ? Response.json({ ...d, OBJECTIVES: goalList().goals }) : new Response("No kept threads yet", { status: 404 }); },
-  // North, Trace, Feedback and Search: your kept threads, or the sample with SAMPLE: true.
+  "/api/facts": () => {
+    const data = north();
+    return data
+      ? Response.json({ ...data, goalDetails: goalList().goals })
+      : new Response("No kept threads yet", { status: 404 });
+  },
+  // North, Trace, Feedback and Search: your kept threads, or the sample with sample: true.
   // The feedback categories and their sources come with the data, the example too.
-  "/api/north": () => Response.json({ FB_CATS: CATEGORIES, ...(north() ?? SAMPLE_DATA) }),
+  "/api/north": () =>
+    Response.json({ feedbackCategories: CATEGORIES, ...(north() ?? SAMPLE_DATA) }),
   "/api/goals": () => Response.json(goalList()),
-  "/api/projects": (q) => Response.json(projects((q.get("weeks") ?? "").split(",").filter((w) => WEEK.test(w)))),
+  "/api/projects": (params) =>
+    Response.json(
+      projects((params.get("weeks") ?? "").split(",").filter((week) => WEEK.test(week))),
+    ),
 };
 
 const server = Bun.serve({
@@ -49,14 +88,24 @@ const server = Bun.serve({
   development: false,
   // /next/ was the app while it moved to React: old links land on the app.
   routes: { "/": page, "/next/": Response.redirect("/", 301) },
-  async fetch(req) {
-    const url = new URL(req.url), path = url.pathname;
+  async fetch(request) {
+    const url = new URL(request.url);
+    const path = url.pathname;
     reopen();
     // Old addresses: review and groups now live inside the one page.
-    if (path === "/review" || path === "/groups") return new Response(null, { status: 302, headers: { location: `/#${path === "/groups" ? "/projects" : path}${url.search}` } });
-    if (req.method === "GET" && GET[path]) return GET[path](url.searchParams);
+    if (path === "/review" || path === "/groups")
+      return new Response(null, {
+        status: 302,
+        headers: { location: `/#${path === "/groups" ? "/projects" : path}${url.search}` },
+      });
+    if (request.method === "GET" && GET[path]) return GET[path](url.searchParams);
     // A JSON content type forces a CORS preflight, so other sites cannot post here.
-    if (req.method === "POST" && req.headers.get("content-type") === "application/json" && POST[path]) return POST[path](await req.json().catch(() => null));
+    if (
+      request.method === "POST" &&
+      request.headers.get("content-type") === "application/json" &&
+      POST[path]
+    )
+      return POST[path](await request.json().catch(() => null));
     return new Response("Not found", { status: 404 });
   },
 });

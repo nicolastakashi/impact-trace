@@ -3,12 +3,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "qa": "bun qa/build.ts && bun qa/fixture.ts && playwright test -c qa"
+    "qa": "eslint . && bun qa/build.ts && bun qa/fixture.ts && playwright test -c qa",
+    "fmt": "prettier --write \"{app,core,jobs,web,qa}/**/*.{ts,tsx}\""
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
     "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0"
+    "@types/react-dom": "19.3.0",
+    "eslint": "9.30.1",
+    "prettier": "3.6.2",
+    "typescript-eslint": "8.35.0"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "1.2.0",

@@ -40,5 +40,6 @@ North shows.
 2. You keep or drop threads in [review](review.md). Only kept threads count.
 3. North shows the week. Something stands out: ask about it here.
 4. A missing number: add it to `jobs/facts.ts` with a test, so the next session has it.
+   Its keys use the [glossary](glossary.md) words: `goals`, `praise`, `asks`.
 
 Code: `jobs/facts.ts`, `/api/facts` in `app/server.ts`, `.claude/skills/ask-impact`.

@@ -1,45 +1,116 @@
 // SEARCH: the ⌘K box. Views, the recap and your threads, by title, project or person.
 import { useRef, useState } from "react";
-import { mc, openItem, openStory, useEvent, useNorth } from "./lib";
+import { go, modeColor, type North, openThread, openStory, useEvent, useNorth } from "./lib";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "./ui/command";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 
-const VIEWS = [["home", "North"], ["goals", "Goals"], ["projects", "Projects"], ["project", "Project"], ["trace", "Trace"], ["feedback", "Feedback"], ["review", "Review"], ["refs", "References"], ["setup", "Setup"]];
-type R = { id: string; label: string; t: string; m?: string; hay?: string; run: () => void };
+const VIEWS = [
+  ["home", "North"],
+  ["goals", "Goals"],
+  ["projects", "Projects"],
+  ["project", "Project"],
+  ["trace", "Trace"],
+  ["feedback", "Feedback"],
+  ["review", "Review"],
+  ["refs", "References"],
+  ["setup", "Setup"],
+];
+// One row: a view, the recap or a thread. `tag` is the right-hand caption; `haystack` what the query matches.
+type Result = {
+  id: string;
+  label: string;
+  tag: string;
+  mode?: string;
+  haystack?: string;
+  run: () => void;
+};
+
+function resultsOf(north: North | null): Result[] {
+  if (!north) return [];
+  return [
+    ...VIEWS.map(([view, label]) => ({
+      id: `v:${view}`,
+      label: `Go to ${label}`,
+      tag: "view",
+      run: () => go(`#/${view}`),
+    })),
+    { id: "recap", label: "Open recap (Wrapped)", tag: "recap", run: openStory },
+    ...north.threads.map((thread) => {
+      const praisedBy = thread.praiseIndex != null ? north.praise[thread.praiseIndex].who : "";
+      return {
+        id: `i:${thread.id}`,
+        label: thread.title,
+        tag: north.weeks[thread.weekIndex]!,
+        mode: thread.mode,
+        run: () => openThread(thread.id),
+        haystack:
+          `${thread.title} ${north.projects[thread.projectId]?.name ?? ""} ${thread.quote?.who ?? ""} ${praisedBy}`.toLowerCase(),
+      };
+    }),
+  ];
+}
 
 export function Search() {
-  const [d] = useNorth(), [open, setOpen] = useState(false), [q, setQ] = useState(""), [sel, setSel] = useState("");
+  const [north] = useNorth();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState("");
   // A result moves focus on (a view, the sheet, the recap): then do not hand it back to the header.
   const went = useRef(false);
   // ⌘K again closes it.
-  useEvent("open-search", () => { setOpen((o) => !o); setQ(""); setSel(""); went.current = false; });
-  const all: R[] = !d ? [] : [
-    ...VIEWS.map(([v, l]) => ({ id: `v:${v}`, label: `Go to ${l}`, t: "view", run: () => { location.hash = `#/${v}`; } })),
-    { id: "recap", label: "Open recap (Wrapped)", t: "recap", run: openStory },
-    ...d.ITEMS.map((i) => ({ id: `i:${i.id}`, label: i.title, t: d.WEEKS[i.w]!, m: i.mode, run: () => openItem(i.id),
-      hay: `${i.title} ${d.PROJECTS[i.s]?.name ?? ""} ${i.quote?.who ?? ""} ${i.rec != null ? d.REC[i.rec].who : ""}`.toLowerCase() })),
-  ];
+  useEvent("open-search", () => {
+    setOpen((wasOpen) => !wasOpen);
+    setQuery("");
+    setSelected("");
+    went.current = false;
+  });
   // Our own filter, not cmdk's fuzzy one: a plain substring, at most 12 results.
-  const res = all.filter((r) => !q || (r.hay ?? r.label.toLowerCase()).includes(q.toLowerCase())).slice(0, 12);
-  const cur = res.some((r) => r.id === sel) ? sel : res[0]?.id ?? "";
-  const pick = (r: R) => { went.current = true; setOpen(false); r.run(); };
-  return <Dialog open={open} onOpenChange={setOpen}>
-    <DialogContent aria-describedby={undefined} className="top-[12vh] bottom-auto max-w-155 gap-0 overflow-hidden rounded-2xl p-0"
-      onCloseAutoFocus={(e) => went.current && e.preventDefault()}>
-      <DialogTitle className="sr-only">Search</DialogTitle>
-      <Command shouldFilter={false} value={cur} onValueChange={setSel}>
-        <CommandInput placeholder="Search items, people, views…" value={q} onValueChange={(v) => { setQ(v); setSel(""); }} />
-        <CommandList>
-          <CommandEmpty>Nothing found. Try a person or a stream name.</CommandEmpty>
-          {res.map((r) => <CommandItem key={r.id} value={r.id} onSelect={() => pick(r)}>
-            <i className="size-2.5 flex-none rounded-full" style={{ background: r.m ? mc(r.m) : "var(--line-2)" }} />
-            <span className="min-w-0 flex-1 truncate">{r.label}</span>
-            <span className="font-mono text-[11px] font-medium text-ink-3">{r.t}</span>
-          </CommandItem>)}
-        </CommandList>
-      </Command>
-    </DialogContent>
-  </Dialog>;
+  const needle = query.toLowerCase();
+  const results = resultsOf(north)
+    .filter((result) => !query || (result.haystack ?? result.label.toLowerCase()).includes(needle))
+    .slice(0, 12);
+  const active = results.some((result) => result.id === selected)
+    ? selected
+    : (results[0]?.id ?? "");
+  const pick = (result: Result) => {
+    went.current = true;
+    setOpen(false);
+    result.run();
+  };
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent
+        aria-describedby={undefined}
+        className="top-[12vh] bottom-auto max-w-155 gap-0 overflow-hidden rounded-2xl p-0"
+        onCloseAutoFocus={(event) => went.current && event.preventDefault()}
+      >
+        <DialogTitle className="sr-only">Search</DialogTitle>
+        <Command shouldFilter={false} value={active} onValueChange={setSelected}>
+          <CommandInput
+            placeholder="Search threads, people, views…"
+            value={query}
+            onValueChange={(value) => {
+              setQuery(value);
+              setSelected("");
+            }}
+          />
+          <CommandList>
+            <CommandEmpty>Nothing found. Try a person or a stream name.</CommandEmpty>
+            {results.map((result) => (
+              <CommandItem key={result.id} value={result.id} onSelect={() => pick(result)}>
+                <i
+                  className="size-2.5 flex-none rounded-full"
+                  style={{ background: result.mode ? modeColor(result.mode) : "var(--line-2)" }}
+                />
+                <span className="min-w-0 flex-1 truncate">{result.label}</span>
+                <span className="font-mono text-[11px] font-medium text-ink-3">{result.tag}</span>
+              </CommandItem>
+            ))}
+          </CommandList>
+        </Command>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
-export const View = (_: { p: URLSearchParams }) => <Search />;
+export const View = (_: { params: URLSearchParams }) => <Search />;
