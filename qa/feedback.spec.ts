@@ -5,9 +5,10 @@ import { expect, test } from "./helpers";
 const verdicts = async (request: any) =>
   (await (await request.get("/api/north")).json()).FEEDBACK[0].verdicts;
 // The verdict's note is a status too: find the toast by its exact text.
-const said = (page: any, t: string) =>
-  expect(page.getByRole("status").getByText(t, { exact: true })).toBeVisible();
-const vd = (page: any, scope: any = page) => scope.getByRole("group", { name: "Your verdict" });
+const said = (page: any, text: string) =>
+  expect(page.getByRole("status").getByText(text, { exact: true })).toBeVisible();
+const verdictGroup = (page: any, scope: any = page) =>
+  scope.getByRole("group", { name: "Your verdict" });
 
 test("the week's experiment, the pattern in focus and its marked quotes", async ({
   page,
@@ -56,11 +57,11 @@ test("tabs switch the focus and keep it in the address", async ({ page, view }) 
 test("accept a pattern, then take it back", async ({ page, view, request }) => {
   await view("feedback");
   const focus = page.getByRole("tabpanel");
-  await vd(page, focus)
+  await verdictGroup(page, focus)
     .getByRole("button", { name: /Accept/ })
     .click();
   await said(page, "Accepted");
-  await expect(vd(page, focus).getByRole("button", { name: /Accept/ })).toHaveAttribute(
+  await expect(verdictGroup(page, focus).getByRole("button", { name: /Accept/ })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
@@ -72,7 +73,7 @@ test("accept a pattern, then take it back", async ({ page, view, request }) => {
     v: "accept",
     why: null,
   });
-  await vd(page, focus)
+  await verdictGroup(page, focus)
     .getByRole("button", { name: /Accept/ })
     .click();
   await said(page, "Taken back");
@@ -81,7 +82,7 @@ test("accept a pattern, then take it back", async ({ page, view, request }) => {
 
 test("reject with a reason that Claude reads next week", async ({ page, view, request }) => {
   await view("feedback");
-  await vd(page, page.getByRole("tabpanel"))
+  await verdictGroup(page, page.getByRole("tabpanel"))
     .getByRole("button", { name: /Reject/ })
     .click();
   await said(page, "Rejected. Say why, and Claude learns from it.");
@@ -133,7 +134,7 @@ test("before your first collection: the example, and verdicts stay on the page",
       "I'm dropping the v1 endpoint next sprint; tell me by Thursday if that breaks you.",
     ),
   ).toBeVisible();
-  await vd(page, page.getByRole("tabpanel"))
+  await verdictGroup(page, page.getByRole("tabpanel"))
     .getByRole("button", { name: /Accept/ })
     .click();
   await said(page, "Accepted (example only)");

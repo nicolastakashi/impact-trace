@@ -4,31 +4,33 @@ import type { Page } from "@playwright/test";
 // The fixture leaves the latest week undecided: 3 threads, Claude's labels on each.
 const review = async (request: any, week = "") =>
   await (await request.get(`/api/review${week ? `?week=${week}` : ""}`)).json();
-const human = async (request: any, i: number) => (await review(request)).threads[i].human;
+const human = async (request: any, index: number) => (await review(request)).threads[index].human;
 const card = (page: Page) => ({
   title: page.getByRole("textbox", { name: "Thread title" }),
   summary: page.getByRole("textbox", { name: "Summary of what you did" }),
-  mode: (m: string) =>
-    page.getByRole("group", { name: "Mode" }).getByRole("button", { name: new RegExp(`^${m}`) }),
-  pillar: (p: string) =>
-    page.getByRole("group", { name: "Pillar" }).getByRole("button", { name: new RegExp(`^${p}`) }),
+  mode: (name: string) =>
+    page.getByRole("group", { name: "Mode" }).getByRole("button", { name: new RegExp(`^${name}`) }),
+  pillar: (name: string) =>
+    page
+      .getByRole("group", { name: "Pillar" })
+      .getByRole("button", { name: new RegExp(`^${name}`) }),
   queue: page
     .getByRole("list", { name: "Threads of the week" })
     .getByRole("button", { name: /^(?!discard all)/ }),
   done: page.getByText(/^\d+\/\d+$/),
 });
 // Keys do nothing before the threads load: wait for the card first.
-const open = async (page: Page, view: (v: string) => Promise<void>) => {
+const open = async (page: Page, view: (route: string) => Promise<void>) => {
   await view("review");
   await expect(card(page).title).toBeVisible();
 };
 // Claude's labels, changed in the response: the fixture has no routine thread and no Claude project.
-const patch = (page: Page, f: (d: any) => void) =>
-  page.route("**/api/review*", async (r) => {
-    const res = await r.fetch(),
-      d = await res.json();
-    f(d);
-    await r.fulfill({ response: res, json: d });
+const patch = (page: Page, change: (body: any) => void) =>
+  page.route("**/api/review*", async (route) => {
+    const response = await route.fetch(),
+      body = await response.json();
+    change(body);
+    await route.fulfill({ response, json: body });
   });
 
 test("opens the week that waits for you, with Claude's labels filled in", async ({
@@ -36,24 +38,26 @@ test("opens the week that waits for you, with Claude's labels filled in", async 
   view,
   request,
 }) => {
-  const d = await review(request);
+  const reviewData = await review(request);
   await open(page, view);
-  const c = card(page);
-  await expect(c.title).toHaveValue("Retry exports on timeout, part 4");
-  await expect(c.summary).toHaveValue("What happened in Retry exports on timeout, part 4.");
-  await expect(c.mode("build")).toHaveAttribute("aria-pressed", "true");
-  await expect(c.pillar("execution")).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("combobox", { name: "Week" })).toHaveValue(d.week);
+  const threadCard = card(page);
+  await expect(threadCard.title).toHaveValue("Retry exports on timeout, part 4");
+  await expect(threadCard.summary).toHaveValue(
+    "What happened in Retry exports on timeout, part 4.",
+  );
+  await expect(threadCard.mode("build")).toHaveAttribute("aria-pressed", "true");
+  await expect(threadCard.pillar("execution")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("combobox", { name: "Week" })).toHaveValue(reviewData.week);
   await expect(
     page
       .getByRole("combobox", { name: "Week" })
-      .locator("option", { hasText: `${d.week} · 3 left` }),
+      .locator("option", { hasText: `${reviewData.week} · 3 left` }),
   ).toHaveCount(1);
-  await expect(c.done).toHaveText("0/3");
-  await expect(c.queue).toHaveCount(3);
+  await expect(threadCard.done).toHaveText("0/3");
+  await expect(threadCard.queue).toHaveCount(3);
   await expect(page).toHaveURL(
     new RegExp(
-      `#/review\\?week=${d.week}&key=${encodeURIComponent(d.threads[0].key).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
+      `#/review\\?week=${reviewData.week}&key=${encodeURIComponent(reviewData.threads[0].key).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
     ),
   );
   await expect(page.getByRole("tab", { name: "Review 3" })).toBeVisible();
@@ -65,15 +69,15 @@ test("a mode by key, then 1: saved, the next thread opens, the badge counts down
   request,
 }) => {
   await open(page, view);
-  const c = card(page);
+  const threadCard = card(page);
   await page.keyboard.press("s");
-  await expect(c.mode("prevent")).toHaveAttribute("aria-pressed", "true");
+  await expect(threadCard.mode("prevent")).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("1");
   await expect(toast(page)).toHaveText("Saved");
-  await expect(c.done).toHaveText("1/3");
-  await expect(c.mode("elevate")).toHaveAttribute("aria-pressed", "true");
+  await expect(threadCard.done).toHaveText("1/3");
+  await expect(threadCard.mode("elevate")).toHaveAttribute("aria-pressed", "true");
   // Pending hides what you decided.
-  await expect(c.queue).toHaveCount(2);
+  await expect(threadCard.queue).toHaveCount(2);
   await expect(page.getByRole("tab", { name: "Review 2" })).toBeVisible();
   expect(await human(request, 0)).toMatchObject({
     mode: "prevent",
@@ -86,9 +90,9 @@ test("a mode by key, then 1: saved, the next thread opens, the badge counts down
 
 test("your title and summary are saved with your answer", async ({ page, view, request }) => {
   await open(page, view);
-  const c = card(page);
-  await c.title.fill("Export retries");
-  await c.summary.fill("I wrote the retry and its tests.");
+  const threadCard = card(page);
+  await threadCard.title.fill("Export retries");
+  await threadCard.summary.fill("I wrote the retry and its tests.");
   await page
     .getByRole("group", { name: "Pillar" })
     .getByRole("button", { name: /^leveling-up/ })
@@ -105,49 +109,49 @@ test("your title and summary are saved with your answer", async ({ page, view, r
 
 test("0 discards; Show all brings it back", async ({ page, view, request }) => {
   await open(page, view);
-  const c = card(page);
+  const threadCard = card(page);
   await page.keyboard.press("0");
   await expect(toast(page)).toHaveText("Discarded");
-  await expect(c.queue).toHaveCount(2);
+  await expect(threadCard.queue).toHaveCount(2);
   await page.getByRole("combobox", { name: "Show" }).selectOption("all");
-  await expect(c.queue).toHaveCount(3);
+  await expect(threadCard.queue).toHaveCount(3);
   expect((await human(request, 0)).discard).toBe("yes");
 });
 
 test("the last thread: all weeks done, the badge goes", async ({ page, view }) => {
   await open(page, view);
-  const c = card(page);
-  for (const n of ["1/3", "2/3"]) {
+  const threadCard = card(page);
+  for (const progress of ["1/3", "2/3"]) {
     await page.keyboard.press("2");
-    await expect(c.done).toHaveText(n);
+    await expect(threadCard.done).toHaveText(progress);
   }
   await page.keyboard.press("3");
   await expect(toast(page)).toHaveText("All weeks done");
-  await expect(c.done).toHaveText("3/3");
+  await expect(threadCard.done).toHaveText("3/3");
   await expect(page.getByRole("tab", { name: "Review", exact: true })).toBeVisible();
 });
 
 test("J and K move, ? shows the keys, Enter leaves the title", async ({ page, view }) => {
   await open(page, view);
-  const c = card(page);
+  const threadCard = card(page);
   await page.keyboard.press("j");
-  await expect(c.mode("elevate")).toHaveAttribute("aria-pressed", "true");
+  await expect(threadCard.mode("elevate")).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("j");
-  await expect(c.mode("solve")).toHaveAttribute("aria-pressed", "true");
+  await expect(threadCard.mode("solve")).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("k");
-  await expect(c.mode("elevate")).toHaveAttribute("aria-pressed", "true");
+  await expect(threadCard.mode("elevate")).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("?");
   await expect(page.getByText("discard all routine")).toBeVisible();
   await page.keyboard.press("t");
-  await expect(c.title).toBeFocused();
+  await expect(threadCard.title).toBeFocused();
   await page.keyboard.type("Blair learned from a review");
   await page.keyboard.press("Enter");
-  await expect(c.title).not.toBeFocused();
+  await expect(threadCard.title).not.toBeFocused();
   // Typed letters stay in the field: the mode did not change.
-  await expect(c.mode("elevate")).toHaveAttribute("aria-pressed", "true");
-  await expect(c.title).toHaveValue("Blair learned from a review");
-  await c.queue.first().click();
-  await expect(c.title).toHaveValue("Retry exports on timeout, part 4");
+  await expect(threadCard.mode("elevate")).toHaveAttribute("aria-pressed", "true");
+  await expect(threadCard.title).toHaveValue("Blair learned from a review");
+  await threadCard.queue.first().click();
+  await expect(threadCard.title).toHaveValue("Retry exports on timeout, part 4");
 });
 
 test("V opens the evidence, with links out", async ({ page, view }) => {
@@ -169,9 +173,9 @@ test("P moves the thread: a new topic, then an existing project", async ({
 }) => {
   await open(page, view);
   await page.keyboard.press("p");
-  const q = page.getByRole("textbox", { name: "Project" });
-  await expect(q).toBeFocused();
-  await q.fill("Retry work");
+  const projectBox = page.getByRole("textbox", { name: "Project" });
+  await expect(projectBox).toBeFocused();
+  await projectBox.fill("Retry work");
   await expect(page.getByRole("option", { name: /Create “Retry work”/ })).toBeVisible();
   await page.keyboard.press("Enter");
   await expect(toast(page)).toHaveText("Created Retry work");
@@ -180,8 +184,10 @@ test("P moves the thread: a new topic, then an existing project", async ({
   await expect(toast(page)).toHaveText("Moved to Alert routing");
   expect(
     (await review(request)).threads
-      .find((t: any) => t.events.some((e: any) => e.title === "Retry exports on timeout, part 4"))
-      .projects.map((p: any) => p.name),
+      .find((thread: any) =>
+        thread.events.some((event: any) => event.title === "Retry exports on timeout, part 4"),
+      )
+      .projects.map((project: any) => project.name),
   ).toEqual(["Alert routing"]);
 });
 
@@ -214,23 +220,26 @@ test("Claude's routine threads go last; discard all of them at once", async ({
   request,
 }) => {
   const first = (await review(request)).threads[0].key;
-  await patch(page, (d) => {
-    const t = d.threads.find((x: any) => x.key === first);
-    if (!t.human.discard) t.claude.discard = "yes";
+  await patch(page, (body) => {
+    const thread = body.threads.find((candidate: any) => candidate.key === first);
+    if (!thread.human.discard) thread.claude.discard = "yes";
   });
   await open(page, view);
   await expect(page.getByText("Probably routine · 1")).toBeVisible();
   await expect(card(page).mode("elevate")).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: /discard all/ }).click();
   await expect(toast(page)).toHaveText("Discarded 1");
-  expect((await review(request)).threads.find((t: any) => t.key === first).human.discard).toBe(
-    "yes",
-  );
+  expect(
+    (await review(request)).threads.find((thread: any) => thread.key === first).human.discard,
+  ).toBe("yes");
 });
 
 test("wrong project undoes Claude's placement", async ({ page, view }) => {
-  await patch(page, (d) => {
-    d.threads[0].projects = d.threads[0].projects.map((p: any) => ({ ...p, by: "claude" }));
+  await patch(page, (body) => {
+    body.threads[0].projects = body.threads[0].projects.map((project: any) => ({
+      ...project,
+      by: "claude",
+    }));
   });
   await open(page, view);
   await page.getByRole("button", { name: /wrong project/ }).click();
@@ -238,21 +247,24 @@ test("wrong project undoes Claude's placement", async ({ page, view }) => {
 });
 
 test("a refused save says why and keeps the thread open", async ({ page, view }) => {
-  await page.route("**/api/labels", (r) => r.fulfill({ status: 400, body: "Bad value for mode" }));
+  await page.route("**/api/labels", (route) =>
+    route.fulfill({ status: 400, body: "Bad value for mode" }),
+  );
+
   await open(page, view);
-  const c = card(page);
+  const threadCard = card(page);
   await page.keyboard.press("1");
   await expect(toast(page)).toHaveText("Not saved: Bad value for mode");
-  await expect(c.done).toHaveText("0/3");
-  await expect(c.title).toHaveValue("Retry exports on timeout, part 4");
+  await expect(threadCard.done).toHaveText("0/3");
+  await expect(threadCard.title).toHaveValue("Retry exports on timeout, part 4");
 });
 
 test("another week from the address and from the picker", async ({ page, view, request }) => {
-  const d = await review(request),
-    past = d.weeks[1];
+  const reviewData = await review(request),
+    past = reviewData.weeks[1];
   await view(`review?week=${past}`);
   await expect(card(page).done).toHaveText("3/3");
-  await page.getByRole("combobox", { name: "Week" }).selectOption(d.week);
+  await page.getByRole("combobox", { name: "Week" }).selectOption(reviewData.week);
   await expect(card(page).done).toHaveText("0/3");
   await expect(
     page.getByRole("combobox", { name: "Week" }).locator("option", { hasText: `${past} · done` }),

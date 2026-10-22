@@ -5,7 +5,9 @@ const north = async (request: any) => await (await request.get("/api/north")).js
 // A test clicks several North links in a row: keep the address change, stop the route.
 // Registered before the app's own listener, so it runs first.
 const stay = (page: Page) =>
-  page.addInitScript(() => addEventListener("hashchange", (e) => e.stopImmediatePropagation()));
+  page.addInitScript(() =>
+    addEventListener("hashchange", (event) => event.stopImmediatePropagation()),
+  );
 
 test("the header counts what you kept", async ({ page, view, request }) => {
   const { WEEKS } = await north(request);
@@ -117,19 +119,21 @@ test("the experiment opens Feedback", async ({ page, view, request }) => {
   const { FEEDBACK } = await north(request);
   await stay(page);
   await view("home");
-  const fb = page.getByRole("button", { name: /^Try this week/ });
-  await expect(fb).toContainText("from the pattern “Asking permission on what you own”");
-  await expect(fb).toContainText(new RegExp(`2\\s*times in ${FEEDBACK[0].week.slice(5)}`));
-  await fb.click();
+  const feedbackCard = page.getByRole("button", { name: /^Try this week/ });
+  await expect(feedbackCard).toContainText("from the pattern “Asking permission on what you own”");
+  await expect(feedbackCard).toContainText(
+    new RegExp(`2\\s*times in ${FEEDBACK[0].week.slice(5)}`),
+  );
+  await feedbackCard.click();
   await expect(page).toHaveURL(/#\/feedback$/);
 });
 
 test("the threads that wait open Review", async ({ page, view }) => {
   await stay(page);
   await view("home");
-  const wm = page.getByRole("button", { name: /^To review/ });
-  await expect(wm).toContainText("3 threads wait for your answer");
-  await expect(wm).toContainText("open review →");
-  await wm.click();
+  const reviewCard = page.getByRole("button", { name: /^To review/ });
+  await expect(reviewCard).toContainText("3 threads wait for your answer");
+  await expect(reviewCard).toContainText("open review →");
+  await reviewCard.click();
   await expect(page).toHaveURL(/#\/review$/);
 });

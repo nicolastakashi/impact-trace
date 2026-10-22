@@ -14,12 +14,12 @@ test("the address picks the topic; quotes link to their source", async ({ page, 
   ).toBeVisible();
   // A secondary source says so.
   await expect(page.getByText("Hacker News repost, not the official page")).toBeVisible();
-  const src = page.getByRole("link", { name: /GitLab, Principal Engineer/ });
-  await expect(src).toHaveAttribute(
+  const source = page.getByRole("link", { name: /GitLab, Principal Engineer/ });
+  await expect(source).toHaveAttribute(
     "href",
     "https://handbook.gitlab.com/job-families/engineering/development/management/principal-engineer/",
   );
-  await expect(src).toHaveAttribute("target", "_blank");
+  await expect(source).toHaveAttribute("target", "_blank");
 });
 
 test("a topic tab swaps the card and the address", async ({ page, view }) => {
