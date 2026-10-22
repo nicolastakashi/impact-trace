@@ -17,33 +17,37 @@ import { verify } from "../jobs/feedback";
 export const OUT = join(import.meta.dir, ".data");
 export const ME = { name: "Riley Chen", github: "rchen", orgs: ["acme"], level: "Senior Engineer" };
 
-const wrap = (o: object) =>
+const wrap = (output: object) =>
   JSON.stringify({
     is_error: false,
     session_id: "qa",
     total_cost_usd: 0,
     num_turns: 1,
-    structured_output: o,
+    structured_output: output,
   });
 const DAY = 864e5;
-const monday = (d: Date) =>
+const monday = (date: Date) =>
   new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - ((d.getUTCDay() + 6) % 7)),
+    Date.UTC(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate() - ((date.getUTCDay() + 6) % 7),
+    ),
   );
-const iso = (t: number) => new Date(t).toISOString();
+const iso = (time: number) => new Date(time).toISOString();
 
 export function build(now = new Date()) {
   rmSync(OUT, { recursive: true, force: true });
   mkdirSync(OUT, { recursive: true });
   const db = open(join(OUT, "fixture.db"));
-  const m0 = monday(now).getTime();
-  for (let k = 3; k >= 0; k--) {
-    const mon = m0 - k * 7 * DAY,
-      week = isoWeek(iso(mon)),
-      dir = mkdtempSync(join(tmpdir(), "qa-"));
-    const at = (d: number, h = 10) => iso(mon + d * DAY + h * 36e5);
+  const thisMonday = monday(now).getTime();
+  for (let weeksAgo = 3; weeksAgo >= 0; weeksAgo--) {
+    const weekStart = thisMonday - weeksAgo * 7 * DAY,
+      week = isoWeek(iso(weekStart)),
+      directory = mkdtempSync(join(tmpdir(), "qa-"));
+    const at = (day: number, hour = 10) => iso(weekStart + day * DAY + hour * 36e5);
     writeFileSync(
-      join(dir, "linear.run.json"),
+      join(directory, "linear.run.json"),
       wrap({
         week,
         pages_read: 1,
@@ -69,9 +73,9 @@ export function build(now = new Date()) {
         ],
         issues: [
           {
-            id: `ACME-${100 + k}`,
-            title: `Retry exports on timeout, part ${4 - k}`,
-            url: `https://linear.app/acme/issue/ACME-${100 + k}`,
+            id: `ACME-${100 + weeksAgo}`,
+            title: `Retry exports on timeout, part ${4 - weeksAgo}`,
+            url: `https://linear.app/acme/issue/ACME-${100 + weeksAgo}`,
             status_type: "completed",
             completed_at: at(1),
             project_name: "Exports API",
@@ -80,81 +84,90 @@ export function build(now = new Date()) {
         ],
         attachments: [
           {
-            id: `ACME-${100 + k}`,
-            urls: [0, 1].map((i) => `https://github.com/acme/api/pull/${200 + k * 10 + i}`),
+            id: `ACME-${100 + weeksAgo}`,
+            urls: [0, 1].map(
+              (index) => `https://github.com/acme/api/pull/${200 + weeksAgo * 10 + index}`,
+            ),
           },
         ],
       }),
     );
-    const prs = [0, 1].map((i) => ({
+    const prs = [0, 1].map((index) => ({
       repo: "acme/api",
-      number: 200 + k * 10 + i,
-      title: `feat: export step ${k}.${i}`,
-      url: `https://github.com/acme/api/pull/${200 + k * 10 + i}`,
-      at: at(2 + i),
-      opened: at(1 + i, 8),
-      linear_refs: [`ACME-${100 + k}`],
+      number: 200 + weeksAgo * 10 + index,
+      title: `feat: export step ${weeksAgo}.${index}`,
+      url: `https://github.com/acme/api/pull/${200 + weeksAgo * 10 + index}`,
+      at: at(2 + index),
+      opened: at(1 + index, 8),
+      linear_refs: [`ACME-${100 + weeksAgo}`],
     }));
     writeFileSync(
-      join(dir, "github.run.json"),
+      join(directory, "github.run.json"),
       wrap({
         week,
         reviews_given: 0,
         review_comments_received: [],
         prs_open: [],
         prs_merged: prs,
-        prs_opened: prs.map((p) => ({ url: p.url })),
+        prs_opened: prs.map((pr) => ({ url: pr.url })),
       }),
     );
     writeFileSync(
-      join(dir, "reviews.run.json"),
+      join(directory, "reviews.run.json"),
       wrap({
-        from: iso(mon).slice(0, 10),
+        from: iso(weekStart).slice(0, 10),
         prs_read: 3,
-        reviews: [1, 2, 3].map((i) => ({
+        reviews: [1, 2, 3].map((day) => ({
           repo: "acme/web",
-          number: 300 + k * 10 + i,
+          number: 300 + weeksAgo * 10 + day,
           author: "blair",
           state: "APPROVED",
-          submitted_at: at(i),
+          submitted_at: at(day),
         })),
       }),
     );
     // Your Slack messages (Feedback reads them) and two mentions of you: praise and an ask.
-    const ts = (d: number, h: number) => ((mon + d * DAY + h * 36e5) / 1000).toFixed(6);
-    const msg = (pass: string, d: number, h: number, author: string, text: string) => ({
+    const slackTimestamp = (day: number, hour: number) =>
+      ((weekStart + day * DAY + hour * 36e5) / 1000).toFixed(6);
+    const slackMessage = (
+      pass: string,
+      day: number,
+      hour: number,
+      author: string,
+      text: string,
+    ) => ({
       pass,
       channel_id: "C1",
       channel_name: "acme-eng",
-      ts: ts(d, h),
-      permalink: `https://acme.slack.com/archives/C1/p${ts(d, h).replace(".", "")}`,
+      ts: slackTimestamp(day, hour),
+      permalink: `https://acme.slack.com/archives/C1/p${slackTimestamp(day, hour).replace(".", "")}`,
       author_id: author === ME.name ? "U1" : "U2",
       author_name: author,
       text,
     });
     writeFileSync(
-      join(dir, "slack_own_2.run.json"),
+      join(directory, "slack_own_2.run.json"),
       wrap({
         week,
         self_user_id: "U1",
         pages_read: 1,
         exhausted: true,
         messages: [
-          msg(
+          slackMessage(
             "own",
             1,
             11,
             ME.name,
             `Is it ok if I merge the export retry today? PR ${prs[0]!.url}`,
           ),
-          msg(
+          slackMessage(
             "own",
             1,
             15,
             ME.name,
             "Is it ok if I change the timeout default to 30s for exports?",
           ),
-          msg(
+          slackMessage(
             "own",
             1,
             16,
@@ -165,21 +178,21 @@ export function build(now = new Date()) {
       }),
     );
     writeFileSync(
-      join(dir, "slack_mention_3.run.json"),
+      join(directory, "slack_mention_3.run.json"),
       wrap({
         week,
         self_user_id: "U1",
         pages_read: 1,
         exhausted: true,
         messages: [
-          msg(
+          slackMessage(
             "mention",
             2,
             10,
             "Blair Ito",
-            `Thanks @Riley Chen, the review on exports step ${k} taught me a lot`,
+            `Thanks @Riley Chen, the review on exports step ${weeksAgo} taught me a lot`,
           ),
-          msg(
+          slackMessage(
             "mention",
             2,
             14,
@@ -189,8 +202,8 @@ export function build(now = new Date()) {
         ],
       }),
     );
-    ingestWeek(db, dir, week, ME);
-    rmSync(dir, { recursive: true });
+    ingestWeek(db, directory, week, ME);
+    rmSync(directory, { recursive: true });
     const threads = reviewThreads(db, week),
       modes = ["build", "elevate", "solve", "clarify"];
     saveSuggestions(
@@ -200,12 +213,12 @@ export function build(now = new Date()) {
         is_error: false,
         structured_output: {
           week,
-          labels: threads.map((t, i) => ({
-            key: t.key,
-            title: t.events[0]!.title ?? `Thread ${i}`,
-            summary: `What happened in ${t.events[0]!.title ?? "this thread"}.`,
-            mode: modes[i % modes.length],
-            pillar: i % 2 ? "level" : "exec",
+          labels: threads.map((thread, index) => ({
+            key: thread.key,
+            title: thread.events[0]!.title ?? `Thread ${index}`,
+            summary: `What happened in ${thread.events[0]!.title ?? "this thread"}.`,
+            mode: modes[index % modes.length],
+            pillar: index % 2 ? "level" : "exec",
             routine: false,
             evidence: [],
           })),
@@ -213,7 +226,7 @@ export function build(now = new Date()) {
       },
       "qa",
     );
-    const mention = db
+    const mentionRows = db
       .query("SELECT id, author FROM events WHERE kind = 'slack_mention' AND week = ?")
       .all(week) as any[];
     saveMentions(
@@ -223,27 +236,40 @@ export function build(now = new Date()) {
         is_error: false,
         structured_output: {
           week,
-          mentions: mention.map((m) =>
-            m.author === "Blair Ito"
-              ? { id: m.id, kind: "praise", about: "a review", quote: "the review on exports" }
-              : { id: m.id, kind: "ask", about: "alert routing", quote: null },
+          mentions: mentionRows.map((mention) =>
+            mention.author === "Blair Ito"
+              ? {
+                  id: mention.id,
+                  kind: "praise",
+                  about: "a review",
+                  quote: "the review on exports",
+                }
+              : { id: mention.id, kind: "ask", about: "alert routing", quote: null },
           ),
         },
       },
       "qa",
     );
     // You kept every thread of the closed weeks. This week waits for you in Review.
-    if (k > 0)
-      for (const [i, t] of threads.entries())
-        for (const [f, v] of [
+    if (weeksAgo > 0)
+      for (const [index, thread] of threads.entries())
+        for (const [field, value] of [
           ["discard", "no"],
-          ["without_me", i % 2 ? "slower" : "wouldnt"],
+          ["without_me", index % 2 ? "slower" : "wouldnt"],
         ])
           db.query(
             "INSERT INTO labels (thread_key, week, field, value, source, events, at) VALUES (?, ?, ?, ?, 'human', ?, ?)",
-          ).run(t.key, week, f, v, JSON.stringify(t.events.map((e) => e.id)), iso(mon));
+          ).run(
+            thread.key,
+            week,
+            field,
+            value,
+            JSON.stringify(thread.events.map((event) => event.id)),
+            iso(weekStart),
+          );
+
     // Feedback on the last closed week, shaped like schemas/feedback.json, with quotes code checks against your messages.
-    if (k === 1)
+    if (weeksAgo === 1)
       db.query("INSERT INTO feedback VALUES (?, ?, 'qa', 'qa', 0, ?)").run(
         week,
         JSON.stringify(
@@ -276,7 +302,7 @@ export function build(now = new Date()) {
             last_experiment: null,
           }),
         ),
-        iso(mon),
+        iso(weekStart),
       );
   }
   // Two drafts, as Claude would leave them: one on a milestone, one measured.
