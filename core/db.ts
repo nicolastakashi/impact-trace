@@ -27,16 +27,16 @@ export function open(path = join(DATA, "impact.db")) {
 }
 
 export function migrate(db: Database) {
-  const dir = join(ROOT, "db/migrations");
-  const files = readdirSync(dir)
+  const directory = join(ROOT, "db/migrations");
+  const files = readdirSync(directory)
     .filter((file) => file.endsWith(".sql"))
     .sort();
   // user_version counts the migrations already run.
   const { user_version } = db.query("PRAGMA user_version").get() as { user_version: number };
-  files.slice(user_version).forEach((file, i) =>
+  files.slice(user_version).forEach((file, index) =>
     db.transaction(() => {
-      db.exec(readFileSync(join(dir, file), "utf8"));
-      db.exec(`PRAGMA user_version = ${user_version + i + 1}`);
+      db.exec(readFileSync(join(directory, file), "utf8"));
+      db.exec(`PRAGMA user_version = ${user_version + index + 1}`);
     })(),
   );
 }

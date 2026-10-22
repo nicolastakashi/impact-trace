@@ -22,7 +22,7 @@ export const labeled = () =>
   );
 // The thread a request names by week and key, or false.
 export const threadOf = (body: any) =>
-  WEEK.test(body?.week) && reviewThreads(db, body.week).find((t) => t.key === body.key);
+  WEEK.test(body?.week) && reviewThreads(db, body.week).find((thread) => thread.key === body.key);
 export const goalLinks = () => links(db);
 
 // Projects you can still pick, by name.

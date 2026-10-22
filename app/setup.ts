@@ -4,10 +4,10 @@ import { badRequest } from "./data";
 
 // Setup: who you are, so the collectors search for you. ?guess=1 fills the form from the CLIs you already use.
 // A command's output, or "" when it fails or is not installed.
-const run = (...cmd: string[]) => {
+const run = (...command: string[]) => {
   try {
-    const proc = Bun.spawnSync(cmd, { stderr: "ignore" });
-    return proc.success ? proc.stdout.toString().trim() : "";
+    const result = Bun.spawnSync(command, { stderr: "ignore" });
+    return result.success ? result.stdout.toString().trim() : "";
   } catch {
     return "";
   }
@@ -39,12 +39,12 @@ export function setup(guess: boolean) {
   });
 }
 const LOGIN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/;
-export function saveSetup(b: any) {
+export function saveSetup(body: any) {
   const config = {
-    name: String(b?.name ?? "").trim(),
-    github: String(b?.github ?? "").trim(),
-    level: String(b?.level ?? "").trim(),
-    orgs: (Array.isArray(b?.orgs) ? b.orgs : [])
+    name: String(body?.name ?? "").trim(),
+    github: String(body?.github ?? "").trim(),
+    level: String(body?.level ?? "").trim(),
+    orgs: (Array.isArray(body?.orgs) ? body.orgs : [])
       .map((org: any) => String(org).trim())
       .filter(Boolean),
   };

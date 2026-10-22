@@ -7,7 +7,7 @@ import { badRequest, db, goalLinks, labeled } from "./data";
 import { projects } from "./projects";
 
 // North and Trace: the threads you kept in review, the last 8 weeks. Same shape as sample.json.
-const SRC: Record<string, string> = {
+const SOURCE_NAMES: Record<string, string> = {
   github: "GitHub",
   linear: "Linear",
   slack: "Slack",
@@ -18,49 +18,49 @@ const COLORS = ["var(--g1)", "var(--g2)", "var(--g3)", "var(--g4)", "var(--g5)"]
 
 export function north() {
   const weeks = labeled().slice(-8);
-  const { items, reviewPraise, itemOfEvent } = keptThreads(weeks);
-  if (!items.length) return null;
-  const rec = [...reviewPraise, ...mentionPraise(weeks, itemOfEvent)];
-  rec.sort((a, b) => a.when.localeCompare(b.when));
-  // Each item points at its first praise.
-  for (const [i, praise] of rec.entries()) {
-    const item = items.find((x) => x.id === praise.item);
-    if (item) item.rec ??= i;
+  const { threads, reviewPraise, threadOfEvent } = keptThreads(weeks);
+  if (!threads.length) return null;
+  const allPraise = [...reviewPraise, ...mentionPraise(weeks, threadOfEvent)];
+  allPraise.sort((left, right) => left.when.localeCompare(right.when));
+  // Each thread points at its first praise.
+  for (const [index, praise] of allPraise.entries()) {
+    const thread = threads.find((candidate) => candidate.id === praise.item);
+    if (thread) thread.rec ??= index;
   }
-  const { byId, used } = projectsOf(items, weeks);
-  const { goals, from } = rings(items, used, byId);
+  const { byId, used } = projectsOf(threads, weeks);
+  const { goals, from } = rings(threads, used, byId);
   return {
     WEEKS: weeks.map((week) => week.slice(5)),
     REVIEWS: weekly(weeks, "reviews_given"),
     PERIOD: `${weeks[0]} – ${weeks.at(-1)}`,
-    GOALS: goals.map((goal, i) => ({ ...goal, color: COLORS[i % COLORS.length] })),
+    GOALS: goals.map((goal, index) => ({ ...goal, color: COLORS[index % COLORS.length] })),
     GOALS_FROM: from,
     NUMS: numbers(weeks),
     PROJECTS: byId,
-    REC: rec,
+    REC: allPraise,
     ASKS: asks(weeks),
-    ITEMS: items,
-    HIGHLIGHT: highlight(items, weeks, rec),
+    ITEMS: threads,
+    HIGHLIGHT: highlight(threads, weeks, allPraise),
     FEEDBACK: feedback(),
-    PHASES: phases(weeks, items, rec),
+    PHASES: phases(weeks, threads, allPraise),
   };
 }
 
-// The threads you kept, as items, and the praise in their review comments.
+// The threads you kept, in North's shape, and the praise in their review comments.
 function keptThreads(weeks: string[]) {
-  const meta = db.query("SELECT author, occurred_at, payload FROM events WHERE id = ?");
+  const detailsOf = db.query("SELECT author, occurred_at, payload FROM events WHERE id = ?");
   const links = goalLinks();
-  const items: any[] = [];
+  const threads: any[] = [];
   const reviewPraise: any[] = [];
-  const itemOfEvent = new Map<string, string>(); // event id → key of its kept thread
-  weeks.forEach((week, w) => {
+  const threadOfEvent = new Map<string, string>(); // event id → key of its kept thread
+  weeks.forEach((week, weekIndex) => {
     for (const thread of reviewThreads(db, week)) {
       const labels = labelsOf(db, thread);
       if (discardOf(labels) !== "no") continue;
       const value = (field: string) => labelValue(labels, field);
-      const item: any = {
+      const kept: any = {
         id: thread.key,
-        w,
+        w: weekIndex,
         s: thread.projects[0]?.id ?? "none",
         title: value("title") ?? thread.events[0].title,
         summary: value("summary"),
@@ -76,36 +76,40 @@ function keptThreads(weeks: string[]) {
           ]),
         ),
         links: thread.events
-          .filter((e) => e.url)
-          .map((e) => [SRC[e.id.split(":")[0]] ?? "Other", e.title ?? e.kind, e.url]),
+          .filter((event) => event.url)
+          .map((event) => [
+            SOURCE_NAMES[event.id.split(":")[0]] ?? "Other",
+            event.title ?? event.kind,
+            event.url,
+          ]),
         // Span events for Trace: [kind, when or null, title, url]. Review comments and open issues have no time.
-        ev: thread.events.map((e) => [
-          e.kind,
-          (meta.get(e.id) as any)?.occurred_at || null,
-          e.title ?? "",
-          e.url ?? null,
+        ev: thread.events.map((event) => [
+          event.kind,
+          (detailsOf.get(event.id) as any)?.occurred_at || null,
+          event.title ?? "",
+          event.url ?? null,
         ]),
       };
       // Praise in review: a comment marked praise. Slack praise comes from every mention, below.
-      for (const e of thread.events) {
-        itemOfEvent.set(e.id, thread.key);
-        if (e.kind !== "review_comment") continue;
-        const event = meta.get(e.id) as any;
-        const text = JSON.parse(event.payload).body ?? "";
+      for (const event of thread.events) {
+        threadOfEvent.set(event.id, thread.key);
+        if (event.kind !== "review_comment") continue;
+        const details = detailsOf.get(event.id) as any;
+        const text = JSON.parse(details.payload).body ?? "";
         if (/^praise\b/i.test(text.trim()))
           reviewPraise.push({
-            w,
-            who: event.author ?? "",
+            w: weekIndex,
+            who: details.author ?? "",
             where: "PR review",
             t: plain(text).slice(0, 280),
-            when: (event.occurred_at ?? "").slice(0, 10),
+            when: (details.occurred_at ?? "").slice(0, 10),
             item: thread.key,
           });
       }
-      items.push(item);
+      threads.push(kept);
     }
   });
-  return { items, reviewPraise, itemOfEvent };
+  return { threads, reviewPraise, threadOfEvent };
 }
 
 // Every mention of you that Claude sorted, kept thread or not: a shoutout in #cheers is rarely in one.
@@ -117,7 +121,7 @@ const mentionsOfKind = (kind: string, weeks: string[]) =>
     )
     .all(kind, ...weeks) as any[];
 
-function mentionPraise(weeks: string[], itemOfEvent: Map<string, string>) {
+function mentionPraise(weeks: string[], threadOfEvent: Map<string, string>) {
   return mentionsOfKind("praise", weeks).map((mention) => {
     const payload = JSON.parse(mention.payload);
     return {
@@ -130,7 +134,7 @@ function mentionPraise(weeks: string[], itemOfEvent: Map<string, string>) {
       about: mention.about,
       url: payload.permalink ?? null,
       when: (mention.occurred_at ?? "").slice(0, 10),
-      item: itemOfEvent.get(mention.id),
+      item: threadOfEvent.get(mention.id),
     };
   });
 }
@@ -151,18 +155,20 @@ function asks(weeks: string[]) {
     byAuthor.set(mention.author, ask);
   }
   return [...byAuthor.values()]
-    .sort((a, b) => b.n - a.n)
+    .sort((left, right) => right.n - left.n)
     .slice(0, 6)
     .map((ask) => ({ ...ask, about: [...new Set(ask.about)].slice(0, 3) }));
 }
 
 // The projects your kept threads are in, by id. "none" holds the threads without one.
-function projectsOf(items: any[], weeks: string[]) {
+function projectsOf(threads: any[], weeks: string[]) {
   const all = projects(weeks).projects as any[];
-  const used = [...new Set(items.map((i) => i.s as string))].filter((s) => s !== "none");
+  const used = [...new Set(threads.map((thread) => thread.s as string))].filter(
+    (id) => id !== "none",
+  );
   const byId: any = { none: { name: "No project", url: null, lead: null, status: "—", ms: [] } };
   for (const id of used) {
-    const project = all.find((x) => x.id === id);
+    const project = all.find((candidate) => candidate.id === id);
     byId[id] = {
       name: project?.name ?? id,
       url: project?.url ?? null,
@@ -176,9 +182,9 @@ function projectsOf(items: any[], weeks: string[]) {
 
 // The rings are your goals, most served first. Before you write any, the three projects with
 // the most threads stand in, and North says so.
-function rings(items: any[], used: string[], projectsById: any) {
-  const threadsIn = (project: string) => items.filter((i) => i.s === project).length;
-  const served = (id: string) => items.filter((i) => i.g.includes(id)).length;
+function rings(threads: any[], used: string[], projectsById: any) {
+  const threadsIn = (project: string) => threads.filter((thread) => thread.s === project).length;
+  const served = (id: string) => threads.filter((thread) => thread.g.includes(id)).length;
   let goals = (db.query("SELECT id, title, kind FROM goals").all() as any[]).map((goal) => ({
     id: `g${goal.id}`,
     short: goal.title,
@@ -188,7 +194,7 @@ function rings(items: any[], used: string[], projectsById: any) {
   const from = goals.length ? "goals" : "projects";
   if (!goals.length) {
     goals = [...used]
-      .sort((a, b) => threadsIn(b) - threadsIn(a))
+      .sort((left, right) => threadsIn(right) - threadsIn(left))
       .slice(0, 3)
       .map((id) => ({
         id,
@@ -196,9 +202,10 @@ function rings(items: any[], used: string[], projectsById: any) {
         title: projectsById[id].name,
         kind: "team",
       }));
-    for (const item of items) item.g = goals.some((goal) => goal.id === item.s) ? [item.s] : [];
+    for (const thread of threads)
+      thread.g = goals.some((goal) => goal.id === thread.s) ? [thread.s] : [];
   }
-  goals.sort((a, b) => served(b.id) - served(a.id));
+  goals.sort((left, right) => served(right.id) - served(left.id));
   return { goals, from };
 }
 
@@ -207,9 +214,11 @@ function rings(items: any[], used: string[], projectsById: any) {
 const weekly = (weeks: string[], kind: string, field = "count") =>
   weeks.map((week) => {
     const row = db
-      .query("SELECT json_extract(payload, '$.' || ?) n FROM events WHERE kind = ? AND week = ?")
+      .query(
+        "SELECT json_extract(payload, '$.' || ?) value FROM events WHERE kind = ? AND week = ?",
+      )
       .get(field, kind, week) as any;
-    return row?.n ?? (field === "count" ? 0 : null);
+    return row?.value ?? (field === "count" ? 0 : null);
   });
 
 // The events of a kind, week by week: their time and payload.
@@ -217,9 +226,9 @@ const eventsPerWeek = (weeks: string[], kind: string) =>
   weeks.map((week) =>
     (
       db
-        .query("SELECT occurred_at t, payload p FROM events WHERE kind = ? AND week = ?")
+        .query("SELECT occurred_at, payload FROM events WHERE kind = ? AND week = ?")
         .all(kind, week) as any[]
-    ).map((row) => ({ t: row.t, ...JSON.parse(row.p) })),
+    ).map((row) => ({ occurredAt: row.occurred_at, ...JSON.parse(row.payload) })),
   );
 
 // A meeting's length in hours. A start with no time of day counts as 0.
@@ -237,12 +246,12 @@ function numbers(weeks: string[]) {
   const meetings = eventsPerWeek(weeks, "meeting");
   return {
     slack: messages.map((week) => week.length),
-    channels: messages.map((week) => new Set(week.map((m) => m.channel_name)).size),
-    slackAt: messages.map((week) => week.map((m) => m.t)),
+    channels: messages.map((week) => new Set(week.map((message) => message.channel_name)).size),
+    slackAt: messages.map((week) => week.map((message) => message.occurredAt)),
     meetings: meetings.map(
-      (week) => +week.reduce((total, m) => total + meetingHours(m), 0).toFixed(1),
+      (week) => +week.reduce((total, meeting) => total + meetingHours(meeting), 0).toFixed(1),
     ),
-    reach: mentions.map((week) => new Set(week.map((m) => m.author_name)).size),
+    reach: mentions.map((week) => new Set(week.map((mention) => mention.author_name)).size),
     merged: merged.map((week) => week.length),
     opened: weekly(weeks, "prs_opened"),
     asked_direct: weekly(weeks, "review_requests", "direct"),
@@ -254,15 +263,15 @@ function numbers(weeks: string[]) {
 
 // The thread North opens on, from the last week: a "wouldnt" (without you) with praise,
 // else one with praise, else any. No thread last week: the newest kept.
-function highlight(items: any[], weeks: string[], rec: any[]) {
-  const lastWeek = items.filter((i) => i.w === weeks.length - 1);
+function highlight(threads: any[], weeks: string[], allPraise: any[]) {
+  const lastWeek = threads.filter((thread) => thread.w === weeks.length - 1);
   const best = [
-    ...lastWeek.filter((i) => i.wm === "wouldnt" && i.rec != null),
-    ...lastWeek.filter((i) => i.rec != null),
+    ...lastWeek.filter((thread) => thread.wm === "wouldnt" && thread.rec != null),
+    ...lastWeek.filter((thread) => thread.rec != null),
     ...lastWeek,
-    ...items.slice().reverse(),
+    ...threads.slice().reverse(),
   ][0];
-  return { item: best.id, when: best.rec != null ? rec[best.rec].when : "" };
+  return { item: best.id, when: best.rec != null ? allPraise[best.rec].when : "" };
 }
 
 // Feedback, newest week first: what the code verified, never the raw Claude output.
@@ -272,30 +281,35 @@ function feedback() {
   return rows.map((row) => ({
     ...JSON.parse(row.output),
     verdicts: Object.fromEntries(
-      (verdictsOf.all(row.week) as any[]).map((v) => [v.item, { v: v.verdict, why: v.why }]),
+      (verdictsOf.all(row.week) as any[]).map((saved) => [
+        saved.item,
+        { v: saved.verdict, why: saved.why },
+      ]),
     ),
   }));
 }
 
 // One story screen per week: its threads, then its first praise.
-function phases(weeks: string[], items: any[], rec: any[]) {
-  return weeks.flatMap((week, w) => {
-    const kept = items.filter((i) => i.w === w).length;
+function phases(weeks: string[], threads: any[], allPraise: any[]) {
+  return weeks.flatMap((week, weekIndex) => {
+    const kept = threads.filter((thread) => thread.w === weekIndex).length;
     if (!kept) return [];
     const label = week.slice(5);
-    const firstPraise = rec.findIndex((x) => x.w === w);
-    const screens: any[] = [{ k: label, h: `${kept} threads kept`, from: w, to: w }];
+    const firstPraise = allPraise.findIndex((praise) => praise.w === weekIndex);
+    const screens: any[] = [
+      { k: label, h: `${kept} threads kept`, from: weekIndex, to: weekIndex },
+    ];
     if (firstPraise >= 0) screens.push({ k: label, rec: firstPraise });
     return screens;
   });
 }
 
 // The pieces of one week's feedback you can accept or reject.
-function feedbackItems(output: any) {
+function feedbackPieces(output: any) {
   return [
     "experiment",
     ...(output.strength ? ["strength"] : []),
-    ...output.patterns.map((p: any) => `pattern:${p.name}`),
+    ...output.patterns.map((pattern: any) => `pattern:${pattern.name}`),
   ];
 }
 
@@ -305,11 +319,11 @@ export function verdict(body: any) {
     .query("SELECT output FROM feedback WHERE week = ?")
     .get(String(body?.week ?? "")) as any;
   if (!row) return badRequest("No feedback for that week");
-  const item = String(body?.item ?? "");
-  if (!feedbackItems(JSON.parse(row.output)).includes(item))
+  const piece = String(body?.item ?? "");
+  if (!feedbackPieces(JSON.parse(row.output)).includes(piece))
     return badRequest("Unknown feedback item");
   if (body.verdict === null) {
-    db.query("DELETE FROM feedback_verdicts WHERE week = ? AND item = ?").run(body.week, item);
+    db.query("DELETE FROM feedback_verdicts WHERE week = ? AND item = ?").run(body.week, piece);
     return Response.json({ ok: true });
   }
   if (body.verdict !== "accept" && body.verdict !== "reject")
@@ -317,6 +331,6 @@ export function verdict(body: any) {
   const why = body.why == null ? null : String(body.why).trim().slice(0, 400) || null;
   db.query(
     `INSERT INTO feedback_verdicts VALUES (?, ?, ?, ?, ?) ON CONFLICT (week, item) DO UPDATE SET verdict = excluded.verdict, why = excluded.why, at = excluded.at`,
-  ).run(body.week, item, body.verdict, why, new Date().toISOString());
+  ).run(body.week, piece, body.verdict, why, new Date().toISOString());
   return Response.json({ ok: true });
 }
