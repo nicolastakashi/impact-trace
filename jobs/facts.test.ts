@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { facts } from "./facts";
 
-const D = {
+const APP_FACTS = {
   PERIOD: "2026-W41 – 2026-W42",
   WEEKS: ["W41", "W42"],
   REVIEWS: [4, 1],
@@ -80,39 +80,63 @@ const D = {
 };
 
 test("facts count what North shows, in your time zone", () => {
-  const f = facts(D, "Europe/Lisbon");
-  expect(f.totals).toMatchObject({
+  const result = facts(APP_FACTS, "Europe/Lisbon");
+  expect(result.totals).toMatchObject({
     kept: 2,
     no_goal: 1,
     goals: { "Exports GA": 1 },
     mode: { build: 1, elevate: 1 },
   });
-  expect(f.weeks.map((w: any) => [w.week, w.give_vs_take, w.outside_hours_pct, w.praise])).toEqual([
+  expect(
+    result.weeks.map((week: any) => [
+      week.week,
+      week.give_vs_take,
+      week.outside_hours_pct,
+      week.praise,
+    ]),
+  ).toEqual([
     ["2026-W41", 2, 50, 0],
     ["2026-W42", null, 100, 1],
   ]);
   expect(
-    f.wouldnt_happen_without_you.map((x: any) => [x.title, x.project, x.goals, x.events]),
+    result.wouldnt_happen_without_you.map((thread: any) => [
+      thread.title,
+      thread.project,
+      thread.goals,
+      thread.events,
+    ]),
   ).toEqual([["A", "Exports", ["Exports GA"], { pr_merged: 2, slack_mention: 1 }]]);
-  expect(f.feedback.patterns[0].your_verdict).toBe("accept");
-  expect(f.weeks.map((w: any) => [w.review_requests_direct, w.review_requests_team])).toEqual([
+  expect(result.feedback.patterns[0].your_verdict).toBe("accept");
+  expect(
+    result.weeks.map((week: any) => [week.review_requests_direct, week.review_requests_team]),
+  ).toEqual([
     [3, 5],
     [null, null],
   ]);
-  expect(f.recognition).toEqual([
+  expect(result.recognition).toEqual([
     { week: "2026-W42", who: "Ana", where: "#eng", about: null, quote: "thanks", url: null },
   ]);
-  expect(f.objectives[0].key_results.map((k: any) => [k.measured_by, k.now, k.progress])).toEqual([
+  expect(
+    result.objectives[0].key_results.map((keyResult: any) => [
+      keyResult.measured_by,
+      keyResult.now,
+      keyResult.progress,
+    ]),
+  ).toEqual([
     ["lead_time_h", 25, 0.5],
     ["you", 1, 0.5],
   ]);
-  expect(f.objectives[0].confidence).toEqual([{ week: "2026-W42", value: 6 }]);
-  expect(f.threads).toBeUndefined();
+  expect(result.objectives[0].confidence).toEqual([{ week: "2026-W42", value: 6 }]);
+  expect(result.threads).toBeUndefined();
 });
 
 test("one week adds its threads, with who set each label", () => {
-  const f = facts(D, "Europe/Lisbon", "2026-W42");
-  expect(f.threads.map((t: any) => [t.title, t.labels_by.mode])).toEqual([["B", "claude"]]);
-  expect(f.praise).toEqual([{ who: "Ana", where: "#eng", when: "2026-10-14", text: "thanks" }]);
-  expect(() => facts(D, "Europe/Lisbon", "2026-W30")).toThrow("not in");
+  const result = facts(APP_FACTS, "Europe/Lisbon", "2026-W42");
+  expect(result.threads.map((thread: any) => [thread.title, thread.labels_by.mode])).toEqual([
+    ["B", "claude"],
+  ]);
+  expect(result.praise).toEqual([
+    { who: "Ana", where: "#eng", when: "2026-10-14", text: "thanks" },
+  ]);
+  expect(() => facts(APP_FACTS, "Europe/Lisbon", "2026-W30")).toThrow("not in");
 });
