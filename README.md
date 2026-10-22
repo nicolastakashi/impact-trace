@@ -2,6 +2,10 @@
 
 Weekly impact tracking for engineers.
 
+![Review a thread, then see your weeks drawn as a trace](docs/demo.gif)
+
+All data in the demo is fictional.
+
 Claude Code collects the facts from GitHub, Linear, Slack, Calendar and Docs through
 CLIs and MCPs. Code here only validates them, stores them in SQLite, and shows them.
 
