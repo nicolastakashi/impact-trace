@@ -4,7 +4,7 @@ import gsap from "gsap";
 import { cnt, countUp, go, MODES, useEvent, useMotion, useNorth, type North } from "./lib";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
 
-const PHASE_BG = [
+const PHASE_BACKGROUND = [
   "linear-gradient(160deg,#2a1406,#ff7a45)",
   "linear-gradient(160deg,#ff7a45,#c8326a)",
   "linear-gradient(160deg,#2a2406,#c9a400 70%,#ffe37a)",
@@ -21,17 +21,17 @@ const Headline = ({ children }: { children: React.ReactNode }) => (
     {children}
   </p>
 );
-const Huge = ({ n }: { n: number }) => (
+const Huge = ({ value }: { value: number }) => (
   <span
     data-huge
     className="font-num text-[clamp(90px,20vw,220px)] leading-[.8] font-extrabold tracking-[-.02em] tabular-nums"
   >
-    {n}
+    {value}
   </span>
 );
 // White on the slide's color; lib's By is for the app's ground.
-const Caption = ({ className = "", ...p }: React.ComponentProps<"span">) => (
-  <span className={`text-[13px] text-white/75 ${className}`} {...p} />
+const Caption = ({ className = "", ...props }: React.ComponentProps<"span">) => (
+  <span className={`text-[13px] text-white/75 ${className}`} {...props} />
 );
 const pill = "rounded-full border border-white/25 bg-black/20 px-3.5 py-2 text-sm font-semibold";
 
@@ -54,18 +54,20 @@ function PhaseSlide({ north, phase }: { north: North; phase: any }) {
       <Kicker>{phase.k}</Kicker>
       <Headline>{phase.h}</Headline>
       <div className="flex flex-wrap gap-2.5">
-        {north.ITEMS.filter((i) => i.w >= phase.from && i.w <= phase.to).map((i) => (
-          <span key={i.id} className={pill}>
-            {i.title}
-          </span>
-        ))}
+        {north.ITEMS.filter((thread) => thread.w >= phase.from && thread.w <= phase.to).map(
+          (thread) => (
+            <span key={thread.id} className={pill}>
+              {thread.title}
+            </span>
+          ),
+        )}
       </div>
     </>
   );
 }
 
 function ModesSlide({ north }: { north: North }) {
-  const byMode = cnt(north.ITEMS, (i) => i.mode);
+  const byMode = cnt(north.ITEMS, (thread) => thread.mode);
   const longest = Math.max(1, ...Object.values(byMode));
   return (
     <>
@@ -92,39 +94,39 @@ function ModesSlide({ north }: { north: North }) {
   );
 }
 
-function slides(north: North, close: () => void): { bg: string; body: React.ReactNode }[] {
-  const answered = north.ITEMS.filter((i) => i.wm).length;
+function slides(north: North, close: () => void): { background: string; body: React.ReactNode }[] {
+  const answered = north.ITEMS.filter((thread) => thread.wm).length;
   return [
     {
-      bg: "linear-gradient(160deg,#16161d,#3a0d12 60%,#ff4d52)",
+      background: "linear-gradient(160deg,#16161d,#3a0d12 60%,#ff4d52)",
       body: (
         <>
           <Kicker>{north.PERIOD}</Kicker>
-          <Huge n={north.WEEKS.length} />
+          <Huge value={north.WEEKS.length} />
           <Headline>weeks of work, with a trace</Headline>
         </>
       ),
     },
     {
-      bg: "linear-gradient(160deg,#2a0b1a,#ff4f8f)",
+      background: "linear-gradient(160deg,#2a0b1a,#ff4f8f)",
       body: (
         <>
           <Kicker>In total</Kicker>
-          <Huge n={north.ITEMS.length} />
+          <Huge value={north.ITEMS.length} />
           <Headline>{`threads with evidence. ${north.REC.length} times people praised your work.`}</Headline>
         </>
       ),
     },
-    ...(north.PHASES as any[]).map((phase, n) => ({
-      bg: PHASE_BG[n % PHASE_BG.length]!,
+    ...(north.PHASES as any[]).map((phase, index) => ({
+      background: PHASE_BACKGROUND[index % PHASE_BACKGROUND.length]!,
       body: <PhaseSlide north={north} phase={phase} />,
     })),
     {
-      bg: "linear-gradient(160deg,#08230f,#12854a 60%,#7dffa8)",
+      background: "linear-gradient(160deg,#08230f,#12854a 60%,#7dffa8)",
       body: <ModesSlide north={north} />,
     },
     {
-      bg: "linear-gradient(160deg,#16161d,#2c2c38)",
+      background: "linear-gradient(160deg,#16161d,#2c2c38)",
       body: (
         <>
           <Kicker>The open question</Kicker>
@@ -156,9 +158,9 @@ function Slide({
   bar: React.RefObject<HTMLElement | null>;
   children: React.ReactNode;
 }) {
-  const el = useRef<HTMLDivElement>(null);
-  useMotion(el, () => {
-    gsap.from(el.current!.children, {
+  const container = useRef<HTMLDivElement>(null);
+  useMotion(container, () => {
+    gsap.from(container.current!.children, {
       y: 30,
       opacity: 0,
       duration: 0.6,
@@ -173,7 +175,7 @@ function Slide({
       ease: "power3.out",
       delay: 0.2,
     });
-    const huge = el.current!.querySelector<HTMLElement>("[data-huge]");
+    const huge = container.current!.querySelector<HTMLElement>("[data-huge]");
     if (huge) countUp(huge, +huge.textContent!, 1.2);
     if (bar.current)
       gsap.fromTo(bar.current, { width: 0 }, { width: "100%", duration: 0.9, ease: "power1.out" });
@@ -181,7 +183,7 @@ function Slide({
   // Taps pass through to the sides; only a button on the slide (Open review) takes clicks.
   return (
     <div
-      ref={el}
+      ref={container}
       className="pointer-events-none grid w-[min(820px,100%)] gap-5.5 px-7 pt-20 pb-15 [&_button]:pointer-events-auto [&_button]:relative [&_button]:z-2"
     >
       {children}
@@ -192,23 +194,24 @@ function Slide({
 export function Story() {
   const [north] = useNorth();
   const [open, setOpen] = useState(false);
-  const [i, setI] = useState(0);
+  const [index, setIndex] = useState(0);
   const bar = useRef<HTMLElement>(null);
   const box = useRef<HTMLDivElement>(null);
   useEvent("open-story", () => {
-    setI(0);
+    setIndex(0);
     setOpen(true);
   });
   const all = north ? slides(north, () => setOpen(false)) : [];
-  const n = all.length;
-  const step = (k: number) => setI((x) => Math.max(0, Math.min(n - 1, x + k)));
-  const keys = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowRight" || e.key === " ") {
-      e.preventDefault();
+  const count = all.length;
+  const step = (offset: number) =>
+    setIndex((current) => Math.max(0, Math.min(count - 1, current + offset)));
+  const keys = (event: React.KeyboardEvent) => {
+    if (event.key === "ArrowRight" || event.key === " ") {
+      event.preventDefault();
       step(1);
-    } else if (e.key === "ArrowLeft") step(-1);
+    } else if (event.key === "ArrowLeft") step(-1);
   };
-  const slide = all[i];
+  const slide = all[index];
   return (
     <Dialog open={open && !!slide} onOpenChange={setOpen}>
       {slide && (
@@ -217,8 +220,8 @@ export function Story() {
           aria-describedby={undefined}
           onKeyDown={keys}
           // Focus the slide, not the close button: Space steps on, it does not close.
-          onOpenAutoFocus={(e) => {
-            e.preventDefault();
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
             box.current?.focus();
           }}
           className="inset-0 m-0 block max-h-none w-full max-w-none overflow-hidden rounded-none border-0 p-0 pt-[env(safe-area-inset-top,0px)] text-white shadow-none"
@@ -226,18 +229,18 @@ export function Story() {
           <DialogTitle className="sr-only">Recap</DialogTitle>
           <div
             className="absolute inset-0 transition-[background] duration-600"
-            style={{ background: slide.bg }}
+            style={{ background: slide.background }}
           />
           <div
             className="absolute inset-x-4 top-[calc(14px+env(safe-area-inset-top,0px))] z-2 flex gap-1"
             aria-hidden="true"
           >
-            {all.map((_, k) => (
-              <i key={k} className="h-0.75 flex-1 overflow-hidden rounded-xs bg-white/30">
+            {all.map((_, position) => (
+              <i key={position} className="h-0.75 flex-1 overflow-hidden rounded-xs bg-white/30">
                 <b
-                  ref={k === i ? bar : undefined}
+                  ref={position === index ? bar : undefined}
                   className="block h-full bg-white"
-                  style={{ width: k <= i ? "100%" : 0 }}
+                  style={{ width: position <= index ? "100%" : 0 }}
                 />
               </i>
             ))}
@@ -259,11 +262,11 @@ export function Story() {
             onClick={() => step(1)}
           />
           <div className="relative grid h-full place-items-center">
-            <Slide key={i} bar={bar}>
+            <Slide key={index} bar={bar}>
               {slide.body}
             </Slide>
           </div>
-          <div className="absolute inset-x-0 bottom-[calc(16px+env(safe-area-inset-bottom,0px))] z-2 text-center font-mono text-[11px] font-medium opacity-70">{`← → or tap the sides · ${i + 1}/${n}`}</div>
+          <div className="absolute inset-x-0 bottom-[calc(16px+env(safe-area-inset-bottom,0px))] z-2 text-center font-mono text-[11px] font-medium opacity-70">{`← → or tap the sides · ${index + 1}/${count}`}</div>
         </DialogContent>
       )}
     </Dialog>
