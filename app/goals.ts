@@ -126,27 +126,29 @@ function readKeyResults(list: any[]) {
 }
 
 // Create, edit or delete one goal. Deleting it removes its links, never a project or a thread.
-export function saveGoal(b: any) {
-  const id = b?.id == null ? null : Number(b.id);
+export function saveGoal(body: any) {
+  const id = body?.id == null ? null : Number(body.id);
   if (id != null && !goalExists(id)) return badRequest("Unknown goal");
-  if (b?.delete) {
+  if (body?.delete) {
     db.query("DELETE FROM goals WHERE id = ?").run(id);
     return Response.json({ ok: true });
   }
-  const title = typeof b?.title === "string" ? b.title.trim() : "";
-  const quarter = b?.quarter ? String(b.quarter) : null;
+  const title = typeof body?.title === "string" ? body.title.trim() : "";
+  const quarter = body?.quarter ? String(body.quarter) : null;
   if (!title || title.length > 120) return badRequest("A goal needs a title, up to 120 characters");
   const description =
-    typeof b?.description === "string" && b.description.trim() ? b.description.trim() : null;
+    typeof body?.description === "string" && body.description.trim()
+      ? body.description.trim()
+      : null;
   if (description && description.length > 600)
     return badRequest("The description fits in 600 characters");
-  if (!["team", "personal"].includes(b?.kind)) return badRequest("Pick team or personal");
+  if (!["team", "personal"].includes(body?.kind)) return badRequest("Pick team or personal");
   if (quarter && !QUARTER.test(quarter)) return badRequest("Quarter looks like 2026-Q4");
-  const type = b?.type ?? "aspirational";
+  const type = body?.type ?? "aspirational";
   if (!["committed", "aspirational"].includes(type))
     return badRequest("Pick committed or aspirational");
   // Key results arrive whole: the list you see replaces the stored one.
-  const keyResults = readKeyResults(Array.isArray(b?.krs) ? b.krs : []);
+  const keyResults = readKeyResults(Array.isArray(body?.krs) ? body.krs : []);
   if ("error" in keyResults) return badRequest(keyResults.error);
 
   const at = new Date().toISOString();
@@ -161,52 +163,52 @@ export function saveGoal(b: any) {
           .query(
             "INSERT INTO goals (title, description, kind, type, quarter, at) VALUES (?, ?, ?, ?, ?, ?)",
           )
-          .run(title, description, b.kind, type, quarter, at).lastInsertRowid,
+          .run(title, description, body.kind, type, quarter, at).lastInsertRowid,
       );
     else
       db.query(
         "UPDATE goals SET title = ?, description = ?, kind = ?, type = ?, quarter = ?, krs = NULL, at = ? WHERE id = ?",
-      ).run(title, description, b.kind, type, quarter, at, goalId);
+      ).run(title, description, body.kind, type, quarter, at, goalId);
     db.query("DELETE FROM key_results WHERE goal_id = ?").run(goalId);
     keyResults.rows.forEach((k, pos) =>
       putKeyResult.run(goalId, pos, k.text, k.metric, k.start, k.target, k.current, at),
     );
     // A draft you used is now this goal.
-    if (b.draft_id != null)
-      db.query("DELETE FROM goal_drafts WHERE id = ?").run(Number(b.draft_id));
+    if (body.draft_id != null)
+      db.query("DELETE FROM goal_drafts WHERE id = ?").run(Number(body.draft_id));
   })();
   return Response.json({ ok: true, id: goalId });
 }
 
 // How sure you are this week, 1 to 10. Only this week: a check-in is what you knew then.
-export function checkin(b: any) {
-  const confidence = Number(b?.confidence);
+export function checkin(body: any) {
+  const confidence = Number(body?.confidence);
   const week = thisWeek();
-  if (!goalExists(Number(b?.goal_id))) return badRequest("Unknown goal");
+  if (!goalExists(Number(body?.goal_id))) return badRequest("Unknown goal");
   if (!Number.isInteger(confidence) || confidence < 1 || confidence > 10)
     return badRequest("Confidence is 1 to 10");
   db.query(
     `INSERT INTO goal_checkins (goal_id, week, confidence, at) VALUES (?, ?, ?, ?)
     ON CONFLICT DO UPDATE SET confidence = excluded.confidence, at = excluded.at`,
-  ).run(Number(b.goal_id), week, confidence, new Date().toISOString());
+  ).run(Number(body.goal_id), week, confidence, new Date().toISOString());
   return Response.json({ ok: true, week });
 }
 
 // Link or unlink a project, or one thread, to a goal.
-export function linkGoal(b: any) {
-  if (!goalExists(Number(b?.goal_id))) return badRequest("Unknown goal");
-  const goalId = Number(b.goal_id);
-  const on = b.on === true;
-  if (typeof b.project_id === "string") {
-    if (!isLiveProject(b.project_id)) return badRequest("Unknown project");
+export function linkGoal(body: any) {
+  if (!goalExists(Number(body?.goal_id))) return badRequest("Unknown goal");
+  const goalId = Number(body.goal_id);
+  const on = body.on === true;
+  if (typeof body.project_id === "string") {
+    if (!isLiveProject(body.project_id)) return badRequest("Unknown project");
     db.query(
       on
         ? "INSERT OR IGNORE INTO goal_projects VALUES (?, ?)"
         : "DELETE FROM goal_projects WHERE goal_id = ? AND project_id = ?",
-    ).run(goalId, b.project_id);
+    ).run(goalId, body.project_id);
     return Response.json({ ok: true });
   }
-  const thread = threadOf(b);
+  const thread = threadOf(body);
   if (!thread) return badRequest("Unknown thread for that week");
   const link = db.query(
     on
@@ -219,8 +221,8 @@ export function linkGoal(b: any) {
   return Response.json({ ok: true });
 }
 
-export function dismissDraft(b: any) {
-  return db.query("DELETE FROM goal_drafts WHERE id = ?").run(Number(b?.id)).changes
+export function dismissDraft(body: any) {
+  return db.query("DELETE FROM goal_drafts WHERE id = ?").run(Number(body?.id)).changes
     ? Response.json({ ok: true })
     : badRequest("Unknown draft");
 }

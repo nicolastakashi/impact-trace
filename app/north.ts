@@ -300,23 +300,23 @@ function feedbackItems(output: any) {
 }
 
 // Accept or reject one piece of feedback; verdict null takes it back.
-export function verdict(b: any) {
+export function verdict(body: any) {
   const row = db
     .query("SELECT output FROM feedback WHERE week = ?")
-    .get(String(b?.week ?? "")) as any;
+    .get(String(body?.week ?? "")) as any;
   if (!row) return badRequest("No feedback for that week");
-  const item = String(b?.item ?? "");
+  const item = String(body?.item ?? "");
   if (!feedbackItems(JSON.parse(row.output)).includes(item))
     return badRequest("Unknown feedback item");
-  if (b.verdict === null) {
-    db.query("DELETE FROM feedback_verdicts WHERE week = ? AND item = ?").run(b.week, item);
+  if (body.verdict === null) {
+    db.query("DELETE FROM feedback_verdicts WHERE week = ? AND item = ?").run(body.week, item);
     return Response.json({ ok: true });
   }
-  if (b.verdict !== "accept" && b.verdict !== "reject")
+  if (body.verdict !== "accept" && body.verdict !== "reject")
     return badRequest("Verdict is accept or reject");
-  const why = b.why == null ? null : String(b.why).trim().slice(0, 400) || null;
+  const why = body.why == null ? null : String(body.why).trim().slice(0, 400) || null;
   db.query(
     `INSERT INTO feedback_verdicts VALUES (?, ?, ?, ?, ?) ON CONFLICT (week, item) DO UPDATE SET verdict = excluded.verdict, why = excluded.why, at = excluded.at`,
-  ).run(b.week, item, b.verdict, why, new Date().toISOString());
+  ).run(body.week, item, body.verdict, why, new Date().toISOString());
   return Response.json({ ok: true });
 }
