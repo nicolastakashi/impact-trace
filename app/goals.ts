@@ -29,15 +29,21 @@ function goalsById() {
   return new Map(
     goals.map((goal) => {
       // An auto key result reads its metric (a rate or the quarter's total); a manual one is what you typed.
-      const krs = (keyResults.all(goal.id) as any[]).map((kr) => {
-        const value = kr.metric ? current(db, kr.metric, goal.quarter, now) : kr.current;
-        return { ...kr, value, progress: progress(kr.start, kr.target, value) };
+      const measured = (keyResults.all(goal.id) as any[]).map((keyResult) => {
+        const value = keyResult.metric
+          ? current(db, keyResult.metric, goal.quarter, now)
+          : keyResult.current;
+        return {
+          ...keyResult,
+          value,
+          progress: progress(keyResult.start, keyResult.target, value),
+        };
       });
       return [
         goal.id,
         {
           ...goal,
-          krs,
+          krs: measured,
           checkins: checkins.all(goal.id),
           projects: projects.all(goal.id),
           weeks: {} as Record<string, any[]>,
@@ -76,12 +82,12 @@ export function goalList() {
     .all();
   return {
     week: thisWeek(),
-    metrics: Object.entries(METRICS).map(([key, m]) => ({
+    metrics: Object.entries(METRICS).map(([key, metric]) => ({
       key,
-      label: m.label,
-      unit: m.unit,
-      better: m.better,
-      agg: m.agg,
+      label: metric.label,
+      unit: metric.unit,
+      better: metric.better,
+      agg: metric.agg,
     })),
     milestones,
     // Claude's drafts wait here until you use or dismiss them. A metric start is code's (jobs/drafts.ts).
@@ -91,10 +97,14 @@ export function goalList() {
           "SELECT id, title, kind, type, quarter, why, based_on, krs FROM goal_drafts ORDER BY id",
         )
         .all() as any[]
-    ).map((r) => ({ ...r, based_on: JSON.parse(r.based_on), krs: JSON.parse(r.krs) })),
+    ).map((draft) => ({
+      ...draft,
+      based_on: JSON.parse(draft.based_on),
+      krs: JSON.parse(draft.krs),
+    })),
     weeks,
     goals: [...goals.values()],
-    projects: liveProjects().map((p) => ({ ...p, threads: busy.get(p.id) ?? 0 })),
+    projects: liveProjects().map((project) => ({ ...project, threads: busy.get(project.id) ?? 0 })),
   };
 }
 
@@ -108,19 +118,20 @@ const numberOrNull = (value: any) => {
 function readKeyResults(list: any[]) {
   if (list.length > 5)
     return { error: "Five key results at most: more than that is a task list" } as const;
-  const rows = list.map((k: any) => ({
-    text: typeof k?.text === "string" ? k.text.trim() : "",
-    metric: k?.metric || null,
-    start: numberOrNull(k?.start),
-    target: numberOrNull(k?.target),
-    current: k?.metric ? null : numberOrNull(k?.current),
+  const rows = list.map((sent: any) => ({
+    text: typeof sent?.text === "string" ? sent.text.trim() : "",
+    metric: sent?.metric || null,
+    start: numberOrNull(sent?.start),
+    target: numberOrNull(sent?.target),
+    current: sent?.metric ? null : numberOrNull(sent?.current),
   }));
-  for (const k of rows) {
-    if (!k.text || k.text.length > 200)
+  for (const keyResult of rows) {
+    if (!keyResult.text || keyResult.text.length > 200)
       return { error: "Each key result needs a text, up to 200 characters" } as const;
-    if ([k.start, k.target, k.current].some(Number.isNaN))
-      return { error: `"${k.text}": start, target and now must be numbers` } as const;
-    if (k.metric && !known(db, k.metric)) return { error: `"${k.text}": unknown measure` } as const;
+    if ([keyResult.start, keyResult.target, keyResult.current].some(Number.isNaN))
+      return { error: `"${keyResult.text}": start, target and now must be numbers` } as const;
+    if (keyResult.metric && !known(db, keyResult.metric))
+      return { error: `"${keyResult.text}": unknown measure` } as const;
   }
   return { rows };
 }
@@ -170,8 +181,17 @@ export function saveGoal(body: any) {
         "UPDATE goals SET title = ?, description = ?, kind = ?, type = ?, quarter = ?, krs = NULL, at = ? WHERE id = ?",
       ).run(title, description, body.kind, type, quarter, at, goalId);
     db.query("DELETE FROM key_results WHERE goal_id = ?").run(goalId);
-    keyResults.rows.forEach((k, pos) =>
-      putKeyResult.run(goalId, pos, k.text, k.metric, k.start, k.target, k.current, at),
+    keyResults.rows.forEach((keyResult, position) =>
+      putKeyResult.run(
+        goalId,
+        position,
+        keyResult.text,
+        keyResult.metric,
+        keyResult.start,
+        keyResult.target,
+        keyResult.current,
+        at,
+      ),
     );
     // A draft you used is now this goal.
     if (body.draft_id != null)
@@ -216,7 +236,7 @@ export function linkGoal(body: any) {
       : "DELETE FROM goal_events WHERE goal_id = ? AND event_id = ?",
   );
   db.transaction(() => {
-    for (const e of thread.events) link.run(goalId, e.id);
+    for (const event of thread.events) link.run(goalId, event.id);
   })();
   return Response.json({ ok: true });
 }

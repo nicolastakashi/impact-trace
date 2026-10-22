@@ -17,13 +17,18 @@ export function pending() {
   const weeks = labeled().reverse();
   const decided = (thread: any) => setByYou(labelsOf(db, thread), "discard");
   return Object.fromEntries(
-    weeks.map((week) => [week, reviewThreads(db, week).filter((t) => !decided(t)).length]),
+    weeks.map((week) => [
+      week,
+      reviewThreads(db, week).filter((thread) => !decided(thread)).length,
+    ]),
   );
 }
 
 // { field: value } of the labels one source set.
 const labelsFrom = (rows: any[], source: string) =>
-  Object.fromEntries(rows.filter((r) => r.source === source).map((r) => [r.field, r.value]));
+  Object.fromEntries(
+    rows.filter((row) => row.source === source).map((row) => [row.field, row.value]),
+  );
 
 export function review(week: string) {
   const links = goalLinks();
@@ -65,7 +70,7 @@ export function decide(body: any) {
     db.query(`INSERT INTO labels (thread_key, week, field, value, source, events, at) VALUES (?, ?, ?, ?, 'human', ?, ?)
     ON CONFLICT DO UPDATE SET value=excluded.value, events=excluded.events, at=excluded.at`);
   const at = new Date().toISOString();
-  const eventIds = JSON.stringify(thread.events.map((e) => e.id));
+  const eventIds = JSON.stringify(thread.events.map((event) => event.id));
   db.transaction(() => {
     for (const [field, value] of entries)
       put.run(thread.key, body.week, field, value.trim(), eventIds, at);
@@ -83,7 +88,7 @@ export function unassign(body: any) {
     ON CONFLICT DO UPDATE SET project_id = NULL, at = excluded.at`);
   const at = new Date().toISOString();
   db.transaction(() => {
-    for (const e of thread.events) put.run(at, e.id);
+    for (const event of thread.events) put.run(at, event.id);
   })();
   return Response.json({ ok: true });
 }

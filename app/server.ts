@@ -4,7 +4,16 @@ import { CATEGORIES } from "../jobs/feedback";
 import { correct } from "../jobs/mentions";
 import { badRequest, db, reopen, WEEK } from "./data";
 import { decide, pending, review, unassign } from "./review";
-import { del, group, groups, merge, project, projects, restore, unmerge } from "./projects";
+import {
+  assignThread,
+  deleteProject,
+  merge,
+  project,
+  projects,
+  projectThreads,
+  restore,
+  unmerge,
+} from "./projects";
 import { checkin, dismissDraft, goalList, linkGoal, saveGoal } from "./goals";
 import { north, verdict } from "./north";
 import { saveSetup, setup } from "./setup";
@@ -24,9 +33,9 @@ const POST: Record<string, (body: any) => Response> = {
   "/api/mention": mention,
   "/api/labels": decide,
   "/api/unassign": unassign,
-  "/api/group": group,
+  "/api/group": assignThread,
   "/api/merge": merge,
-  "/api/delete": del,
+  "/api/delete": deleteProject,
   "/api/restore": restore,
   "/api/unmerge": unmerge,
   "/api/feedback": verdict,
@@ -35,18 +44,18 @@ const POST: Record<string, (body: any) => Response> = {
   "/api/checkin": checkin,
   "/api/goal-link": linkGoal,
 };
-const GET: Record<string, (q: URLSearchParams) => Response> = {
-  "/api/setup": (q) => setup(q.has("guess")),
-  "/api/groups": () => Response.json(groups()),
+const GET: Record<string, (params: URLSearchParams) => Response> = {
+  "/api/setup": (params) => setup(params.has("guess")),
+  "/api/groups": () => Response.json(projectThreads()),
   "/api/pending": () => Response.json(pending()),
-  "/api/project": (q) => project(q.get("id") ?? ""),
-  "/api/review": (q) => {
+  "/api/project": (params) => project(params.get("id") ?? ""),
+  "/api/review": (params) => {
     // No week asked: the latest with undecided threads, else the latest labeled.
     const undecided = Object.entries(pending()).find(([, count]) => count > 0);
     const week =
-      q.get("week") ??
+      params.get("week") ??
       undecided?.[0] ??
-      (db.query("SELECT max(week) w FROM labels").get() as any).w;
+      (db.query("SELECT max(week) latest FROM labels").get() as any).latest;
     return WEEK.test(week ?? "")
       ? Response.json(review(week))
       : Response.json({ week: null, weeks: [], threads: [] });
@@ -62,8 +71,10 @@ const GET: Record<string, (q: URLSearchParams) => Response> = {
   // The feedback categories and their sources come with the data, the example too.
   "/api/north": () => Response.json({ FB_CATS: CATEGORIES, ...(north() ?? SAMPLE_DATA) }),
   "/api/goals": () => Response.json(goalList()),
-  "/api/projects": (q) =>
-    Response.json(projects((q.get("weeks") ?? "").split(",").filter((w) => WEEK.test(w)))),
+  "/api/projects": (params) =>
+    Response.json(
+      projects((params.get("weeks") ?? "").split(",").filter((week) => WEEK.test(week))),
+    ),
 };
 
 const server = Bun.serve({
@@ -76,8 +87,8 @@ const server = Bun.serve({
   development: false,
   // /next/ was the app while it moved to React: old links land on the app.
   routes: { "/": page, "/next/": Response.redirect("/", 301) },
-  async fetch(req) {
-    const url = new URL(req.url);
+  async fetch(request) {
+    const url = new URL(request.url);
     const path = url.pathname;
     reopen();
     // Old addresses: review and groups now live inside the one page.
@@ -86,14 +97,14 @@ const server = Bun.serve({
         status: 302,
         headers: { location: `/#${path === "/groups" ? "/projects" : path}${url.search}` },
       });
-    if (req.method === "GET" && GET[path]) return GET[path](url.searchParams);
+    if (request.method === "GET" && GET[path]) return GET[path](url.searchParams);
     // A JSON content type forces a CORS preflight, so other sites cannot post here.
     if (
-      req.method === "POST" &&
-      req.headers.get("content-type") === "application/json" &&
+      request.method === "POST" &&
+      request.headers.get("content-type") === "application/json" &&
       POST[path]
     )
-      return POST[path](await req.json().catch(() => null));
+      return POST[path](await request.json().catch(() => null));
     return new Response("Not found", { status: 404 });
   },
 });
