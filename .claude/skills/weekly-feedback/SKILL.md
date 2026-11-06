@@ -41,4 +41,9 @@ in a message; `not` says what does not count. Code drops anything with another `
   means, by name.
   Learn from their reasons: a rejected "hedging" with "I was asking a real question" means
   real questions are not hedging. Keep tracking accepted patterns while they still show.
+- `credit_given`: every message from week `$ARGUMENTS` (not the earlier weeks) where they
+  credit a teammate's work and name them: an @mention, their name, or a DM to that person.
+  A `DM` channel is one person, so praise there is named even without a name: "great job
+  man" in a DM counts, `who` is `DM`. "thanks all" in a channel does not. `quote` is copied
+  exactly, as above; `who` is the person credited. An empty list is fine. Code counts them.
 - Plain English, short sentences, no praise padding. Return `week` as given.

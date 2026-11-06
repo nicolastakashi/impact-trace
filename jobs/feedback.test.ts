@@ -111,3 +111,41 @@ test("every category has a source to show", () => {
     }
   }
 });
+
+test("named credit keeps real quotes from this week, once per message", () => {
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  const insertMessage = db.query(
+    "INSERT INTO events (id, source, kind, week, occurred_at, title, payload, run_id) VALUES (?, 'slack', 'slack_message', ?, ?, ?, ?, 'r')",
+  );
+  insertMessage.run(
+    "slack:D/1",
+    "2026-W43",
+    "2026-10-20T10:00:00Z",
+    "DM with Jose",
+    JSON.stringify({ text: "Great job on this man" }),
+  );
+  insertMessage.run(
+    "slack:C/2",
+    "2026-W44",
+    "2026-10-27T10:00:00Z",
+    "#dev",
+    JSON.stringify({ text: "<@U1|nestor> great job, the dashboard is so much faster" }),
+  );
+  const verified = verify(db, "2026-W44", {
+    patterns: [],
+    strength: null,
+    experiment: { pattern: "", do: "" },
+    credit_given: [
+      { quote: "nestor> great job", who: "nestor" },
+      // The same message twice counts once.
+      { quote: "the dashboard is so much faster", who: "nestor" },
+      // Last week's credit is in the window, but counts in its own week.
+      { quote: "Great job on this man", who: "Jose" },
+      { quote: "thanks for all the hard work", who: "Danila" },
+    ],
+  });
+  expect(verified.credit_given.map((credit: any) => [credit.who, credit.week])).toEqual([
+    ["nestor", "2026-W44"],
+  ]);
+});
