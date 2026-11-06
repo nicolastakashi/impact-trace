@@ -214,8 +214,9 @@ function countGithub(out: any, directory: string, week: string) {
   return out.prs_merged.length;
 }
 
-// No source gives Slack a total. Every page but the last is full, so N pages hold at
-// least (N-1) x 20 rows: Haiku read 11 pages and returned the first 20, saying it was done.
+// No source gives Slack a total. Every page but the last two is full (the last can come
+// back empty after a short one: 5 pages read, 78 rows, all of them), so N pages hold at
+// least (N-2) x 20 rows: Haiku read 11 pages and returned the first 20, saying it was done.
 // A day call must return that day: one Saturday call came back with Monday's 93 rows.
 // Rows more than a day off (time zones) are dropped and the run is flagged.
 function countSlack(source: string, out: any, week: string): Count {
@@ -231,7 +232,7 @@ function countSlack(source: string, out: any, week: string): Count {
     out.dropped = offDay.length;
   }
   const got = out.messages.length;
-  const expected = Math.max(0, (out.pages_read - 1) * SLACK_PAGE);
+  const expected = Math.max(0, (out.pages_read - 2) * SLACK_PAGE);
   if (!out.exhausted)
     console.warn(`slack ${week}: paging did not finish after ${out.pages_read} pages`);
   if (got < expected)
@@ -239,10 +240,12 @@ function countSlack(source: string, out: any, week: string): Count {
   return { expected, got };
 }
 
-// Slack has a floor, not a total: at least as many rows as full pages is enough.
+// Slack, reviews and requests have a floor, not a total. Slack counts full pages; the
+// GitHub searches run before the collection, so a review submitted in between adds a PR.
 function statusOf(source: string, out: any, { expected, got }: Count): Status {
   const slack = source.startsWith("slack");
-  const counted = expected == null || (slack ? got! >= expected : expected === got);
+  const floor = slack || source === "reviews" || source === "requests";
+  const counted = expected == null || (floor ? got! >= expected : expected === got);
   const complete = out.exhausted !== false && !out.short && !(slack && out.dropped);
   return counted && complete ? "ok" : "count_mismatch";
 }
