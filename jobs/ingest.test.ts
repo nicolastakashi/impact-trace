@@ -568,3 +568,53 @@ test("review requests count PRs that asked you, and PRs that asked your teams, a
     ),
   ).toEqual({ direct: 1, team: 1 });
 });
+
+test("short counts that are not short: an empty last Slack page, a review after the search", () => {
+  const directory = mkdtempSync(join(tmpdir(), "fl-"));
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  // 5 pages read, the last one empty after a page of 18: 78 rows is every row.
+  const message = (index: number) => ({
+    pass: "own",
+    channel_id: "C1",
+    channel_name: "#dev",
+    ts: String(Date.UTC(2026, 9, 13, 8) / 1000 + index * 60),
+    permalink: `https://s/${index}`,
+    author_id: "U1",
+    author_name: "Me",
+    text: `m${index}`,
+  });
+  writeFileSync(
+    join(directory, "slack_own_2.run.json"),
+    JSON.stringify({
+      session_id: "s1",
+      structured_output: {
+        week: "2026-W42",
+        self_user_id: "U1",
+        pages_read: 5,
+        exhausted: true,
+        messages: Array.from({ length: 78 }, (_, index) => message(index)),
+      },
+    }),
+  );
+  // The search ran before the collection; one more PR was reviewed while it ran.
+  writeFileSync(
+    join(directory, "reviews.run.json"),
+    JSON.stringify({
+      session_id: "s2",
+      structured_output: {
+        from: "2026-10-12",
+        prs_read: 2,
+        reviews: [7, 8].map((number) => ({
+          repo: "acme/api",
+          number,
+          author: "blair",
+          state: "APPROVED",
+          submitted_at: "2026-10-13T09:00:00Z",
+        })),
+      },
+    }),
+  );
+  writeFileSync(join(directory, "reviews.expected"), "1\n");
+  expect(ingestWeek(db, directory, "2026-W42", ME)).toEqual({ reviews: "ok", slack_own_2: "ok" });
+});

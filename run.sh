@@ -36,6 +36,15 @@ collect() { # source tools [skill args]: the raw file is named after the source
     < /dev/null > "$out/$1.run.json"
 }
 
+# Searched before the collection, so a review submitted while it runs cannot make it look
+# short: ingest takes these as a floor.
+gh search prs --reviewed-by "$login" --updated ">=$monday" --limit 1000 \
+  --json author --jq "[.[]|select(.author.login!=\"$login\")]|length" > "$out/reviews.expected"
+# PRs that asked you or your teams, or that you reviewed; and your teams, for the ingest filter.
+{ gh search prs --review-requested "$login" --updated ">=$monday" --limit 1000 --json url,author
+  gh search prs --reviewed-by "$login" --updated ">=$monday" --limit 1000 --json url,author; } |
+  jq -s "[add[]|select(.author.login!=\"$login\")|.url]|unique|length" > "$out/requests.expected"
+
 collect linear "$linear_tools"
 collect github "$github_tools" "$login ${orgs:--}"
 # Reviews by when you submitted them: search can only filter PRs by their last update.
@@ -61,12 +70,6 @@ gh search prs --author "$login" --merged --merged-at "$monday..$sunday" --limit 
 gh search prs --author "$login" --created "$monday..$sunday" --limit 200 \
   --json repository --jq "[.[]|select(.repository.nameWithOwner|startswith(\"$login/\")|not)]|length" \
   > "$out/github_opened.expected"
-gh search prs --reviewed-by "$login" --updated ">=$monday" --limit 1000 \
-  --json author --jq "[.[]|select(.author.login!=\"$login\")]|length" > "$out/reviews.expected"
-# PRs that asked you or your teams, or that you reviewed; and your teams, for the ingest filter.
-{ gh search prs --review-requested "$login" --updated ">=$monday" --limit 1000 --json url,author
-  gh search prs --reviewed-by "$login" --updated ">=$monday" --limit 1000 --json url,author; } |
-  jq -s "[add[]|select(.author.login!=\"$login\")|.url]|unique|length" > "$out/requests.expected"
 gh api --paginate user/teams --jq '.[]|"team:\(.organization.login)/\(.slug)"' > "$out/teams.txt"
 
 # Exit 2 is a short count: what was stored still gets projects and labels, and the week ends

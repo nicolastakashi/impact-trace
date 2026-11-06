@@ -27,7 +27,9 @@ One week of your work, from 6 sources, into `data/impact.db`.
 - **Claude copies, code filters.** Claude returns every row; code drops rows outside the
   week. When Haiku filtered dates itself, it lost an issue.
 - **Independent counts.** `gh` counts your merged PRs and the PRs you reviewed on its own.
-  If Claude returned fewer, `ingest` exits 2, and so does a source that failed.
+  If Claude returned fewer, `ingest` exits 2, and so does a source that failed. The review
+  counts run before the collection, so a review you submit while it runs adds a PR
+  instead of flagging the week (W44 failed four days in a row on that).
 - **Reviews by date, not by PR.** Search can only filter PRs by their last update, so a PR
   you reviewed weeks ago counted again when its author pushed. Each review now counts in
   the week you submitted it (W42: 9 counted before, 5 real).
@@ -35,7 +37,7 @@ One week of your work, from 6 sources, into `data/impact.db`.
   your team are two numbers. Since W36: 32 PRs still wait on you, 722 on you or a team.
   Search shows only requests still open, so the PR timeline gives the date of each one.
 - **Slack in small calls.** A week in one call came back as its first page: 11 pages read,
-  20 rows returned. Code checks that the rows fill the pages read, and drops rows from
-  other days.
+  20 rows returned. Code checks that the rows fill all but the last two pages read (the
+  last can come back empty), and drops rows from other days.
 
 Code: `run.sh`, `.claude/skills/collect-*`, `jobs/ingest.ts`. Next: [threads](threads.md).
