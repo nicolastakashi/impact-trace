@@ -43,6 +43,18 @@ function praiseCount(db: Database, weeks: string[]) {
     .get(...weeks) as any;
   return row.total;
 }
+// Named credit you gave, from each week's feedback. A week before feedback counted it adds nothing.
+function namedCredit(db: Database, weeks: string[]) {
+  if (!weeks.length) return 0;
+  const row = db
+    .query(
+      `SELECT sum(json_array_length(output, '$.credit_given')) total FROM feedback
+    WHERE week IN (${placeholders(weeks)})`,
+    )
+    .get(...weeks) as any;
+  return row.total ?? 0;
+}
+
 function mergedPrs(db: Database, weeks: string[]) {
   if (!weeks.length) return [];
   const rows = db
@@ -119,6 +131,13 @@ export const METRICS: Record<string, Metric> = {
     better: "up",
     aggregation: "total",
     value: praiseCount,
+  },
+  named_credit: {
+    label: "Credit you gave by name",
+    unit: "messages",
+    better: "up",
+    aggregation: "total",
+    value: namedCredit,
   },
   asked_direct: {
     label: "Review requests that name you",
