@@ -18,6 +18,9 @@ week ends.
 - Up to 4 **patterns** that weaken your authority, 1 **strength**, and 1 **experiment** to try.
 - Each card: where you wrote it, your exact words, what it costs, and what to say next time
   (SBI, then feedforward).
+- **Credit you gave by name:** each message that week where you credit a teammate and name
+  them, a DM included. It feeds the `named_credit` metric for goals. A lone message never
+  becomes a thread, so threads could not count it.
 
 ## Why it works this way
 

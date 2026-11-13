@@ -114,3 +114,14 @@ test("a rare event is the quarter's total so far, this week too; a flow is a rat
   addEvent(db, "r2026-W42", "reviews_given", "2026-W42", { count: 0 });
   expect(current(db, "reviews_given", "2026-Q4", "2026-W43")).toBe(4);
 });
+
+test("named credit is the quarter's total from each week's feedback", () => {
+  const db = freshDb();
+  const save = db.query("INSERT INTO feedback VALUES (?, ?, NULL, NULL, 0, '')");
+  save.run("2026-W43", JSON.stringify({ credit_given: [{}, {}] }));
+  save.run("2026-W44", JSON.stringify({ credit_given: [{}] }));
+  // Feedback from before the count: no credit_given, adds nothing.
+  save.run("2026-W42", JSON.stringify({ patterns: [] }));
+  expect(measure(db, "named_credit", ["2026-W42", "2026-W43", "2026-W44"])).toBe(3);
+  expect(measure(db, "named_credit", ["2026-W45"])).toBe(0);
+});

@@ -241,6 +241,16 @@ export function verify(db: Database, week: string, out: any) {
     ? (out.strength.evidence ?? []).map(cite).filter(Boolean)
     : [];
   const target = patterns.find((pattern: any) => pattern.category === out.experiment?.pattern);
+  // Named credit counts once per message, and only from this week: the window is for patterns.
+  const credited = new Set<string>();
+  const creditGiven = (out.credit_given ?? [])
+    .map((credit: any) => ({ who: credit.who, ...cite(credit) }))
+    .filter((credit: any) => {
+      const message = `${credit.at} ${credit.channel}`;
+      if (credit.week !== week || credited.has(message)) return false;
+      credited.add(message);
+      return true;
+    });
   return {
     week,
     weeks,
@@ -255,6 +265,7 @@ export function verify(db: Database, week: string, out: any) {
       ? { ...out.experiment, pattern: target.name, markers: target.markers, trend: target.trend }
       : null,
     last_experiment: out.last_experiment ?? null,
+    credit_given: creditGiven,
     previous: previous(db, week, weeks, messages),
     dropped: quoteCount(out.patterns ?? []) - quoteCount(patterns),
   };
@@ -262,7 +273,13 @@ export function verify(db: Database, week: string, out: any) {
 
 // No messages from you that week, so nothing to judge: the row still marks the week as closed.
 function saveEmpty(db: Database, week: string) {
-  const nothing = { patterns: [], strength: null, experiment: null, last_experiment: null };
+  const nothing = {
+    patterns: [],
+    strength: null,
+    experiment: null,
+    last_experiment: null,
+    credit_given: [],
+  };
   db.query("INSERT OR REPLACE INTO feedback VALUES (?, ?, NULL, NULL, 0, ?)").run(
     week,
     JSON.stringify(verify(db, week, nothing)),
@@ -291,6 +308,7 @@ function saveFeedback(db: Database, week: string, run: any) {
     patterns: verified.patterns.length,
     quotes_dropped: verified.dropped,
     experiment: !!verified.experiment?.trend,
+    credit_given: verified.credit_given.length,
   };
 }
 
