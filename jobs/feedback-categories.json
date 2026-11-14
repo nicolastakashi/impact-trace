@@ -1,7 +1,7 @@
 [
   {"id": "permission", "kind": "pattern", "name": "Asking permission on what you own",
-   "look_for": "Asking sign-off or objections on a decision inside your own ownership: \"any objection?\", \"is that ok?\", \"wdyt?\" at the end of a plan.",
-   "not": "Review requests, and real questions where you lack the context. The stronger version states intent and keeps people informed; it never acts in silence.",
+   "look_for": "Asking sign-off on a decision the message itself shows is yours (your PR, your repo, your project, a plan you already chose): \"any objection?\", \"is that ok?\", \"do you mind if I\".",
+   "not": "Review requests; real questions where you lack the context; asking for opinions on a shared design or on what someone else owns; agreeing a time or a meeting, which needs the other person; and any message where the decision is not shown to be yours. When in doubt, it does not count. The stronger version states intent and keeps people informed; it never acts in silence.",
    "refs": [
      {"q": "Radiating intent (instead of seeking permission or asking for forgiveness).", "who": "Tanya Reilly, The Staff Engineer's Path, ch. 7", "url": "https://danlebrero.com/2024/01/24/the-staff-engineers-path-summary/", "warn": "From a reader's notes, not the book"},
      {"q": "instead of asking permission, we would say 'I intend to...'", "who": "L. David Marquet, Turn the Ship Around!", "url": "https://www.infoq.com/news/2015/11/intent-based-leadership-agile/"}]},
