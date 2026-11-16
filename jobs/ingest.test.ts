@@ -618,3 +618,46 @@ test("short counts that are not short: an empty last Slack page, a review after 
   writeFileSync(join(directory, "reviews.expected"), "1\n");
   expect(ingestWeek(db, directory, "2026-W42", ME)).toEqual({ reviews: "ok", slack_own_2: "ok" });
 });
+
+test("an open issue moves to the latest week, unless you reviewed the week it is in", () => {
+  const thisWeek = isoWeek(new Date().toISOString()); // open issues only enter the current week
+  const db = new Database(":memory:", { strict: true });
+  migrate(db);
+  const insertEvent = db.query(
+    "INSERT INTO events (id, source, kind, week, payload, run_id) VALUES (?, 'linear', 'issue_open', ?, '{}', 'r')",
+  );
+  insertEvent.run("linear:ACME-7", "2026-W42");
+  insertEvent.run("linear:ACME-8", "2026-W41");
+  db.run(
+    "INSERT INTO labels VALUES ('2026-W42:linear:ACME-7', '2026-W42', 'title', 'Exports', 'human', NULL, NULL, '[]', 'now')",
+  );
+  const directory = mkdtempSync(join(tmpdir(), "it-"));
+  const open = (id: string) => ({
+    id,
+    title: id,
+    url: `https://linear.app/${id}`,
+    status_type: "started",
+    completed_at: null,
+    project_name: null,
+    milestone_name: null,
+  });
+  writeFileSync(
+    join(directory, "linear.run.json"),
+    JSON.stringify({
+      is_error: false,
+      session_id: "s2",
+      structured_output: {
+        week: thisWeek,
+        pages_read: 1,
+        projects: [],
+        issues: [open("ACME-7"), open("ACME-8")],
+        attachments: [],
+      },
+    }),
+  );
+  ingestWeek(db, directory, thisWeek, ME);
+  const weekOf = (id: string) =>
+    (db.query("SELECT week FROM events WHERE id = ?").get(id) as any).week;
+  expect(weekOf("linear:ACME-7")).toBe("2026-W42");
+  expect(weekOf("linear:ACME-8")).toBe(thisWeek);
+});

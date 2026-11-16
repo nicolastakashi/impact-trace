@@ -105,7 +105,12 @@ export function ingestWeek(db: Database, directory: string, week: string, me: Co
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET kind=excluded.kind, week=excluded.week, occurred_at=excluded.occurred_at, title=excluded.title,
       url=excluded.url, author=excluded.author, project_id=excluded.project_id, milestone_id=excluded.milestone_id,
-      payload=excluded.payload, run_id=excluded.run_id`);
+      payload=excluded.payload, run_id=excluded.run_id
+    -- A week you reviewed keeps its events: moving one out would undo your labels.
+    -- ponytail: later work on that issue then only shows through its project; one row per
+    -- (id, week) would count it in both weeks.
+    WHERE events.week = excluded.week
+      OR NOT EXISTS (SELECT 1 FROM labels WHERE source = 'human' AND labels.week = events.week)`);
   const insertLink = db.query(
     "INSERT OR IGNORE INTO links (from_id, to_ref, relation) VALUES (?, ?, ?)",
   );
