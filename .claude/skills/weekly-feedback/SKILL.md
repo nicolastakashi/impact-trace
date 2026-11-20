@@ -22,9 +22,11 @@ in a message; `not` says what does not count. Code drops anything with another `
 - A pattern needs at least 2 messages. Leave out what the data does not show. Fewer strong
   patterns beat more weak ones; an empty list is fine.
 - Review requests ("can I get a review") are normal practice, not permission seeking.
-- `markers`: lowercase phrases that show the pattern in a message ("wdyt", "any objection",
+- Asking what people think is not permission seeking by itself: "wdyt" alone is not evidence.
+  Flag `permission` only when the message shows the decision is theirs.
+- `markers`: lowercase phrases that show the pattern in a message ("any objection",
   "sorry to escalate"). Code counts the messages that contain them, week by week. Pick phrases
-  that rarely mean anything else.
+  that rarely mean anything else; never "wdyt", which also asks for real opinions.
 - `instead`: that same message rewritten in their voice and language, one sentence, stronger:
   what to say next time, not a judgment of the past.
 - `why`: the impact, what it costs them at their level, in one or two sentences, from these

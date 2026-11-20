@@ -1,4 +1,6 @@
 import { Database } from "bun:sqlite";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { expect, test } from "bun:test";
 import { migrate } from "../core/db";
 import { CATEGORIES, isoWeek, pendingMondays, verify } from "./feedback";
@@ -148,4 +150,15 @@ test("named credit keeps real quotes from this week, once per message", () => {
   expect(verified.credit_given.map((credit: any) => [credit.who, credit.week])).toEqual([
     ["nestor", "2026-W44"],
   ]);
+});
+
+test("the schema accepts only category ids, so a pattern is never dropped for its name", () => {
+  const schema = JSON.parse(
+    readFileSync(join(import.meta.dir, "../schemas/feedback.json"), "utf8"),
+  );
+  const ids = (kind: string) =>
+    CATEGORIES.filter((entry) => entry.kind === kind).map((entry) => entry.id);
+  expect(schema.properties.patterns.items.properties.category.enum).toEqual(ids("pattern"));
+  expect(schema.properties.strength.properties.category.enum).toEqual(ids("strength"));
+  expect(schema.properties.experiment.properties.pattern.enum).toEqual(ids("pattern"));
 });
