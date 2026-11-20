@@ -127,8 +127,9 @@ export function threads(db: Database, weeks: string[]) {
   return [...loose, ...byProject.values()].sort((left, right) => right.length - left.length);
 }
 
-// An open issue lives in the latest week that saw it, so a PR can cite an issue that has
-// moved on to a later week. Its project still places the PR: W43 took three W42 PRs out of their thread.
+// An open issue lives in the latest week that saw it, unless you reviewed its week (ingest keeps
+// it there). So a PR can cite an issue that has moved on to a later week. Its project still
+// places the PR: W43 took three W42 PRs out of their thread.
 // Returns cluster root → projects of issues cited from other weeks.
 function issueProjectsFromOtherWeeks(
   db: Database,
